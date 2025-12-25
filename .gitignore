@@ -1,3 +1,6 @@
 /front/node_modules
 /back/node_modules
 /.env
+
+/back/.env
+/back/config/database.js
