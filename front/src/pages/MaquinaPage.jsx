@@ -13,6 +13,7 @@ import { Save, Print, Refresh, Download } from '@mui/icons-material';
 import MaquinaForm from '../components/forms/MaquinaForm';
 import DataTable from '../components/tables/DataTable';
 import SearchBar from '../components/tables/SearchBar';
+import maquinaService from '../services/maquinaService';
 
 const MaquinaPage = () => {
   const [loading, setLoading] = useState(false);
@@ -39,63 +40,11 @@ const MaquinaPage = () => {
   const loadMaquinas = useCallback(async () => {
     setLoading(true);
     try {
-      // Simulação - substitua pela sua API real
-      const mockData = [
-        { 
-          id: 1, 
-          processador: 'i5 10ª Geração', 
-          memoria: '16GB DDR4', 
-          armazenamento: '512GB SSD',
-          fonte: '500W',
-          origem: 'Mercado Livre',
-          responsavelMaquina: 'Marcos',
-          defeito: 'Não liga',
-          observacao: 'Teste completo',
-          data: '2024-01-15',
-          fkDevolucao: 123
-        },
-        { 
-          id: 2, 
-          processador: 'i7 9ª Geração', 
-          memoria: '32GB DDR4', 
-          armazenamento: '1TB NVMe',
-          fonte: '650W',
-          origem: 'Shopee',
-          responsavelMaquina: 'Kell',
-          defeito: '',
-          observacao: '',
-          data: '2024-01-15',
-          fkDevolucao: null
-        },
-        { 
-          id: 3, 
-          processador: 'i5 8ª Geração', 
-          memoria: '8GB DDR4', 
-          armazenamento: '256GB SSD',
-          fonte: '400W',
-          origem: 'Mercado Livre',
-          responsavelMaquina: 'Enzo',
-          defeito: 'Tela azul',
-          observacao: 'Reiniciar para testar',
-          data: '2024-01-14',
-          fkDevolucao: 124
-        },
-      ];
-      
-      // Filtrar por termo de busca
-      const filtered = mockData.filter(m =>
-        Object.values(m).some(val => 
-          String(val).toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      );
-      
-      // Paginação
-      const startIndex = page * rowsPerPage;
-      const endIndex = startIndex + rowsPerPage;
-      const paginated = filtered.slice(startIndex, endIndex);
-      
-      setMaquinas(paginated);
-      setTotalRows(filtered.length);
+      // Buscar no backend
+      const resp = await maquinaService.getAll(page + 1, rowsPerPage, searchTerm);
+      // resp expected: { pagina, totalPaginas, totalRegistros, dados }
+      setMaquinas(resp.dados || []);
+      setTotalRows(resp.totalRegistros || 0);
     } catch (error) {
       console.error('Erro ao carregar máquinas:', error);
       alert('Erro ao carregar máquinas');
@@ -128,17 +77,16 @@ const MaquinaPage = () => {
     setSubmitting(true);
     
     try {
-      // Simulação - substitua pela sua API real
-      console.log('Salvando máquina:', {
-        ...formData,
-        data: new Date().toISOString().split('T')[0]
-      });
-      
+      // Enviar para backend
+      const payload = { ...formData, data: new Date().toISOString().split('T')[0] };
+      const res = await maquinaService.create(payload);
+
       alert('Máquina cadastrada!');
-      
-      // Imprimir etiqueta
-      handlePrint({ id: 'new', ...formData });
-      
+
+      // Imprimir etiqueta (se API retornar id em res.data ou res.data.data)
+      const newId = res.data?.id || res.id || 'new';
+      handlePrint({ id: newId, ...formData });
+
       setFormData({
         processador: '',
         memoria: '',
@@ -151,6 +99,7 @@ const MaquinaPage = () => {
         observacao: '',
         fkDevolucao: null,
       });
+      // Reload
       loadMaquinas();
     } catch (error) {
       alert('Erro ao salvar máquina');

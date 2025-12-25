@@ -1,28 +1,32 @@
-// Simulação - substitua pela sua API real
+import api from './api';
+
 const maquinaService = {
   async create(maquinaData) {
-    console.log('Salvando máquina:', maquinaData);
-    return { id: Math.floor(Math.random() * 1000) + 1 };
+    const res = await api.post('/maquinas', maquinaData);
+    return res.data;
   },
 
   async getAll(page = 1, limit = 10, search = '') {
-    // Simulação
-    return {
-      dados: [],
-      totalRegistros: 0,
-      pagina: page,
-      totalPaginas: 1
-    };
+    const res = await api.get('/maquinas', {
+      params: { page, limit, search }
+    });
+    return res.data; // { pagina, totalPaginas, totalRegistros, dados }
   },
 
   async getToday() {
-    // Simulação
-    return [];
+    const res = await api.get('/maquinas/dia');
+    return res.data; // { data: [...] }
   },
 
   async printLabel(id) {
-    console.log('Imprimindo etiqueta para máquina ID:', id);
-    return true;
+    // Se houver endpoint de impressão, usar aqui; por enquanto só simula
+    try {
+      await api.get(`/maquinas/${id}`);
+      return true;
+    } catch (err) {
+      console.error('Erro ao solicitar etiqueta:', err);
+      return false;
+    }
   }
 };
 
