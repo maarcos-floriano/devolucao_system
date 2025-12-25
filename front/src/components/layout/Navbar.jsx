@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -10,6 +10,7 @@ import {
   Menu,
   MenuItem,
   Avatar,
+  Chip,
 } from '@mui/material';
 import {
   Dashboard,
@@ -26,6 +27,7 @@ import { useAuth } from '../../contexts/AuthContext';
 const Navbar = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleMenu = (event) => {
@@ -45,7 +47,6 @@ const Navbar = ({ onMenuClick }) => {
     { path: '/dashboard', label: 'Dashboard', icon: <Dashboard /> },
     { path: '/maquinas', label: 'Máquinas', icon: <Computer /> },
     { path: '/monitores', label: 'Monitores', icon: <Monitor /> },
-    { path: '/retirada', label: 'Retirada', icon: <Inventory /> },
     { path: '/devolucao', label: 'Devolução', icon: <KeyboardReturn /> },
     { path: '/kit', label: 'Kit', icon: <Build /> },
   ];
@@ -64,12 +65,12 @@ const Navbar = ({ onMenuClick }) => {
         </IconButton>
 
         {/* Logo/Título */}
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 700 }}>
           RMA Hospedagem
         </Typography>
 
         {/* Menu para desktop */}
-        <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1 }}>
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1, alignItems: 'center' }}>
           {menuItems.map((item) => (
             <Button
               key={item.path}
@@ -77,7 +78,14 @@ const Navbar = ({ onMenuClick }) => {
               component={Link}
               to={item.path}
               startIcon={item.icon}
-              sx={{ textTransform: 'none' }}
+              sx={{
+                textTransform: 'none',
+                fontWeight: location.pathname === item.path ? 700 : 600,
+                textDecoration: location.pathname === item.path ? 'underline' : 'none',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                },
+              }}
             >
               {item.label}
             </Button>
@@ -85,10 +93,19 @@ const Navbar = ({ onMenuClick }) => {
         </Box>
 
         {/* Usuário e logout */}
-        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2, gap: 1 }}>
+          <Chip
+            label={user?.nome || 'Técnico'}
+            size="small"
+            sx={{ 
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              color: 'white',
+              fontWeight: 600,
+            }}
+          />
           <IconButton onClick={handleMenu} color="inherit">
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-              {user?.nome?.charAt(0) || 'U'}
+              {user?.nome?.charAt(0) || 'T'}
             </Avatar>
           </IconButton>
           <Menu
@@ -96,11 +113,6 @@ const Navbar = ({ onMenuClick }) => {
             open={Boolean(anchorEl)}
             onClose={handleClose}
           >
-            <MenuItem disabled>
-              <Typography variant="body2">
-                {user?.nome || 'Usuário'}
-              </Typography>
-            </MenuItem>
             <MenuItem onClick={handleLogout}>
               <Logout sx={{ mr: 1 }} fontSize="small" />
               Sair

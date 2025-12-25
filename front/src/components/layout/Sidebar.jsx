@@ -23,7 +23,6 @@ const Sidebar = ({ open, onClose }) => {
     { path: '/dashboard', label: 'Dashboard', icon: <Dashboard /> },
     { path: '/maquinas', label: 'Máquinas', icon: <Computer /> },
     { path: '/monitores', label: 'Monitores', icon: <Monitor /> },
-    { path: '/retirada', label: 'Retirada', icon: <Inventory /> },
     { path: '/devolucao', label: 'Devolução', icon: <KeyboardReturn /> },
     { path: '/kit', label: 'Kit', icon: <Build /> },
   ];

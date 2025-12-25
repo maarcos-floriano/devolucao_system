@@ -12,7 +12,7 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar onMenuClick={handleDrawerToggle} />
       <Sidebar open={mobileOpen} onClose={handleDrawerToggle} />
       
@@ -21,11 +21,11 @@ const Layout = ({ children }) => {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - 240px)` },
-          mt: 8, // Espaço para o AppBar
+          backgroundColor: '#f4f4f4',
+          mt: 8, // Espaço para o Navbar fixo
         }}
       >
-        <Toolbar /> {/* Espaço fixo */}
+        <Toolbar /> {/* Espaçamento fixo */}
         {children || <Outlet />}
       </Box>
     </Box>

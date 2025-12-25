@@ -11,6 +11,7 @@ import {
   Chip,
   Tooltip,
   TablePagination,
+  CircularProgress,
   Box,
 } from '@mui/material';
 import {
@@ -18,6 +19,7 @@ import {
   Delete,
   Print,
   Visibility,
+  Replay,
 } from '@mui/icons-material';
 
 const DataTable = ({
@@ -32,6 +34,7 @@ const DataTable = ({
   onDelete,
   onView,
   onPrint,
+  onReimprimir,
   loading = false,
   ...props
 }) => {
@@ -52,26 +55,51 @@ const DataTable = ({
     
     if (column.type === 'boolean') {
       return value ? (
-        <Chip label="Sim" color="success" size="small" />
+        <Chip 
+          label="Sim" 
+          size="small" 
+          sx={{ 
+            backgroundColor: '#dcfce7',
+            color: '#166534',
+            fontWeight: 600,
+          }} 
+        />
       ) : (
-        <Chip label="Não" variant="outlined" size="small" />
+        <Chip 
+          label="Não" 
+          variant="outlined" 
+          size="small" 
+          sx={{ 
+            borderColor: '#d1fae5',
+            color: '#6b7280',
+          }} 
+        />
       );
     }
     
     if (column.type === 'date') {
-      return new Date(value).toLocaleDateString('pt-BR');
+      return value ? new Date(value).toLocaleDateString('pt-BR') : '-';
     }
     
     if (column.type === 'datetime') {
-      return new Date(value).toLocaleString('pt-BR');
+      return value ? new Date(value).toLocaleString('pt-BR') : '-';
     }
     
     return value || '-';
   };
 
   return (
-    <Paper elevation={2} sx={{ width: '100%', overflow: 'hidden' }}>
-      <TableContainer sx={{ maxHeight: 600 }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <TableContainer 
+        component={Paper} 
+        elevation={0}
+        sx={{ 
+          flex: 1,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+        }}
+      >
         <Table stickyHeader size="small">
           <TableHead>
             <TableRow>
@@ -79,13 +107,28 @@ const DataTable = ({
                 <TableCell
                   key={column.field}
                   align={column.align || 'left'}
-                  sx={{ fontWeight: 'bold', bgcolor: 'primary.light', color: 'white' }}
+                  sx={{ 
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    backgroundColor: '#22c55e',
+                    color: 'white',
+                    borderBottom: '2px solid #15803d',
+                  }}
                 >
                   {column.headerName}
                 </TableCell>
               ))}
-              {(onEdit || onDelete || onView || onPrint) && (
-                <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: 'primary.light', color: 'white' }}>
+              {(onEdit || onDelete || onView || onPrint || onReimprimir) && (
+                <TableCell 
+                  align="center" 
+                  sx={{ 
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    backgroundColor: '#22c55e',
+                    color: 'white',
+                    borderBottom: '2px solid #15803d',
+                  }}
+                >
                   Ações
                 </TableCell>
               )}
@@ -94,53 +137,120 @@ const DataTable = ({
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={columns.length + 1} align="center">
-                  Carregando...
+                <TableCell 
+                  colSpan={columns.length + ((onEdit || onDelete || onView || onPrint || onReimprimir) ? 1 : 0)} 
+                  align="center"
+                  sx={{ py: 4 }}
+                >
+                  <CircularProgress size={24} sx={{ color: '#22c55e' }} />
                 </TableCell>
               </TableRow>
             ) : data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length + 1} align="center">
+                <TableCell 
+                  colSpan={columns.length + ((onEdit || onDelete || onView || onPrint || onReimprimir) ? 1 : 0)} 
+                  align="center"
+                  sx={{ py: 4, color: '#6b7280' }}
+                >
                   Nenhum registro encontrado
                 </TableCell>
               </TableRow>
             ) : (
               data.map((row, index) => (
-                <TableRow key={row.id || index} hover>
+                <TableRow 
+                  key={row.id || index} 
+                  hover
+                  sx={{ 
+                    '&:nth-of-type(even)': { backgroundColor: '#f0fdf4' },
+                    '&:hover': { backgroundColor: '#dcfce7' },
+                  }}
+                >
                   {columns.map((column) => (
-                    <TableCell key={column.field} align={column.align || 'left'}>
+                    <TableCell 
+                      key={column.field} 
+                      align={column.align || 'left'}
+                      sx={{ 
+                        fontSize: '14px',
+                        borderBottom: '1px solid #d1fae5',
+                      }}
+                    >
                       {renderCell(row, column)}
                     </TableCell>
                   ))}
                   
-                  {(onEdit || onDelete || onView || onPrint) && (
-                    <TableCell align="center">
-                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                  {(onEdit || onDelete || onView || onPrint || onReimprimir) && (
+                    <TableCell 
+                      align="center"
+                      sx={{ borderBottom: '1px solid #d1fae5' }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
                         {onView && (
                           <Tooltip title="Visualizar">
-                            <IconButton size="small" onClick={() => onView(row)}>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => onView(row)}
+                              sx={{ 
+                                color: '#3b82f6',
+                                '&:hover': { backgroundColor: '#dbeafe' }
+                              }}
+                            >
                               <Visibility fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         )}
                         {onEdit && (
                           <Tooltip title="Editar">
-                            <IconButton size="small" onClick={() => onEdit(row)}>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => onEdit(row)}
+                              sx={{ 
+                                color: '#f59e0b',
+                                '&:hover': { backgroundColor: '#fef3c7' }
+                              }}
+                            >
                               <Edit fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         )}
                         {onPrint && (
-                          <Tooltip title="Imprimir">
-                            <IconButton size="small" onClick={() => onPrint(row)}>
+                          <Tooltip title="Imprimir Etiqueta">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => onPrint(row)}
+                              sx={{ 
+                                color: '#22c55e',
+                                '&:hover': { backgroundColor: '#dcfce7' }
+                              }}
+                            >
                               <Print fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {onReimprimir && (
+                          <Tooltip title="Reimprimir">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => onReimprimir(row)}
+                              sx={{ 
+                                color: '#8b5cf6',
+                                '&:hover': { backgroundColor: '#ede9fe' }
+                              }}
+                            >
+                              <Replay fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         )}
                         {onDelete && (
                           <Tooltip title="Excluir">
-                            <IconButton size="small" onClick={() => onDelete(row)}>
-                              <Delete fontSize="small" color="error" />
+                            <IconButton 
+                              size="small" 
+                              onClick={() => onDelete(row)}
+                              sx={{ 
+                                color: '#ef4444',
+                                '&:hover': { backgroundColor: '#fee2e2' }
+                              }}
+                            >
+                              <Delete fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         )}
@@ -167,9 +277,16 @@ const DataTable = ({
           labelDisplayedRows={({ from, to, count }) =>
             `${from}-${to} de ${count}`
           }
+          sx={{
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+              fontSize: '14px',
+            },
+          }}
         />
       )}
-    </Paper>
+    </Box>
   );
 };
 

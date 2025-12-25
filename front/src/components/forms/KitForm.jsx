@@ -12,11 +12,10 @@ import {
   ORIGENS,
   PROCESSADORES,
   MEMORIAS,
-  ARMAZENAMENTOS,
-  FONTES,
+  PLACAS_MAE,
 } from '../../utils/constants';
 
-const MaquinaForm = ({ formData, onChange, loading = false }) => {
+const KitForm = ({ formData, onChange, loading = false, origem, onOrigemChange }) => {
   const handleChange = (field, value) => {
     onChange(prev => ({
       ...prev,
@@ -26,6 +25,11 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
 
   const handleSelectChange = (e) => {
     const { name, value } = e.target;
+    
+    if (name === 'origem') {
+      onOrigemChange(value);
+    }
+    
     handleChange(name, value);
   };
 
@@ -41,12 +45,13 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
         <FormControl fullWidth required>
           <InputLabel>Responsável</InputLabel>
           <Select
-            name="responsavelMaquina"
-            value={formData.responsavelMaquina}
+            name="responsavel"
+            value={formData.responsavel}
             onChange={handleSelectChange}
             label="Responsável"
             disabled={loading}
           >
+            <MenuItem value=""><em>Selecione o responsável</em></MenuItem>
             {RESPONSAVEIS.map((resp) => (
               <MenuItem key={resp.value} value={resp.value}>
                 {resp.label}
@@ -85,27 +90,15 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
             disabled={loading}
           >
             <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {/* i3 */}
-            <MenuItem disabled>Intel Core i3</MenuItem>
-            {PROCESSADORES.i3.map((proc) => (
-              <MenuItem key={proc} value={proc}>{proc}</MenuItem>
-            ))}
-            
             {/* i5 */}
             <MenuItem disabled>Intel Core i5</MenuItem>
-            {PROCESSADORES.i5.map((proc) => (
+            {PROCESSADORES.i5.slice(0, 10).map((proc) => (
               <MenuItem key={proc} value={proc}>{proc}</MenuItem>
             ))}
             
             {/* i7 */}
             <MenuItem disabled>Intel Core i7</MenuItem>
-            {PROCESSADORES.i7.map((proc) => (
-              <MenuItem key={proc} value={proc}>{proc}</MenuItem>
-            ))}
-            
-            {/* i9 */}
-            <MenuItem disabled>Intel Core i9</MenuItem>
-            {PROCESSADORES.i9.map((proc) => (
+            {PROCESSADORES.i7.slice(0, 10).map((proc) => (
               <MenuItem key={proc} value={proc}>{proc}</MenuItem>
             ))}
             
@@ -144,66 +137,20 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
         </FormControl>
       </Grid>
 
-      {/* Armazenamento e Fonte */}
+      {/* Placa Mãe */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Armazenamento</InputLabel>
+        <FormControl fullWidth required>
+          <InputLabel>Placa Mãe</InputLabel>
           <Select
-            name="armazenamento"
-            value={formData.armazenamento}
+            name="placaMae"
+            value={formData.placaMae}
             onChange={handleSelectChange}
-            label="Armazenamento"
+            label="Placa Mãe"
             disabled={loading}
           >
             <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {/* SSD SATA */}
-            <MenuItem disabled>SSD SATA</MenuItem>
-            {ARMAZENAMENTOS.ssd.map((arm) => (
-              <MenuItem key={arm} value={arm}>{arm}</MenuItem>
-            ))}
-            
-            {/* SSD NVMe */}
-            <MenuItem disabled>SSD NVMe (M.2)</MenuItem>
-            {ARMAZENAMENTOS.nvme.map((arm) => (
-              <MenuItem key={arm} value={arm}>{arm}</MenuItem>
-            ))}
-            
-            {/* HD */}
-            <MenuItem disabled>HD (Disco Rígido)</MenuItem>
-            {ARMAZENAMENTOS.hd.map((arm) => (
-              <MenuItem key={arm} value={arm}>{arm}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Fonte</InputLabel>
-          <Select
-            name="fonte"
-            value={formData.fonte}
-            onChange={handleSelectChange}
-            label="Fonte"
-            disabled={loading}
-          >
-            <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {/* Até 350W */}
-            <MenuItem disabled>Até 350W</MenuItem>
-            {FONTES.baixa.map((fonte) => (
-              <MenuItem key={fonte} value={fonte}>{fonte}</MenuItem>
-            ))}
-            
-            {/* 400W a 600W */}
-            <MenuItem disabled>400W a 600W</MenuItem>
-            {FONTES.media.map((fonte) => (
-              <MenuItem key={fonte} value={fonte}>{fonte}</MenuItem>
-            ))}
-            
-            {/* Acima de 600W */}
-            <MenuItem disabled>Acima de 600W</MenuItem>
-            {FONTES.alta.map((fonte) => (
-              <MenuItem key={fonte} value={fonte}>{fonte}</MenuItem>
+            {PLACAS_MAE.map((placa) => (
+              <MenuItem key={placa} value={placa}>{placa}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -230,9 +177,9 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
         </FormControl>
       </Grid>
 
-      {/* Devolução (desabilitado por enquanto) */}
+      {/* Devolução */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth disabled>
+        <FormControl fullWidth disabled={origem === 'Outro' || !origem}>
           <InputLabel>Devolução</InputLabel>
           <Select
             name="fkDevolucao"
@@ -246,7 +193,7 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
       </Grid>
 
       {/* Observação */}
-      <Grid item xs={12}>
+      <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
           label="Observação (opcional)"
@@ -254,8 +201,6 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
           value={formData.observacao}
           onChange={handleTextChange}
           disabled={loading}
-          multiline
-          rows={2}
         />
       </Grid>
 
@@ -274,4 +219,4 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
   );
 };
 
-export default MaquinaForm;
+export default KitForm;

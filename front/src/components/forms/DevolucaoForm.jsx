@@ -1,0 +1,147 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Grid,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from '@mui/material';
+import { ORIGENS_DEVOLUCAO } from '../../utils/constants';
+
+const DevolucaoForm = ({ formData, onChange, loading = false }) => {
+  const [localDateTime, setLocalDateTime] = useState('');
+
+  const handleChange = useCallback((field, value) => {
+    onChange(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, [onChange]);
+
+  // Preencher data/hora atual automaticamente
+  useEffect(() => {
+    const agora = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    
+    const ano = agora.getFullYear();
+    const mes = pad(agora.getMonth() + 1);
+    const dia = pad(agora.getDate());
+    const hora = pad(agora.getHours());
+    const minuto = pad(agora.getMinutes());
+    
+    const dateTimeValue = `${ano}-${mes}-${dia}T${hora}:${minuto}`;
+    setLocalDateTime(dateTimeValue);
+    handleChange('dataHora', dateTimeValue);
+  }, [handleChange]);
+
+  const handleSelectChange = (e) => {
+    const { name, value } = e.target;
+    handleChange(name, value);
+  };
+
+  const handleTextChange = (e) => {
+    const { name, value } = e.target;
+    handleChange(name, value);
+  };
+
+  const handleDateTimeChange = (e) => {
+    const value = e.target.value;
+    setLocalDateTime(value);
+    // Converter para formato do backend
+    const dataHora = new Date(value).toISOString();
+    const dataHoraBr = dataHora.split('T').join(' ').split('.')[0];
+    handleChange('dataHora', dataHoraBr);
+  };
+
+  return (
+    <Grid container spacing={2}>
+      {/* Origem */}
+      <Grid item xs={12} sm={6}>
+        <FormControl fullWidth required>
+          <InputLabel>Origem</InputLabel>
+          <Select
+            name="origem"
+            value={formData.origem}
+            onChange={handleSelectChange}
+            label="Origem"
+            disabled={loading}
+          >
+            <MenuItem value=""><em>Selecione a origem</em></MenuItem>
+            {ORIGENS_DEVOLUCAO.map((origem) => (
+              <MenuItem key={origem} value={origem}>
+                {origem}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Grid>
+
+      {/* Cliente */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Cliente"
+          name="cliente"
+          value={formData.cliente}
+          onChange={handleTextChange}
+          required
+          disabled={loading}
+        />
+      </Grid>
+
+      {/* Produto */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Produto"
+          name="produto"
+          value={formData.produto}
+          onChange={handleTextChange}
+          required
+          disabled={loading}
+        />
+      </Grid>
+
+      {/* Código de Rastreamento */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Código de Rastreamento"
+          name="codigo"
+          value={formData.codigo}
+          onChange={handleTextChange}
+          required
+          disabled={loading}
+        />
+      </Grid>
+
+      {/* Data e Hora */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Data e Hora da Devolução"
+          type="datetime-local"
+          value={localDateTime}
+          onChange={handleDateTimeChange}
+          disabled={loading}
+          InputLabelProps={{ shrink: true }}
+        />
+      </Grid>
+
+      {/* Observação */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Observação (opcional)"
+          name="observacao"
+          value={formData.observacao}
+          onChange={handleTextChange}
+          disabled={loading}
+        />
+      </Grid>
+    </Grid>
+  );
+};
+
+export default DevolucaoForm;

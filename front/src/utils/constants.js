@@ -81,13 +81,6 @@ export const PLACAS_MAE = [
   'BPC-H510M.2', 'BPC-H61-ITX-M2', 'BPC-H81M', 'XGAMING-H81G', 'BPC H310'
 ];
 
-export const HARDWARE_RETIRADA = {
-  placas: PLACAS_MAE,
-  processadores: [...PROCESSADORES.i5, ...PROCESSADORES.i7, ...PROCESSADORES.ryzen],
-  armazenamento: [...ARMAZENAMENTOS.ssd, ...ARMAZENAMENTOS.nvme, ...ARMAZENAMENTOS.hd],
-  fontes: [...FONTES.baixa, ...FONTES.media, ...FONTES.alta],
-  outros: ['Cooler']
-};
 
 export const ORIGENS_DEVOLUCAO = [
   'Mercado Livre', 'Loggi', 'Correios', 'Shopee', 'Mineiro Express'
