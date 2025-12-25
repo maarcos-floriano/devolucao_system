@@ -41,8 +41,8 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
         <FormControl fullWidth required>
           <InputLabel>Responsável</InputLabel>
           <Select
-            name="responsavelMaquina"
-            value={formData.responsavelMaquina}
+            name="responsavel"
+            value={formData.responsavel}
             onChange={handleSelectChange}
             label="Responsável"
             disabled={loading}

@@ -21,6 +21,7 @@ import {
 } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import KpiCard from '../components/dashboard/KpiCard';
+import api from '../services/api';
 
 ChartJS.register(
   CategoryScale,
@@ -49,42 +50,32 @@ const DashboardPage = () => {
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      // Simulação - substitua pela sua API real
-      const mockMaquinas = [
-        { id: 1, origem: 'Mercado Livre', processador: 'i5 10ª', data: '2024-01-15' },
-        { id: 2, origem: 'Shopee', processador: 'i7 9ª', data: '2024-01-15' },
-        { id: 3, origem: 'Mercado Livre', processador: 'i5 8ª', data: '2024-01-14' },
-        { id: 4, origem: 'Correios', processador: 'i3 10ª', data: '2024-01-14' },
-        { id: 5, origem: 'Mercado Livre', processador: 'i7 10ª', data: '2024-01-13' },
-      ];
-      
-      const mockMonitores = [
-        { id: 1, marca: 'Ultra', rma: true, quantidade: 1 },
-        { id: 2, marca: 'Tronos', rma: false, quantidade: 2 },
-        { id: 3, marca: 'BPC', rma: true, quantidade: 1 },
-        { id: 4, marca: 'Ultra', rma: false, quantidade: 3 },
-        { id: 5, marca: 'Gandolfo', rma: false, quantidade: 1 },
-      ];
+      const [maquinasRes, monitoresRes] = await Promise.all([
+        api.get('/api/maquinas'),
+        api.get('/api/monitores'),
+      ]);
 
-      setDashboardData({
-        maquinas: mockMaquinas,
-        monitores: mockMonitores,
-      });
+      const maquinas = maquinasRes.data.dados || [];
+      const monitores = monitoresRes.data.dados || [];
 
-      // Calcular KPIs
+      setDashboardData({ maquinas, monitores });
+
       setKpis({
-        totalMaquinas: mockMaquinas.length,
-        totalMonitores: mockMonitores.reduce((acc, m) => acc + (m.quantidade || 1), 0),
-        pecasDefeito: mockMonitores.filter(m => m.rma).length,
-        pacotesMercadoLivre: mockMaquinas.filter(m => m.origem === 'Mercado Livre').length,
+        totalMaquinas: maquinas.length,
+        totalMonitores: monitores.reduce((acc, m) => acc + (m.quantidade || 1), 0),
+        pecasDefeito: monitores.filter(m => m.rma === 1).length,
+        pacotesMercadoLivre: maquinas.filter(
+          m => m.origem?.toLowerCase().includes('mercado')
+        ).length,
       });
     } catch (error) {
-      console.error('Erro ao carregar dados do dashboard:', error);
-      alert('Erro ao carregar dados do dashboard');
+      console.error(error);
+      alert('Erro ao carregar dashboard');
     } finally {
       setLoading(false);
     }
   }, []);
+
 
   useEffect(() => {
     loadDashboardData();
@@ -149,7 +140,7 @@ const DashboardPage = () => {
   const getPecasDefeitoData = () => {
     const monitoresDefeito = dashboardData.monitores.filter(m => m.rma);
     const marcasDefeito = {};
-    
+
     monitoresDefeito.forEach(m => {
       marcasDefeito[m.marca] = (marcasDefeito[m.marca] || 0) + 1;
     });
@@ -175,7 +166,7 @@ const DashboardPage = () => {
   const getMarcasProblemaData = () => {
     const maquinasDefeito = dashboardData.maquinas.filter(m => m.defeito);
     const marcasDefeito = {};
-    
+
     maquinasDefeito.forEach(m => {
       marcasDefeito[m.origem] = (marcasDefeito[m.origem] || 0) + 1;
     });
@@ -233,11 +224,11 @@ const DashboardPage = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 2 }}>
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        mb: 3 
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 3
       }}>
         <Typography variant="h4" sx={{ color: '#15803d', fontWeight: 700 }}>
           Dashboard RMA
@@ -299,9 +290,9 @@ const DashboardPage = () => {
       {/* Gráficos */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
-          <Paper 
-            elevation={2} 
-            sx={{ 
+          <Paper
+            elevation={2}
+            sx={{
               p: 3,
               height: 320,
               border: '2px solid',
@@ -321,9 +312,9 @@ const DashboardPage = () => {
           </Paper>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Paper 
-            elevation={2} 
-            sx={{ 
+          <Paper
+            elevation={2}
+            sx={{
               p: 3,
               height: 320,
               border: '2px solid',
@@ -343,9 +334,9 @@ const DashboardPage = () => {
           </Paper>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Paper 
-            elevation={2} 
-            sx={{ 
+          <Paper
+            elevation={2}
+            sx={{
               p: 3,
               height: 320,
               border: '2px solid',
@@ -365,9 +356,9 @@ const DashboardPage = () => {
           </Paper>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Paper 
-            elevation={2} 
-            sx={{ 
+          <Paper
+            elevation={2}
+            sx={{
               p: 3,
               height: 320,
               border: '2px solid',
@@ -389,9 +380,9 @@ const DashboardPage = () => {
       </Grid>
 
       {/* Exportar Relatórios */}
-      <Paper 
-        elevation={2} 
-        sx={{ 
+      <Paper
+        elevation={2}
+        sx={{
           p: 3,
           border: '2px solid',
           borderColor: 'primary.main',

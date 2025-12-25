@@ -12,7 +12,7 @@ class Maquina {
     this.defeito = data.defeito;
     this.lacre = data.lacre;
     this.data = data.data;
-    this.responsavelMaquina = data.responsavelMaquina;
+    this.responsavel = data.responsavel;
     this.fkDevolucao = data.fkDevolucao;
   }
 
@@ -20,10 +20,10 @@ class Maquina {
   static async create(maquinaData) {
     const sql = `
       INSERT INTO maquinas 
-      (processador, memoria, armazenamento, fonte, origem, observacao, defeito, lacre, data, responsavelMaquina, fkDevolucao)
+      (processador, memoria, armazenamento, fonte, origem, observacao, defeito, lacre, data, responsavel, fkDevolucao)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    
+
     const params = [
       maquinaData.processador,
       maquinaData.memoria,
@@ -34,7 +34,7 @@ class Maquina {
       maquinaData.defeito,
       maquinaData.lacre,
       maquinaData.data || new Date().toISOString().split('T')[0],
-      maquinaData.responsavelMaquina,
+      maquinaData.responsavel,
       maquinaData.fkDevolucao || null
     ];
 
@@ -47,52 +47,39 @@ class Maquina {
   }
 
   // Buscar todas as máquinas com paginação
-  static async findAll(page = 1, limit = 10, search = '') {
-    const offset = (page - 1) * limit;
-    const termo = `%${search}%`;
-
+  static async findAll({ page, limit, search }) {
     try {
+      const offset = (page - 1) * limit;
+      const termo = `%${search}%`;
+
       const sql = `
-        SELECT * FROM maquinas
-        WHERE processador LIKE ? 
-          OR memoria LIKE ? 
-          OR armazenamento LIKE ? 
-          OR origem LIKE ? 
-          OR responsavelMaquina LIKE ? 
-          OR defeito LIKE ? 
-          OR observacao LIKE ?
-          OR fkDevolucao LIKE ?
-        ORDER BY id DESC
-        LIMIT ? OFFSET ?
-      `;
+      SELECT *
+      FROM maquinas
+      WHERE (
+        processador LIKE ?
+        OR memoria LIKE ?
+        OR armazenamento LIKE ?
+        OR origem LIKE ?
+        OR responsavel LIKE ?
+        OR defeito LIKE ?
+        OR observacao LIKE ?
+        OR data LIKE ?
+        OR fkDevolucao LIKE ?
+      )
+      AND saiu_venda = 0
+      ORDER BY id DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
 
-      const countSql = `
-        SELECT COUNT(*) AS total FROM maquinas
-        WHERE processador LIKE ? 
-          OR memoria LIKE ? 
-          OR armazenamento LIKE ? 
-          OR origem LIKE ? 
-          OR responsavelMaquina LIKE ? 
-          OR defeito LIKE ? 
-          OR observacao LIKE ?
-          OR fkDevolucao LIKE ?
-      `;
+      // ⚠️ LIMIT e OFFSET NÃO podem ser ?
+      const params = Array(9).fill(termo);
 
-      const [rows] = await DualDatabase.executeOnMainPool(sql, [
-        termo, termo, termo, termo, termo, termo, termo, termo,
-        parseInt(limit), parseInt(offset)
-      ]);
+      const rows = await DualDatabase.executeOnMainPool(sql, params);
+      
+      console.log('Estamos no model, qtd de linhas: ', rows);
+      
 
-      const [[{ total }]] = await DualDatabase.executeOnMainPool(countSql, [
-        termo, termo, termo, termo, termo, termo, termo, termo
-      ]);
-
-      return {
-        pagina: parseInt(page),
-        totalPaginas: Math.ceil(total / limit),
-        totalRegistros: total,
-        dados: rows.map(row => new Maquina(row))
-      };
+      return rows;
     } catch (error) {
       throw new Error(`Erro ao buscar máquinas: ${error.message}`);
     }
@@ -102,13 +89,14 @@ class Maquina {
   static async findToday() {
     try {
       const sql = `
-        SELECT * FROM maquinas
+        SELECT *
+        FROM maquinas
         WHERE DATE(data) = CURDATE()
-        ORDER BY id DESC
+        AND saiu_venda = 0
       `;
-      
+
       const [rows] = await DualDatabase.executeOnMainPool(sql);
-      return rows.map(row => new Maquina(row));
+      return rows;
     } catch (error) {
       throw new Error(`Erro ao buscar máquinas do dia: ${error.message}`);
     }
@@ -117,13 +105,13 @@ class Maquina {
   // Buscar por ID
   static async findById(id) {
     try {
-      const sql = `SELECT * FROM maquinas WHERE id = ?`;
+      const sql = `SELECT * FROM maquinas WHERE id = ? AND saiu_venda = 0`;
       const [rows] = await DualDatabase.executeOnMainPool(sql, [id]);
-      
+
       if (rows.length === 0) {
         return null;
       }
-      
+
       return new Maquina(rows[0]);
     } catch (error) {
       throw new Error(`Erro ao buscar máquina: ${error.message}`);
@@ -149,7 +137,7 @@ class Maquina {
           defeito = ?,
           lacre = ?,
           data = ?,
-          responsavelMaquina = ?,
+          responsavel = ?,
           fkDevolucao = ?
         WHERE id = ?
       `;
@@ -164,7 +152,7 @@ class Maquina {
         maquinaData.defeito || maquina.defeito,
         maquinaData.lacre || maquina.lacre,
         maquinaData.data || maquina.data,
-        maquinaData.responsavelMaquina || maquina.responsavelMaquina,
+        maquinaData.responsavel || maquina.responsavel,
         maquinaData.fkDevolucao || maquina.fkDevolucao,
         id
       ];
@@ -179,7 +167,7 @@ class Maquina {
   // Excluir máquina
   static async delete(id) {
     try {
-      const sql = `DELETE FROM maquinas WHERE id = ?`;
+      const sql = `UPDATE maquinas SET saiu_venda = 1, data_saida_venda = NOW() WHERE id = ?`;
       await DualDatabase.executeOnBothPools(sql, [id]);
       return true;
     } catch (error) {
@@ -200,7 +188,7 @@ class Maquina {
       defeito: this.defeito,
       lacre: this.lacre,
       data: this.data,
-      responsavelMaquina: this.responsavelMaquina,
+      responsavel: this.responsavel,
       fkDevolucao: this.fkDevolucao
     };
   }

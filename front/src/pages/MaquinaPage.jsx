@@ -29,7 +29,7 @@ const MaquinaPage = () => {
     armazenamento: '',
     fonte: '',
     origem: '',
-    responsavelMaquina: '',
+    responsavel: '',
     lacre: '',
     defeito: '',
     observacao: '',
@@ -93,7 +93,7 @@ const MaquinaPage = () => {
         armazenamento: '',
         fonte: '',
         origem: '',
-        responsavelMaquina: '',
+        responsavel: '',
         lacre: '',
         defeito: '',
         observacao: '',
@@ -170,7 +170,7 @@ const MaquinaPage = () => {
   // Colunas da tabela
   const columns = [
     { field: 'id', headerName: 'ID', width: 70 },
-    { field: 'responsavelMaquina', headerName: 'Responsável', width: 130 },
+    { field: 'responsavel', headerName: 'Responsável', width: 130 },
     { field: 'processador', headerName: 'Processador', width: 150 },
     { field: 'memoria', headerName: 'Memória', width: 120 },
     { field: 'armazenamento', headerName: 'Armazenamento', width: 150 },

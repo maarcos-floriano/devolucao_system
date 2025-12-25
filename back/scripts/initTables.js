@@ -16,54 +16,22 @@ async function createTables() {
         observacao TEXT,
         defeito TEXT,
         lacre TEXT,
-        data TEXT,
-        responsavelMaquina TEXT,
+        data DATETIME,
+        responsavel TEXT,
+        saiu_venda BOOLEAN DEFAULT 0,
+        data_saida_venda DATETIME,
         fkDevolucao INT
       )`,
       `CREATE TABLE IF NOT EXISTS monitores (
         id INT AUTO_INCREMENT PRIMARY KEY,
         marca TEXT,
         tamanho TEXT,
-        quantidade INT,
         rma BOOLEAN,
-        data TEXT,
-        responsavel TEXT
-      )`,
-      `CREATE TABLE IF NOT EXISTS teclados (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        marca TEXT,
-        tipo TEXT,
-        quantidade INT,
-        rma BOOLEAN,
-        data TEXT,
-        responsavel TEXT
-      )`,
-      `CREATE TABLE IF NOT EXISTS mouses (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        marca TEXT,
-        tipo TEXT,
-        quantidade INT,
-        rma BOOLEAN,
-        data TEXT,
-        responsavel TEXT
-      )`,
-      `CREATE TABLE IF NOT EXISTS pecas (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        tipo TEXT,
-        modelo TEXT,
-        quantidade INT,
-        rma BOOLEAN,
-        data TEXT,
+        data DATETIME,
         responsavel TEXT,
-        observacao TEXT
-      )`,
-      `CREATE TABLE IF NOT EXISTS retirada (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        hardware TEXT,
-        quantidade INT,
-        data TEXT,
-        responsavel TEXT,
-        observacao TEXT
+        saiu_venda BOOLEAN DEFAULT 0,
+        data_saida_venda DATETIME,
+        fkDevolucao INT
       )`,
       `CREATE TABLE IF NOT EXISTS devolucao (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -72,7 +40,7 @@ async function createTables() {
         produto TEXT,
         codigo TEXT,
         observacao TEXT,
-        dataHora TEXT
+        data DATETIME
       )`,
       `CREATE TABLE IF NOT EXISTS kit (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -83,8 +51,10 @@ async function createTables() {
         defeito TEXT,
         observacao TEXT,
         origem TEXT,
-        data TEXT,
+        data DATETIME,
         responsavel TEXT,
+        saiu_venda BOOLEAN DEFAULT 0,
+        data_saida_venda DATETIME,
         fkDevolucao INT
       )`
     ];

@@ -35,7 +35,7 @@ class MonitorController {
       
       res.json({
         success: true,
-        data: monitores.map(m => m.toJSON())
+        data: monitores
       });
     } catch (error) {
       console.error('Erro ao listar monitores:', error);

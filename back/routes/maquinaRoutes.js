@@ -4,12 +4,12 @@ const MaquinaController = require('../controllers/MaquinaController');
 
 // Middleware de validação (simples)
 const validateMaquina = (req, res, next) => {
-  const { processador, memoria, origem, responsavelMaquina } = req.body;
+  const { processador, memoria, origem, responsavel } = req.body;
   
-  if (!processador || !memoria || !origem || !responsavelMaquina) {
+  if (!processador || !memoria || !origem || !responsavel) {
     return res.status(400).json({
       success: false,
-      error: 'Campos obrigatórios: processador, memoria, origem e responsavelMaquina'
+      error: 'Campos obrigatórios: processador, memoria, origem e responsavel'
     });
   }
   

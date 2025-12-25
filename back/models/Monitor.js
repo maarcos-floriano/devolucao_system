@@ -37,11 +37,12 @@ class Monitor {
   }
 
   // Buscar todos os monitores
-  static async findAll() {
+  static async findAll(page = 1, limit = 10) {
     try {
-      const sql = `SELECT * FROM monitores ORDER BY id DESC`;
-      const [rows] = await DualDatabase.executeOnMainPool(sql);
-      return rows.map(row => new Monitor(row));
+      const offset = (page - 1) * limit;
+      const sql = `SELECT * FROM monitores ORDER BY id DESC LIMIT ? OFFSET ?`;
+      const [rows] = await DualDatabase.executeOnMainPool(sql, [limit, offset]);
+      return rows;
     } catch (error) {
       throw new Error(`Erro ao buscar monitores: ${error.message}`);
     }

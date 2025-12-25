@@ -31,7 +31,7 @@ class DualDatabase {
    */
   static async executeOnMainPool(sql, params = []) {
     try {
-      const [result] = await database.mainPool.query(sql, params);
+      const result = await database.mainPool.query(sql, params);
       return result;
     } catch (err) {
       console.error("❌ Erro no banco principal:", err.message);

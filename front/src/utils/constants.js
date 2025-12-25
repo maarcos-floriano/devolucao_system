@@ -2,8 +2,7 @@ export const RESPONSAVEIS = [
   { value: 'Kell', label: 'Kell' },
   { value: 'Enzo', label: 'Enzo' },
   { value: 'Marcos', label: 'Marcos' },
-  { value: 'Jimmy', label: 'Jimmy' },
-  { value: 'Matheus', label: 'Matheus' },
+  { value: 'Caique', label: 'Caique' },
   { value: 'Outro', label: 'Outro' },
 ];
 
@@ -16,34 +15,20 @@ export const ORIGENS = [
 ];
 
 export const PROCESSADORES = {
-  i3: [
-    'i3 1ª Geração', 'i3 2ª Geração', 'i3 3ª Geração',
-    'i3 4ª Geração', 'i3 5ª Geração', 'i3 6ª Geração',
-    'i3 7ª Geração', 'i3 8ª Geração', 'i3 9ª Geração',
-    'i3 10ª Geração', 'i3 11ª Geração', 'i3 12ª Geração',
-    'i3 13ª Geração', 'i3 14ª Geração'
-  ],
   i5: [
     'i5 1ª Geração', 'i5 2ª Geração', 'i5 3ª Geração',
-    'i5 4ª Geração', 'i5 5ª Geração', 'i5 6ª Geração',
+    'i5 4ª Geração', 'i5 6ª Geração',
     'i5 7ª Geração', 'i5 8ª Geração', 'i5 9ª Geração',
-    'i5 10ª Geração', 'i5 11ª Geração', 'i5 12ª Geração',
-    'i5 13ª Geração', 'i5 14ª Geração'
+    'i5 10ª Geração', 'i5 11ª Geração'
   ],
   i7: [
     'i7 1ª Geração', 'i7 2ª Geração', 'i7 3ª Geração',
-    'i7 4ª Geração', 'i7 5ª Geração', 'i7 6ª Geração',
+    'i7 4ª Geração', 'i7 6ª Geração',
     'i7 7ª Geração', 'i7 8ª Geração', 'i7 9ª Geração',
-    'i7 10ª Geração', 'i7 11ª Geração', 'i7 12ª Geração',
-    'i7 13ª Geração', 'i7 14ª Geração'
-  ],
-  i9: [
-    'i9 7ª Geração (X-Series)', 'i9 8ª Geração', 'i9 9ª Geração',
-    'i9 10ª Geração', 'i9 11ª Geração', 'i9 12ª Geração',
-    'i9 13ª Geração', 'i9 14ª Geração'
+    'i7 10ª Geração', 'i7 11ª Geração'
   ],
   ryzen: [
-    'R5 2ª', 'R5 2ª - GPU', 'R5 5ª', 'R5 7ª'
+    'R5 5500', 'R5 2ª - GPU', 'R5 5600GT', 'R5 7ª'
   ]
 };
 

@@ -61,8 +61,6 @@ class App {
     // Rotas da API
     this.app.use('/api/maquinas', maquinaRoutes);
     this.app.use('/api/monitores', monitorRoutes);
-    // this.app.use('/api/devolucao', devolucaoRoutes);
-    // this.app.use('/api/kit', kitRoutes);
     
     // Rota de saúde
     this.app.get('/health', (req, res) => {

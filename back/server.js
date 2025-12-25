@@ -14,7 +14,7 @@ const app = new App();
 // Tratar encerramento gracioso
 process.on('SIGTERM', () => {
   console.log('🛑 Recebido SIGTERM, encerrando aplicação...');
-  process.exit(0);
+  process.exit(0);  
 });
 
 process.on('SIGINT', () => {
