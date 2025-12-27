@@ -1,8 +1,10 @@
 import api from './api';
 
 const maquinaService = {
-  async create() {
-    const res = await api.post('/maquinas');
+  async create(payload) {
+    console.log(payload);
+    
+    const res = await api.post('/maquinas', payload);
     return res.data;
   },
 

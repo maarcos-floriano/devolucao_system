@@ -116,3 +116,24 @@ body {
     padding: 15px;
   }
 }
+
+.form-wrapper {
+  display: block;
+}
+
+/* src/pages/Dashboard.css */
+.dashboard-container {
+  background: #f3f4f6;
+  min-height: 100vh;
+}
+
+/* Responsividade */
+@media (max-width: 900px) {
+  .chart-container {
+    height: 250px !important;
+  }
+  
+  .kpi-card {
+    margin-bottom: 16px;
+  }
+}

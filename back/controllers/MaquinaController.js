@@ -7,9 +7,9 @@ class MaquinaController {
       const maquinaData = req.body;
 
       // Validação básica
-      if (!maquinaData.processador || !maquinaData.memoria || !maquinaData.origem || !maquinaData.responsal) {
+      if (!maquinaData.processador || !maquinaData.memoria || !maquinaData.origem || !maquinaData.responsavel) {
         return res.status(400).json({
-          error: 'Campos obrigatórios: processador, memoria, origem e responsal'
+          error: 'Campos obrigatórios: processador, memoria, origem e responsavel'
         });
       }
 
@@ -17,7 +17,7 @@ class MaquinaController {
       res.status(201).json({
         success: true,
         message: 'Máquina criada com sucesso',
-        data: maquina.toJSON()
+        data: maquina
       });
     } catch (error) {
       console.error('Erro ao criar máquina:', error);

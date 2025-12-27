@@ -35,43 +35,52 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
   };
 
   return (
-    <Grid container spacing={2}>
-      {/* Responsável e Lacre */}
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
-          <InputLabel>Responsável</InputLabel>
-          <Select
-            name="responsavel"
-            value={formData.responsavel}
-            onChange={handleSelectChange}
-            label="Responsável"
-            disabled={loading}
-          >
-            {RESPONSAVEIS.map((resp) => (
-              <MenuItem key={resp.value} value={resp.value}>
-                {resp.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
+    <Grid
+      container
+      spacing={2}
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+        gap: 2,
+      }}
+    >
 
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Situação do Lacre</InputLabel>
-          <Select
-            name="lacre"
-            value={formData.lacre}
-            onChange={handleSelectChange}
-            label="Situação do Lacre"
-            disabled={loading}
-          >
-            <MenuItem value=""><em>Selecione...</em></MenuItem>
-            <MenuItem value="ok">Ok</MenuItem>
-            <MenuItem value="violado">Violado</MenuItem>
-          </Select>
-        </FormControl>
-      </Grid>
+      {/* Responsável e Lacre */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth required>
+            <InputLabel>Responsável</InputLabel>
+            <Select
+              name="responsavel"
+              value={formData.responsavel}
+              onChange={handleSelectChange}
+              label="Responsável"
+              disabled={loading}
+            >
+              {RESPONSAVEIS.map((resp) => (
+                <MenuItem key={resp.value} value={resp.value}>
+                  {resp.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth>
+            <InputLabel>Situação do Lacre</InputLabel>
+            <Select
+              name="lacre"
+              value={formData.lacre}
+              onChange={handleSelectChange}
+              label="Situação do Lacre"
+              disabled={loading}
+            >
+              <MenuItem value=""><em>Selecione...</em></MenuItem>
+              <MenuItem value="ok">Ok</MenuItem>
+              <MenuItem value="violado">Violado</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
 
       {/* Processador e Memória */}
       <Grid item xs={12} sm={6}>
@@ -255,6 +264,8 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
           value={formData.defeito}
           onChange={handleTextChange}
           disabled={loading}
+          multiline
+          rows={2}
         />
       </Grid>
     </Grid>

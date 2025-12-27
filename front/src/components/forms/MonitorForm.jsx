@@ -35,7 +35,14 @@ const MonitorForm = ({ formData, onChange, loading = false }) => {
   };
 
   return (
-    <Grid container spacing={2}>
+    <Grid container
+      spacing={2}
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+        gap: 2,
+      }}
+    >
       {/* Marca */}
       <Grid item xs={12} sm={6}>
         <FormControl fullWidth required>

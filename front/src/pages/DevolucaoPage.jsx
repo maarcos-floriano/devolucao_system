@@ -191,10 +191,71 @@ const DevolucaoPage = () => {
         Devolução
       </Typography>
 
-      <Grid container spacing={3}>
+
+        {/* Formulário */}
+          <Paper 
+            elevation={2}
+            sx={{
+              p: 3,
+              mb: 3,
+              border: '2px solid',
+              borderColor: 'primary.main',
+              borderRadius: 3,
+            }}
+          >
+            <Typography variant="h6" gutterBottom>
+              Registrar Devolução
+            </Typography>
+
+            <DevolucaoForm
+              formData={formData}
+              onChange={setFormData}
+              loading={submitting}
+            />
+
+            <Box sx={{ mt: 2, display: 'flex', gap: 2, flexDirection: 'column' }}>
+              <Button
+                variant="contained"
+                startIcon={<Save />}
+                onClick={handleSubmit}
+                disabled={submitting}
+                fullWidth
+              >
+                {submitting ? <CircularProgress size={24} /> : 'Salvar Devolução'}
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<Print />}
+                onClick={handlePrint}
+                fullWidth
+              >
+                Imprimir Etiqueta
+              </Button>
+            </Box>
+
+            <Alert severity="info" sx={{ mt: 3 }}>
+              <Typography variant="body2">
+                <strong>Instruções:</strong> Após salvar, a etiqueta será impressa automaticamente.
+                A data e hora são preenchidas automaticamente.
+              </Typography>
+            </Alert>
+          </Paper>
+
         {/* Tabela de Histórico */}
-        <Grid item xs={12} md={8}>
-          <Paper elevation={2} sx={{ p: 2 }}>
+          <Paper 
+          elevation={2}
+          sx={{
+            p: 3,
+            border: '2px solid',
+            borderColor: 'primary.main',
+            borderRadius: 3,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            height: '86vh',
+            overflow: 'hidden',
+          }}
+        >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6">Histórico de Devoluções</Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -234,50 +295,6 @@ const DevolucaoPage = () => {
               loading={loading}
             />
           </Paper>
-        </Grid>
-
-        {/* Formulário */}
-        <Grid item xs={12} md={4}>
-          <Paper elevation={2} sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Registrar Devolução
-            </Typography>
-
-            <DevolucaoForm
-              formData={formData}
-              onChange={setFormData}
-              loading={submitting}
-            />
-
-            <Box sx={{ mt: 2, display: 'flex', gap: 2, flexDirection: 'column' }}>
-              <Button
-                variant="contained"
-                startIcon={<Save />}
-                onClick={handleSubmit}
-                disabled={submitting}
-                fullWidth
-              >
-                {submitting ? <CircularProgress size={24} /> : 'Salvar Devolução'}
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Print />}
-                onClick={handlePrint}
-                fullWidth
-              >
-                Imprimir Etiqueta
-              </Button>
-            </Box>
-
-            <Alert severity="info" sx={{ mt: 3 }}>
-              <Typography variant="body2">
-                <strong>Instruções:</strong> Após salvar, a etiqueta será impressa automaticamente.
-                A data e hora são preenchidas automaticamente.
-              </Typography>
-            </Alert>
-          </Paper>
-        </Grid>
-      </Grid>
 
       {/* Diálogo de Confirmação */}
       <Dialog

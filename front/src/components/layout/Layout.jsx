@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, Toolbar } from '@mui/material';
+import { Box} from '@mui/material';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 
@@ -25,7 +25,6 @@ const Layout = ({ children }) => {
           mt: 8, // Espaço para o Navbar fixo
         }}
       >
-        <Toolbar /> {/* Espaçamento fixo */}
         {children || <Outlet />}
       </Box>
     </Box>

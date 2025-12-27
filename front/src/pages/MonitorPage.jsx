@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Container,
 } from '@mui/material';
 import { Save, Refresh, Download } from '@mui/icons-material';
 import MonitorForm from '../components/forms/MonitorForm';
@@ -117,47 +118,22 @@ const MonitorPage = () => {
   ];
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Container maxWidth="xl" sx={{ py: 2 }}>
       <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
         Monitores
       </Typography>
 
-      <Grid container spacing={3}>
-        {/* Tabela de Histórico */}
-        <Grid item xs={12} md={7}>
-          <Paper elevation={2} sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h6">Histórico do Dia</Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  startIcon={<Refresh />}
-                  onClick={loadMonitores}
-                  disabled={loading}
-                >
-                  Atualizar
-                </Button>
-                <Button
-                  startIcon={<Download />}
-                  onClick={handleExport}
-                  variant="outlined"
-                  color="success"
-                >
-                  Exportar
-                </Button>
-              </Box>
-            </Box>
-
-            <DataTable
-              columns={columns}
-              data={monitores}
-              loading={loading}
-            />
-          </Paper>
-        </Grid>
-
         {/* Formulário */}
-        <Grid item xs={12} md={5}>
-          <Paper elevation={2} sx={{ p: 3 }}>
+          <Paper 
+            elevation={2}
+            sx={{
+              p: 3,
+              mb: 3,
+              border: '2px solid',
+              borderColor: 'primary.main',
+              borderRadius: 3,
+            }}
+          >
             <Typography variant="h6" gutterBottom>
               Cadastro de Monitor
             </Typography>
@@ -187,8 +163,50 @@ const MonitorPage = () => {
               </Typography>
             </Alert>
           </Paper>
-        </Grid>
-      </Grid>
+
+        {/* Tabela de Histórico */}
+        <Paper 
+          elevation={2}
+          sx={{
+            p: 3,
+            border: '2px solid',
+            borderColor: 'primary.main',
+            borderRadius: 3,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            height: '86vh',
+            overflow: 'hidden',
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="h6">Histórico do Dia</Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                startIcon={<Refresh />}
+                onClick={loadMonitores}
+                disabled={loading}
+              >
+                Atualizar
+              </Button>
+              <Button
+                startIcon={<Download />}
+                onClick={handleExport}
+                variant="outlined"
+                color="success"
+              >
+                Exportar
+              </Button>
+            </Box>
+          </Box>
+
+          <DataTable
+            columns={columns}
+            data={monitores}
+            loading={loading}
+          />
+        </Paper>
+
 
       {/* Diálogo de Confirmação */}
       <Dialog
@@ -212,7 +230,7 @@ const MonitorPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Container>
   );
 };
 

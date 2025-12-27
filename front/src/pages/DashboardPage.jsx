@@ -1,14 +1,31 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// src/pages/Dashboard.jsx
+import React, { useState, useEffect } from 'react';
 import {
   Grid,
   Paper,
   Typography,
   Box,
+  Card,
+  CardContent,
   Button,
+  IconButton,
+  Chip,
+  Stack,
   CircularProgress,
   Container,
 } from '@mui/material';
-import { Download, Refresh } from '@mui/icons-material';
+import {
+  Refresh as RefreshIcon,
+  Download as DownloadIcon,
+  Add as AddIcon,
+  Remove as RemoveIcon,
+  Computer as ComputerIcon,
+  Monitor as MonitorIcon,
+  KeyboardReturn as ReturnIcon,
+  Extension as KitIcon,
+  TrendingUp as TrendingUpIcon,
+} from '@mui/icons-material';
+import { Bar, Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -19,8 +36,6 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Bar, Pie } from 'react-chartjs-2';
-import KpiCard from '../components/dashboard/KpiCard';
 import api from '../services/api';
 
 ChartJS.register(
@@ -33,161 +48,218 @@ ChartJS.register(
   Legend
 );
 
-const DashboardPage = () => {
-  const [loading, setLoading] = useState(false);
-  const [dashboardData, setDashboardData] = useState({
-    maquinas: [],
-    monitores: [],
-  });
+const Dashboard = () => {
+  const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState({
-    totalMaquinas: 0,
-    totalMonitores: 0,
-    pecasDefeito: 0,
-    pacotesMercadoLivre: 0,
+    maquinas: 0,
+    monitores: 0,
+    devolucoes: 0,
+    kits: 0,
+  });
+  const [contadores, setContadores] = useState({
+    mercadoLivre: 0,
+    correios: 0,
+    shopee: 0,
+    mineiro: 0,
+  });
+  const [chartsData, setChartsData] = useState({
+    maquinasPorResponsavel: { labels: [], datasets: [] },
+    kitsPorConfiguracao: { labels: [], datasets: [] },
+    maquinasPorConfiguracao: { labels: [], datasets: [] },
   });
 
-  // Carregar dados do dashboard
-  const loadDashboardData = useCallback(async () => {
+  // Carregar dados da dashboard
+  const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [maquinasRes, monitoresRes] = await Promise.all([
-        api.get('/maquinas'),
-        api.get('/monitores'),
+      // Carregar KPIs
+      const [maquinasRes, monitoresRes, devolucoesRes, kitsRes] = await Promise.all([
+        api.get('/maquinas?page=1&limit=1'),
+        api.get('/monitores?page=1&limit=1'),
+        api.get('/devolucao?page=1&limit=1'),
+        api.get('/kit?page=1&limit=1'),
       ]);
 
-      const maquinas = maquinasRes.data.dados || [];
-      const monitores = monitoresRes.data.dados || [];
-
-      setDashboardData({ maquinas, monitores });
-
       setKpis({
-        totalMaquinas: maquinas.length,
-        totalMonitores: monitores.reduce((acc, m) => acc + (m.quantidade || 1), 0),
-        pecasDefeito: monitores.filter(m => m.rma === 1).length,
-        pacotesMercadoLivre: maquinas.filter(
-          m => m.origem?.toLowerCase().includes('mercado')
-        ).length,
+        maquinas: maquinasRes.data.total || 0,
+        monitores: monitoresRes.data.total || 0,
+        devolucoes: devolucoesRes.data.total || 0,
+        kits: kitsRes.data.total || 0,
       });
+
+      // Carregar dados para gráficos
+      const [todasMaquinas, todasKits] = await Promise.all([
+        fetchAllPaginated('/api/maquinas'),
+        fetchAllPaginated('/api/kit'),
+      ]);
+
+      // Preparar dados dos gráficos
+      const maquinasPorResponsavel = processMaquinasPorResponsavel(todasMaquinas);
+      const kitsPorConfiguracao = processKitsPorConfiguracao(todasKits);
+      const maquinasPorConfiguracao = processMaquinasPorConfiguracao(todasMaquinas);
+
+      setChartsData({
+        maquinasPorResponsavel,
+        kitsPorConfiguracao,
+        maquinasPorConfiguracao,
+      });
+
+      // Carregar contadores do localStorage
+      const savedCounters = JSON.parse(localStorage.getItem('contadorDevolucoes')) || {};
+      const today = new Date().toLocaleDateString();
+      
+      if (savedCounters.data === today) {
+        setContadores({
+          mercadoLivre: savedCounters.mercadoLivre || 0,
+          correios: savedCounters.correios || 0,
+          shopee: savedCounters.shopee || 0,
+          mineiro: savedCounters.mineiro || 0,
+        });
+      }
     } catch (error) {
-      console.error(error);
-      alert('Erro ao carregar dashboard');
+      console.error('Erro ao carregar dashboard:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
-
-
-  useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
-
-  // Exportar relatórios
-  const handleExport = (tipo) => {
-    alert(`Exportando ${tipo}... (funcionalidade em desenvolvimento)`);
   };
 
-  // Dados para gráficos
-  const getMaquinasPorDiaData = () => {
-    const maquinasPorDia = {};
-    dashboardData.maquinas.forEach(m => {
-      const data = m.data?.split('T')[0] || m.data;
-      maquinasPorDia[data] = (maquinasPorDia[data] || 0) + 1;
+  const fetchAllPaginated = async (url) => {
+    let allData = [];
+    let page = 1;
+    let totalPages = 1;
+
+    try {
+      do {
+        const response = await api.get(`${url}?page=${page}&limit=50`);
+        const data = response.data;
+        allData = [...allData, ...(data.dados || [])];
+        totalPages = data.totalPaginas || 1;
+        page++;
+      } while (page <= totalPages);
+    } catch (error) {
+      console.error(`Erro ao buscar ${url}:`, error);
+    }
+
+    return allData;
+  };
+
+  const processMaquinasPorResponsavel = (maquinas) => {
+    const responsaveis = {};
+    maquinas.forEach(m => {
+      const responsavel = m.responsavel || 'Sem responsável';
+      responsaveis[responsavel] = (responsaveis[responsavel] || 0) + 1;
     });
 
-    const labels = Object.keys(maquinasPorDia).sort();
-    const data = labels.map(date => maquinasPorDia[date]);
+    const labels = Object.keys(responsaveis);
+    const data = Object.values(responsaveis);
 
     return {
       labels,
-      datasets: [
-        {
-          label: 'Máquinas Registradas',
-          data,
-          backgroundColor: '#22c55e',
-          borderColor: '#16a34a',
-          borderWidth: 1,
-          borderRadius: 4,
-        },
-      ],
+      datasets: [{
+        label: 'Máquinas',
+        data,
+        backgroundColor: [
+          '#22c55e', '#3b82f6', '#f59e0b', '#ef4444',
+          '#8b5cf6', '#ec4899', '#10b981', '#f97316'
+        ],
+        borderColor: '#ffffff',
+        borderWidth: 2,
+        borderRadius: 8,
+      }]
     };
   };
 
-  const getMonitoresPorMarcaData = () => {
-    const monitoresPorMarca = {};
-    dashboardData.monitores.forEach(m => {
-      monitoresPorMarca[m.marca] = (monitoresPorMarca[m.marca] || 0) + (m.quantidade || 1);
+  const processKitsPorConfiguracao = (kits) => {
+    const configs = {};
+    kits.forEach(k => {
+      const config = k.processador || 'Sem configuração';
+      configs[config] = (configs[config] || 0) + 1;
     });
 
-    const colors = [
-      '#22c55e', '#16a34a', '#4ade80', '#86efac', '#bbf7d0',
-      '#15803d', '#166534', '#14532d', '#052e16'
-    ];
+    const labels = Object.keys(configs);
+    const data = Object.values(configs);
 
     return {
-      labels: Object.keys(monitoresPorMarca),
-      datasets: [
-        {
-          label: 'Monitores por Marca',
-          data: Object.values(monitoresPorMarca),
-          backgroundColor: colors,
-          borderColor: colors.map(color => color + 'cc'),
-          borderWidth: 1,
-        },
-      ],
+      labels,
+      datasets: [{
+        label: 'Kits',
+        data,
+        backgroundColor: [
+          '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b',
+          '#10b981', '#ef4444', '#f97316', '#6366f1'
+        ],
+        borderColor: '#ffffff',
+        borderWidth: 2,
+        borderRadius: 8,
+      }]
     };
   };
 
-  const getPecasDefeitoData = () => {
-    const monitoresDefeito = dashboardData.monitores.filter(m => m.rma);
-    const marcasDefeito = {};
-
-    monitoresDefeito.forEach(m => {
-      marcasDefeito[m.marca] = (marcasDefeito[m.marca] || 0) + 1;
+  const processMaquinasPorConfiguracao = (maquinas) => {
+    const configs = {};
+    maquinas.forEach(m => {
+      const config = m.processador || 'Sem configuração';
+      configs[config] = (configs[config] || 0) + 1;
     });
 
-    const colors = [
-      '#ef4444', '#dc2626', '#f87171', '#fca5a5', '#fecaca',
-      '#991b1b', '#7f1d1d', '#450a0a'
-    ];
+    const labels = Object.keys(configs);
+    const data = Object.values(configs);
 
     return {
-      labels: Object.keys(marcasDefeito),
-      datasets: [
-        {
-          data: Object.values(marcasDefeito),
-          backgroundColor: colors,
-          borderColor: colors.map(color => color + 'cc'),
-          borderWidth: 1,
-        },
-      ],
+      labels,
+      datasets: [{
+        label: 'Máquinas',
+        data,
+        backgroundColor: [
+          '#10b981', '#f59e0b', '#3b82f6', '#ef4444',
+          '#8b5cf6', '#ec4899', '#f97316', '#22c55e'
+        ],
+        borderColor: '#ffffff',
+        borderWidth: 2,
+        borderRadius: 8,
+      }]
     };
   };
 
-  const getMarcasProblemaData = () => {
-    const maquinasDefeito = dashboardData.maquinas.filter(m => m.defeito);
-    const marcasDefeito = {};
-
-    maquinasDefeito.forEach(m => {
-      marcasDefeito[m.origem] = (marcasDefeito[m.origem] || 0) + 1;
+  // Manipular contadores
+  const handleCounterChange = (tipo, valor) => {
+    setContadores(prev => {
+      const newValue = Math.max(0, (prev[tipo] || 0) + valor);
+      return { ...prev, [tipo]: newValue };
     });
-
-    const colors = [
-      '#f59e0b', '#d97706', '#fbbf24', '#fcd34d', '#fde68a',
-      '#92400e', '#78350f', '#451a03'
-    ];
-
-    return {
-      labels: Object.keys(marcasDefeito),
-      datasets: [
-        {
-          data: Object.values(marcasDefeito),
-          backgroundColor: colors,
-          borderColor: colors.map(color => color + 'cc'),
-          borderWidth: 1,
-        },
-      ],
-    };
   };
+
+  // Salvar contadores no localStorage
+  useEffect(() => {
+    const saveData = {
+      data: new Date().toLocaleDateString(),
+      ...contadores,
+    };
+    localStorage.setItem('contadorDevolucoes', JSON.stringify(saveData));
+  }, [contadores]);
+
+  // Funções de exportação
+  const handleExportReport = (tipo) => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    window.open(`/api/relatorio-excel/${tipo}?data=${hoje}`, '_blank');
+  };
+
+  const handleExportSkuReport = (tipo) => {
+    const endpoints = {
+      maquinas: '/api/relatorio-paulinho-maquinas',
+      monitores: '/api/relatorio-paulinho-monitores',
+      kit: '/api/relatorio-paulinho-kit',
+    };
+    window.open(endpoints[tipo], '_blank');
+  };
+
+  const handleSacReport = (periodo) => {
+    window.open(`/api/relatorio-sac/${periodo}`, '_blank');
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
   const chartOptions = {
     responsive: true,
@@ -197,14 +269,16 @@ const DashboardPage = () => {
         position: 'top',
         labels: {
           font: {
-            family: 'Montserrat',
             size: 12,
+            family: "'Montserrat', sans-serif",
           },
-          color: '#1f2937',
+          color: '#374151',
         },
       },
-      title: {
-        display: false,
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleFont: { family: "'Montserrat', sans-serif" },
+        bodyFont: { family: "'Montserrat', sans-serif" },
       },
     },
     scales: {
@@ -213,240 +287,274 @@ const DashboardPage = () => {
         grid: {
           color: 'rgba(0, 0, 0, 0.05)',
         },
+        ticks: {
+          font: {
+            family: "'Montserrat', sans-serif",
+          },
+        },
       },
       x: {
         grid: {
           color: 'rgba(0, 0, 0, 0.05)',
         },
+        ticks: {
+          font: {
+            family: "'Montserrat', sans-serif",
+          },
+        },
       },
     },
   };
 
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
-    <Container maxWidth="xl" sx={{ py: 2 }}>
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        mb: 3
-      }}>
-        <Typography variant="h4" sx={{ color: '#15803d', fontWeight: 700 }}>
-          Dashboard RMA
+    <Container maxWidth="xl" sx={{ py: 3 }}>
+      {/* Header com título e botão de atualizar */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Typography variant="h4" fontWeight="bold" color="#0f172a">
+          📊 Dashboard de Controle Técnico
         </Typography>
         <Button
-          variant="outlined"
-          startIcon={<Refresh />}
+          variant="contained"
+          startIcon={<RefreshIcon />}
           onClick={loadDashboardData}
-          disabled={loading}
           sx={{
-            borderColor: '#22c55e',
-            color: '#22c55e',
-            '&:hover': {
-              borderColor: '#16a34a',
-              backgroundColor: '#f0fdf4',
-            },
+            bgcolor: '#2563eb',
+            '&:hover': { bgcolor: '#1d4ed8' },
           }}
         >
-          {loading ? <CircularProgress size={20} /> : 'Atualizar'}
+          Atualizar
         </Button>
       </Box>
 
       {/* KPIs */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} mb={4}>
         <Grid item xs={12} sm={6} md={3}>
           <KpiCard
             title="Total de Máquinas"
-            value={kpis.totalMaquinas}
-            icon="🖥️"
-            color="#22c55e"
+            value={kpis.maquinas}
+            icon={<ComputerIcon />}
+            color="#2563eb"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KpiCard
             title="Total de Monitores"
-            value={kpis.totalMonitores}
-            icon="🖥️"
-            color="#16a34a"
+            value={kpis.monitores}
+            icon={<MonitorIcon />}
+            color="#22c55e"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KpiCard
-            title="Peças com Defeito (RMA)"
-            value={kpis.pecasDefeito}
-            icon="⚠️"
-            color="#ef4444"
+            title="Devoluções"
+            value={kpis.devolucoes}
+            icon={<ReturnIcon />}
+            color="#f59e0b"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KpiCard
-            title="Pacotes Mercado Livre"
-            value={kpis.pacotesMercadoLivre}
-            icon="📦"
-            color="#3b82f6"
+            title="Total de Kits"
+            value={kpis.kits}
+            icon={<KitIcon />}
+            color="#8b5cf6"
           />
         </Grid>
       </Grid>
 
       {/* Gráficos */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Paper
-            elevation={2}
-            sx={{
-              p: 3,
-              height: 320,
-              border: '2px solid',
-              borderColor: 'primary.main',
-              borderRadius: 3,
-            }}
-          >
-            <Typography variant="h6" gutterBottom sx={{ color: 'primary.dark', fontWeight: 600 }}>
-              Máquinas por Dia
+      <Grid container spacing={3} mb={4}>
+        <Grid item xs={12} lg={8}>
+          <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
+            <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
+              Máquinas por Responsável
             </Typography>
-            <Box sx={{ height: 250 }}>
-              <Bar
-                data={getMaquinasPorDiaData()}
-                options={chartOptions}
-              />
+            <Box height={300}>
+              <Bar data={chartsData.maquinasPorResponsavel} options={chartOptions} />
             </Box>
           </Paper>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper
-            elevation={2}
-            sx={{
-              p: 3,
-              height: 320,
-              border: '2px solid',
-              borderColor: 'primary.main',
-              borderRadius: 3,
-            }}
-          >
-            <Typography variant="h6" gutterBottom sx={{ color: 'primary.dark', fontWeight: 600 }}>
-              Monitores por Marca
+
+        <Grid item xs={12} lg={4}>
+          <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
+            <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
+              Devoluções do Dia
             </Typography>
-            <Box sx={{ height: 250 }}>
-              <Bar
-                data={getMonitoresPorMarcaData()}
-                options={chartOptions}
-              />
+            <Stack spacing={2}>
+              {Object.entries(contadores).map(([key, value]) => (
+                <Box key={key} display="flex" alignItems="center" justifyContent="space-between">
+                  <Typography>
+                    {key === 'mercadoLivre' && '🛒 Mercado Livre'}
+                    {key === 'correios' && '📮 Correios'}
+                    {key === 'shopee' && '🛍️ Shopee'}
+                    {key === 'mineiro' && '🚚 Mineiro Express'}
+                  </Typography>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleCounterChange(key, -1)}
+                      sx={{ bgcolor: '#ef4444', color: 'white', '&:hover': { bgcolor: '#dc2626' } }}
+                    >
+                      <RemoveIcon />
+                    </IconButton>
+                    <Chip
+                      label={value}
+                      sx={{
+                        bgcolor: '#f3f4f6',
+                        fontWeight: 'bold',
+                        fontSize: '1.1rem',
+                        minWidth: 50,
+                      }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={() => handleCounterChange(key, 1)}
+                      sx={{ bgcolor: '#22c55e', color: 'white', '&:hover': { bgcolor: '#16a34a' } }}
+                    >
+                      <AddIcon />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ))}
+            </Stack>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
+            <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
+              Kits por Configuração
+            </Typography>
+            <Box height={300}>
+              <Bar data={chartsData.kitsPorConfiguracao} options={chartOptions} />
             </Box>
           </Paper>
         </Grid>
+
         <Grid item xs={12} md={6}>
-          <Paper
-            elevation={2}
-            sx={{
-              p: 3,
-              height: 320,
-              border: '2px solid',
-              borderColor: 'primary.main',
-              borderRadius: 3,
-            }}
-          >
-            <Typography variant="h6" gutterBottom sx={{ color: 'primary.dark', fontWeight: 600 }}>
-              Peças com Defeito
+          <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
+            <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
+              Máquinas por Configuração
             </Typography>
-            <Box sx={{ height: 250 }}>
-              <Pie
-                data={getPecasDefeitoData()}
-                options={chartOptions}
-              />
-            </Box>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper
-            elevation={2}
-            sx={{
-              p: 3,
-              height: 320,
-              border: '2px solid',
-              borderColor: 'primary.main',
-              borderRadius: 3,
-            }}
-          >
-            <Typography variant="h6" gutterBottom sx={{ color: 'primary.dark', fontWeight: 600 }}>
-              Origem dos Problemas
-            </Typography>
-            <Box sx={{ height: 250 }}>
-              <Pie
-                data={getMarcasProblemaData()}
-                options={chartOptions}
-              />
+            <Box height={300}>
+              <Bar data={chartsData.maquinasPorConfiguracao} options={chartOptions} />
             </Box>
           </Paper>
         </Grid>
       </Grid>
 
-      {/* Exportar Relatórios */}
-      <Paper
-        elevation={2}
-        sx={{
-          p: 3,
-          border: '2px solid',
-          borderColor: 'primary.main',
-          borderRadius: 3,
-        }}
-      >
-        <Typography variant="h6" gutterBottom sx={{ color: 'primary.dark', fontWeight: 600, mb: 3 }}>
-          Exportar Relatórios
+      {/* Relatórios */}
+      <Paper elevation={2} sx={{ p: 3, borderRadius: 3 }}>
+        <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
+          📄 Relatórios do Dia
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={3}>
             <Button
               fullWidth
               variant="contained"
-              startIcon={<Download />}
-              onClick={() => handleExport('maquinas')}
-              sx={{
-                backgroundColor: '#22c55e',
-                '&:hover': { backgroundColor: '#16a34a' },
-              }}
+              startIcon={<DownloadIcon />}
+              onClick={() => handleExportReport('devolucao')}
+              sx={{ bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}
             >
-              Relatório de Máquinas
+              Devoluções de Hoje
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <Button
               fullWidth
               variant="contained"
-              startIcon={<Download />}
-              onClick={() => handleExport('monitores')}
-              sx={{
-                backgroundColor: '#16a34a',
-                '&:hover': { backgroundColor: '#15803d' },
-              }}
+              startIcon={<DownloadIcon />}
+              onClick={() => handleExportReport('maquinas')}
+              sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' } }}
             >
-              Relatório de Monitores
+              Máquinas de Hoje
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <Button
               fullWidth
               variant="contained"
-              startIcon={<Download />}
-              onClick={() => handleExport('pecas')}
-              sx={{
-                backgroundColor: '#ef4444',
-                '&:hover': { backgroundColor: '#dc2626' },
-              }}
+              startIcon={<DownloadIcon />}
+              onClick={() => handleExportReport('kit')}
+              sx={{ bgcolor: '#8b5cf6', '&:hover': { bgcolor: '#7c3aed' } }}
             >
-              Relatório de Peças
+              Kit de Hoje
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <Button
               fullWidth
               variant="contained"
-              startIcon={<Download />}
-              onClick={() => handleExport('mercadoLivre')}
-              sx={{
-                backgroundColor: '#3b82f6',
-                '&:hover': { backgroundColor: '#2563eb' },
-              }}
+              startIcon={<DownloadIcon />}
+              onClick={() => handleExportReport('monitores')}
+              sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
             >
-              Pacotes Mercado Livre
+              Monitores de Hoje
+            </Button>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<TrendingUpIcon />}
+              onClick={() => handleExportSkuReport('maquinas')}
+              sx={{ borderColor: '#3b82f6', color: '#3b82f6' }}
+            >
+              SKU Máquinas
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<TrendingUpIcon />}
+              onClick={() => handleExportSkuReport('monitores')}
+              sx={{ borderColor: '#10b981', color: '#10b981' }}
+            >
+              SKU Monitores
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<TrendingUpIcon />}
+              onClick={() => handleExportSkuReport('kit')}
+              sx={{ borderColor: '#8b5cf6', color: '#8b5cf6' }}
+            >
+              SKU Kit
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={() => handleSacReport('diario')}
+              sx={{ borderColor: '#f59e0b', color: '#f59e0b' }}
+            >
+              SAC Diário
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={() => handleSacReport('semanal')}
+              sx={{ borderColor: '#ec4899', color: '#ec4899' }}
+            >
+              SAC Semanal
             </Button>
           </Grid>
         </Grid>
@@ -455,4 +563,31 @@ const DashboardPage = () => {
   );
 };
 
-export default DashboardPage;
+const KpiCard = ({ title, value, icon, color }) => (
+  <Card sx={{ borderRadius: 3, borderLeft: `4px solid ${color}`, height: '100%' }}>
+    <CardContent sx={{ p: 3 }}>
+      <Box display="flex" alignItems="center" mb={2} gap={2}>
+        <Box
+          sx={{
+            bgcolor: `${color}20`,
+            p: 1,
+            borderRadius: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {React.cloneElement(icon, { sx: { color, fontSize: 28 } })}
+        </Box>
+        <Typography variant="body2" color="text.secondary" fontWeight="500">
+          {title}
+        </Typography>
+      </Box>
+      <Typography variant="h3" fontWeight="bold" color={color}>
+        {value}
+      </Typography>
+    </CardContent>
+  </Card>
+);
+
+export default Dashboard;

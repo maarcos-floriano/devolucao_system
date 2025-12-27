@@ -44,8 +44,6 @@ const MaquinaPage = () => {
     try {
       // Buscar no backend
       const resp = await maquinaService.getAll(page + 1, rowsPerPage, searchTerm);
-      console.log(resp);
-      
       setMaquinas(resp.data || []);
     } catch (error) {
       console.error('Erro ao carregar máquinas:', error);
@@ -300,7 +298,7 @@ const MaquinaPage = () => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: 'calc(100vh - 400px)',
+          height: '86vh',
           overflow: 'hidden',
         }}
       >

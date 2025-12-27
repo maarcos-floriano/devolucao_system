@@ -136,36 +136,62 @@ const KitPage = () => {
     const janela = window.open('', '_blank');
     const conteudoHTML = `
       <html>
-        <head>
-          <title>Etiqueta Kit</title>
-          <style>
-            @page { size: 100mm 30mm; margin: 0; padding: 0; }
-            html, body {
-              width: 100mm; height: 30mm; margin: 0; padding: 0;
+      <head>
+        <title>Etiqueta</title>
+        <style>
+
+          @page {
+            size: 100mm 30mm;
+            margin: 0;
+            padding: 0;
+          }
+          html, body {
+            width: 100mm;
+            height: 30mm;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            font-family: Arial, sans-serif;
+            text-align: center;
+          }
+          .etiqueta {
+            width: 100%;
+            padding: 0 10px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-evenly;
+            align-items: center;
+            
+          }
+            .etiqueta h1 {
+              margin: 0;
+              font-size: 50px;
             }
-            body {
-              display: flex; justify-content: center; align-items: center;
-              font-size: 20px; font-family: Arial, sans-serif; text-align: center;
+            .etiqueta div {
+              margin-top: 5px;
+              font-size: 20px;
             }
-            .etiqueta {
-              width: 100%; padding: 0 10px; display: flex;
-              flex-direction: row; justify-content: space-evenly; align-items: center;
-            }
-            .etiqueta h1 { margin: 0; font-size: 50px; }
-            .etiqueta div { margin-top: 5px; font-size: 20px; }
-          </style>
-        </head>
-        <body onload="window.print(); window.close();">
-          <div class="etiqueta">
-            <h1>${data.id || 'NOVO'}</h1>
-            <div>
-              ${data.processador}<br>
-              ${data.memoria}<br>
-              ${data.placaMae}
-            </div>
+        </style>
+      </head>
+      <body onload="window.print(); window.close();">
+        <div class="etiqueta">
+          <h1>${data.id}</h1>
+          <div>
+            ${data.processador} </br> 
+            ${data.memoria} </br> 
+            ${data.placaMae} </br>
+            ${data.observacao}
           </div>
-        </body>
-      </html>
+        </div>
+      </body>
+    </html>
     `;
     
     janela.document.write(conteudoHTML);
@@ -197,10 +223,72 @@ const KitPage = () => {
         Kits
       </Typography>
 
-      <Grid container spacing={3}>
+        {/* Formulário */}
+          <Paper 
+            elevation={2}
+            sx={{
+              p: 3,
+              mb: 3,
+              border: '2px solid',
+              borderColor: 'primary.main',
+              borderRadius: 3,
+            }}  
+          >
+            <Typography variant="h6" gutterBottom>
+              Cadastro de Kit
+            </Typography>
+
+            <KitForm
+              formData={formData}
+              onChange={setFormData}
+              origem={origem}
+              onOrigemChange={setOrigem}
+              loading={submitting}
+            />
+
+            <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+              <Button
+                variant="contained"
+                startIcon={<Save />}
+                onClick={handleSubmit}
+                disabled={submitting}
+                fullWidth
+              >
+                {submitting ? <CircularProgress size={24} /> : 'Salvar'}
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<Print />}
+                onClick={() => handlePrint('new')}
+                fullWidth
+              >
+                Imprimir
+              </Button>
+            </Box>
+
+            <Alert severity="info" sx={{ mt: 3 }}>
+              <Typography variant="body2">
+                <strong>Instruções:</strong> Preencha todos os campos obrigatórios (*).
+                Quando a origem for diferente de "Outro", você poderá vincular a uma devolução.
+              </Typography>
+            </Alert>
+          </Paper>
+
         {/* Tabela de Histórico */}
-        <Grid item xs={12} md={7}>
-          <Paper elevation={2} sx={{ p: 2 }}>
+          <Paper
+            elevation={2}
+            sx={{
+              p: 3,
+              border: '2px solid',
+              borderColor: 'primary.main',
+              borderRadius: 3,
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '86vh',
+              overflow: 'hidden',
+            }}
+          >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6">Histórico do Dia</Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -241,52 +329,7 @@ const KitPage = () => {
               loading={loading}
             />
           </Paper>
-        </Grid>
 
-        {/* Formulário */}
-        <Grid item xs={12} md={5}>
-          <Paper elevation={2} sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Cadastro de Kit
-            </Typography>
-
-            <KitForm
-              formData={formData}
-              onChange={setFormData}
-              origem={origem}
-              onOrigemChange={setOrigem}
-              loading={submitting}
-            />
-
-            <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-              <Button
-                variant="contained"
-                startIcon={<Save />}
-                onClick={handleSubmit}
-                disabled={submitting}
-                fullWidth
-              >
-                {submitting ? <CircularProgress size={24} /> : 'Salvar'}
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Print />}
-                onClick={() => handlePrint('new')}
-                fullWidth
-              >
-                Imprimir
-              </Button>
-            </Box>
-
-            <Alert severity="info" sx={{ mt: 3 }}>
-              <Typography variant="body2">
-                <strong>Instruções:</strong> Preencha todos os campos obrigatórios (*).
-                Quando a origem for diferente de "Outro", você poderá vincular a uma devolução.
-              </Typography>
-            </Alert>
-          </Paper>
-        </Grid>
-      </Grid>
 
       {/* Diálogo de Verificações */}
       <Dialog

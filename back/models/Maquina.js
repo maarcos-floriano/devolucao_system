@@ -177,7 +177,7 @@ class Maquina {
   // Excluir máquina
   static async delete(id) {
     try {
-      const sql = `UPDATE maquinas SET saiu_venda = 1, data_saida_venda = NOW() WHERE id = ?`;
+      const sql = `UPDATE maquinas SET saiu_venda = 1, data_saida = NOW() WHERE id = ?`;
       await DualDatabase.executeOnBothPools(sql, [id]);
       return true;
     } catch (error) {
