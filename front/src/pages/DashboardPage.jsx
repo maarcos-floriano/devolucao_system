@@ -51,8 +51,8 @@ const DashboardPage = () => {
     setLoading(true);
     try {
       const [maquinasRes, monitoresRes] = await Promise.all([
-        api.get('/api/maquinas'),
-        api.get('/api/monitores'),
+        api.get('/maquinas'),
+        api.get('/monitores'),
       ]);
 
       const maquinas = maquinasRes.data.dados || [];

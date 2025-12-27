@@ -68,9 +68,6 @@ const MonitorPage = () => {
       onConfirm: async () => {
         setSubmitting(true);
         try {
-          // Simulação - substitua pela sua API real
-          console.log('Salvando monitor:', formData);
-          
           alert('Monitor salvo com sucesso!');
           
           setFormData({

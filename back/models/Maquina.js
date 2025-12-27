@@ -53,34 +53,44 @@ class Maquina {
       const termo = `%${search}%`;
 
       const sql = `
-      SELECT *
-      FROM maquinas
-      WHERE (
-        processador LIKE ?
-        OR memoria LIKE ?
-        OR armazenamento LIKE ?
-        OR origem LIKE ?
-        OR responsavel LIKE ?
-        OR defeito LIKE ?
-        OR observacao LIKE ?
-        OR data LIKE ?
-        OR fkDevolucao LIKE ?
-      )
-      AND saiu_venda = 0
-      ORDER BY id DESC
-      LIMIT ${limit} OFFSET ${offset}
-    `;
+        SELECT *
+        FROM maquinas
+        WHERE (
+          processador LIKE ?
+          OR memoria LIKE ?
+          OR armazenamento LIKE ?
+          OR origem LIKE ?
+          OR responsavel LIKE ?
+          OR defeito LIKE ?
+          OR observacao LIKE ?
+          OR data LIKE ?
+          OR fkDevolucao LIKE ?
+        )
+        AND saiu_venda = 0
+        ORDER BY id DESC
+        LIMIT ? OFFSET ?
+      `;
 
-      // ⚠️ LIMIT e OFFSET NÃO podem ser ?
-      const params = Array(9).fill(termo);
+      // ✅ CORRETO: Todos os parâmetros como placeholders
+      const params = [
+        termo, // processador
+        termo, // memoria
+        termo, // armazenamento
+        termo, // origem
+        termo, // responsavel
+        termo, // defeito
+        termo, // observacao
+        termo, // data
+        termo, // fkDevolucao
+        Number(limit), // LIMIT como número
+        Number(offset) // OFFSET como número
+      ];
 
-      const rows = await DualDatabase.executeOnMainPool(sql, params);
+      const [rows] = await DualDatabase.executeOnMainPool(sql, params);
       
-      console.log('Estamos no model, qtd de linhas: ', rows);
-      
-
-      return rows;
+      return rows || [];
     } catch (error) {
+      console.error('Erro detalhado em findAll:', error);
       throw new Error(`Erro ao buscar máquinas: ${error.message}`);
     }
   }
@@ -106,7 +116,7 @@ class Maquina {
   static async findById(id) {
     try {
       const sql = `SELECT * FROM maquinas WHERE id = ? AND saiu_venda = 0`;
-      const [rows] = await DualDatabase.executeOnMainPool(sql, [id]);
+      const rows = await DualDatabase.executeOnMainPool(sql, [id]);
 
       if (rows.length === 0) {
         return null;

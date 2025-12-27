@@ -10,7 +10,7 @@ class DualDatabase {
   static async executeOnBothPools(sql, params = []) {
     try {
       // Executa no banco principal
-      const [resultMain] = await database.mainPool.query(sql, params);
+      const resultMain = await database.mainPool.query(sql, params);
       
       console.log("✅ Atualização realizada com sucesso:", sql, params);
 

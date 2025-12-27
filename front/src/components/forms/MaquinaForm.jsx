@@ -84,13 +84,6 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
             label="Processador"
             disabled={loading}
           >
-            <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {/* i3 */}
-            <MenuItem disabled>Intel Core i3</MenuItem>
-            {PROCESSADORES.i3.map((proc) => (
-              <MenuItem key={proc} value={proc}>{proc}</MenuItem>
-            ))}
-            
             {/* i5 */}
             <MenuItem disabled>Intel Core i5</MenuItem>
             {PROCESSADORES.i5.map((proc) => (
@@ -100,12 +93,6 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
             {/* i7 */}
             <MenuItem disabled>Intel Core i7</MenuItem>
             {PROCESSADORES.i7.map((proc) => (
-              <MenuItem key={proc} value={proc}>{proc}</MenuItem>
-            ))}
-            
-            {/* i9 */}
-            <MenuItem disabled>Intel Core i9</MenuItem>
-            {PROCESSADORES.i9.map((proc) => (
               <MenuItem key={proc} value={proc}>{proc}</MenuItem>
             ))}
             

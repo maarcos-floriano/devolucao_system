@@ -1,7 +1,6 @@
 // Simulação - substitua pela sua API real
 const monitorService = {
   async create(monitorData) {
-    console.log('Salvando monitor:', monitorData);
     return { id: Math.floor(Math.random() * 1000) + 1 };
   },
 

@@ -28,6 +28,8 @@ const MaquinaPage = () => {
     memoria: '',
     armazenamento: '',
     fonte: '',
+    placaVideo: '',
+    gabinete: '',
     origem: '',
     responsavel: '',
     lacre: '',
@@ -42,9 +44,9 @@ const MaquinaPage = () => {
     try {
       // Buscar no backend
       const resp = await maquinaService.getAll(page + 1, rowsPerPage, searchTerm);
-      // resp expected: { pagina, totalPaginas, totalRegistros, dados }
-      setMaquinas(resp.dados || []);
-      setTotalRows(resp.totalRegistros || 0);
+      console.log(resp);
+      
+      setMaquinas(resp.data || []);
     } catch (error) {
       console.error('Erro ao carregar máquinas:', error);
       alert('Erro ao carregar máquinas');
@@ -60,7 +62,7 @@ const MaquinaPage = () => {
   // Salvar máquina
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Confirmações antes de salvar
     const lacreConfirmado = window.confirm("Colocou o lacre?");
     if (!lacreConfirmado) {
@@ -75,10 +77,10 @@ const MaquinaPage = () => {
     }
 
     setSubmitting(true);
-    
+
     try {
       // Enviar para backend
-      const payload = { ...formData, data: new Date().toISOString().split('T')[0] };
+      const payload = { ...formData };
       const res = await maquinaService.create(payload);
 
       alert('Máquina cadastrada!');
@@ -114,47 +116,95 @@ const MaquinaPage = () => {
     try {
       const data = maquina.id === 'new' ? formData : maquina;
       const janela = window.open('', '_blank');
-      
+      let id, processador, memoria, armazenamento, fonte, placaVideo, gabinete;
+      id = data.id ? data.id : '';
+      processador = data.processador;
+      memoria = data.memoria;
+      armazenamento = data.armazenamento;
+      fonte = data.fonte;
+      placaVideo = data.placaVideo ? data.placaVideo : '';
+      gabinete = data.gabinete ? data.gabinete : '';
+
       const conteudoHTML = `
-        <html>
-          <head>
-            <title>Etiqueta Máquina</title>
-            <style>
-              @page { size: 100mm 30mm; margin: 0; padding: 0; }
-              html, body {
-                width: 100mm; height: 30mm; margin: 0; padding: 0;
-              }
-              body {
-                width: 100%; height: 100%;
-                display: flex; justify-content: center; align-items: center;
-                font-size: 20px; font-family: Arial, sans-serif; text-align: center;
-              }
-              .etiqueta {
-                width: 100%; padding: 0 10px;
-                display: flex; flex-direction: row;
-                justify-content: space-evenly; align-items: center;
-              }
-              .etiqueta h1 { margin: 0; font-size: 50px; color: #22c55e; }
-              .etiqueta div { margin-top: 5px; font-size: 20px; }
-            </style>
-          </head>
-          <body onload="window.print(); window.close();">
-            <div class="etiqueta">
-              <h1>${data.processador || 'NOVA'}</h1>
-              <div>
-                ${data.memoria || ''} <br> 
-                ${data.armazenamento || ''} <br> 
-                ${data.fonte || ''} <br> 
-                ${data.observacao || ''}
-              </div>
-            </div>
-          </body>
-        </html>
+            <html>
+              <head>
+                <title>Etiqueta</title>
+                <style>
+
+                  @page {
+                    size: 100mm 30mm;
+                    margin: 0;
+                    padding: 0;
+                  }
+                  html, body {
+                    width: 100mm;
+                    height: 30mm;
+                    margin: 0;
+                    padding: 0;
+                  }
+                  body {
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    font-size: 20px;
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                  }
+                  .etiqueta {
+                    width: 95mm;
+                    height: 25mm;
+                    border: 2px solid #000;
+                    padding: 5px;
+                    box-sizing: border-box;
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: space-between;
+                  }
+
+                  .info-principal {
+                    flex: 1;
+                    border-right: 1px solid #000;
+                    padding-right: 10px;
+                  }
+                  .info-secundaria {
+                    flex: 1;
+                    padding-left: 10px;
+                    font-size: 16px;
+                  }
+                  h1 {
+                    margin: 0;
+                    font-size: 24px;
+                  }
+                  p {
+                    margin: 5px 0 0 0;
+                    font-size: 18px;
+                  }
+                </style>
+              </head>
+              <body onload="window.print(); window.close();">
+                <div class="etiqueta">
+                  <div class="info-principal"> 
+                    <h1>${processador}</h1>
+                    <p>${data.id}</p>
+                  </div>
+                  <div class="info-secundaria">
+                    ${memoria} </br> 
+                    ${armazenamento} </br> 
+                    ${fonte} </br> 
+                    ${gabinete} </br>
+                    ${placaVideo}
+                  </div>
+                </div>
+              </body>
+            </html>
       `;
-      
+
       janela.document.write(conteudoHTML);
       janela.document.close();
-      
+
       alert('Etiqueta impressa com sucesso');
     } catch (error) {
       alert('Erro ao imprimir etiqueta');
@@ -174,6 +224,9 @@ const MaquinaPage = () => {
     { field: 'processador', headerName: 'Processador', width: 150 },
     { field: 'memoria', headerName: 'Memória', width: 120 },
     { field: 'armazenamento', headerName: 'Armazenamento', width: 150 },
+    { field: 'fonte', headerName: 'Fonte', width: 120 },
+    { field: 'placaVideo', headerName: 'Placa de Vídeo', width: 150 },
+    { field: 'gabinete', headerName: 'Gabinete', width: 120 },
     { field: 'origem', headerName: 'Origem', width: 130 },
     { field: 'defeito', headerName: 'Defeito', width: 150 },
     { field: 'observacao', headerName: 'Observação', width: 200 },
@@ -188,10 +241,10 @@ const MaquinaPage = () => {
       </Typography>
 
       {/* Formulário em cima */}
-      <Paper 
-        elevation={2} 
-        sx={{ 
-          p: 3, 
+      <Paper
+        elevation={2}
+        sx={{
+          p: 3,
           mb: 3,
           border: '2px solid',
           borderColor: 'primary.main',
@@ -230,16 +283,16 @@ const MaquinaPage = () => {
 
         <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
           <Typography variant="body2">
-            <strong>Instruções:</strong> Preencha todos os campos obrigatórios. 
+            <strong>Instruções:</strong> Preencha todos os campos obrigatórios.
             O sistema pedirá confirmação sobre lacre e adaptador Wi-Fi antes de salvar.
           </Typography>
         </Alert>
       </Paper>
 
       {/* Tabela embaixo */}
-      <Paper 
+      <Paper
         elevation={2}
-        sx={{ 
+        sx={{
           p: 3,
           border: '2px solid',
           borderColor: 'primary.main',
@@ -251,9 +304,9 @@ const MaquinaPage = () => {
           overflow: 'hidden',
         }}
       >
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           mb: 2,
           pb: 2,

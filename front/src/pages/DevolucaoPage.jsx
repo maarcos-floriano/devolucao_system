@@ -91,12 +91,8 @@ const DevolucaoPage = () => {
       onConfirm: async () => {
         setSubmitting(true);
         try {
-          // Simulação - substitua pela sua API real
-          console.log('Salvando devolução:', formData);
-          
           alert('Devolução salva com sucesso!');
           
-          // Imprimir etiqueta após salvar
           await handlePrint();
           
           setFormData({

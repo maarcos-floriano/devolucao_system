@@ -41,8 +41,7 @@ class MaquinaController {
       page = Number(page);
       limit = Number(limit);
 
-      const [result] = await Maquina.findAll({ page, limit, search });
-
+      const result = await Maquina.findAll({ page, limit, search });
 
       res.json({
         success: true,
@@ -168,7 +167,7 @@ class MaquinaController {
         LIMIT 100
       `;
 
-      const [rows] = await DualDatabase.executeOnMainPool(sql, [termo, termo]);
+      const rows = await DualDatabase.executeOnMainPool(sql, [termo, termo]);
 
       res.json({
         success: true,

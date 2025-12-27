@@ -98,8 +98,6 @@ const KitPage = () => {
       onConfirm: async () => {
         setSubmitting(true);
         try {
-          // Simulação - substitua pela sua API real
-          console.log('Salvando kit:', formData);
           
           alert('Kit salvo com sucesso!');
           

@@ -58,7 +58,7 @@ class Monitor {
       `;
       
       const [rows] = await DualDatabase.executeOnMainPool(sql);
-      return rows.map(row => new Monitor(row));
+      return rows;
     } catch (error) {
       throw new Error(`Erro ao buscar monitores do dia: ${error.message}`);
     }
@@ -68,7 +68,7 @@ class Monitor {
   static async findById(id) {
     try {
       const sql = `SELECT * FROM monitores WHERE id = ?`;
-      const [rows] = await DualDatabase.executeOnMainPool(sql, [id]);
+      const rows = await DualDatabase.executeOnMainPool(sql, [id]);
       
       if (rows.length === 0) {
         return null;
