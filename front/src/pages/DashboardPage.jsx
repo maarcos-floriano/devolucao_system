@@ -77,7 +77,7 @@ const Dashboard = () => {
         api.get('/maquinas?page=1&limit=1'),
         api.get('/monitores?page=1&limit=1'),
         api.get('/devolucao?page=1&limit=1'),
-        api.get('/kit?page=1&limit=1'),
+        api.get('/kits?page=1&limit=1'),
       ]);
 
       setKpis({
@@ -89,8 +89,8 @@ const Dashboard = () => {
 
       // Carregar dados para gráficos
       const [todasMaquinas, todasKits] = await Promise.all([
-        fetchAllPaginated('/api/maquinas'),
-        fetchAllPaginated('/api/kit'),
+        fetchAllPaginated('/maquinas'),
+        fetchAllPaginated('/kits'),
       ]);
 
       // Preparar dados dos gráficos
@@ -197,6 +197,7 @@ const Dashboard = () => {
 
   const processMaquinasPorConfiguracao = (maquinas) => {
     const configs = {};
+    
     maquinas.forEach(m => {
       const config = m.processador || 'Sem configuração';
       configs[config] = (configs[config] || 0) + 1;

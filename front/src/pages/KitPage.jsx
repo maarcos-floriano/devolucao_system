@@ -12,10 +12,11 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { Save, Refresh, Print, Download } from '@mui/icons-material';
+import { Save, Refresh, Print, Download, Api } from '@mui/icons-material';
 import KitForm from '../components/forms/KitForm';
 import DataTable from '../components/tables/DataTable';
 import SearchBar from '../components/tables/SearchBar';
+import api from '../services/api';
 
 const KitPage = () => {
   const [loading, setLoading] = useState(false);
@@ -45,43 +46,38 @@ const KitPage = () => {
     onConfirm: null,
   });
 
+  // Funções de paginação
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+  };
+
+  const handleRowsPerPageChange = (newRowsPerPage) => {
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);
+  };
+
   // Carregar kits
   const loadKits = useCallback(async () => {
     setLoading(true);
     try {
-      // Simulação - substitua pela sua API real
-      const mockData = [
-        { 
-          id: 1, 
-          processador: 'i5 10ª Geração', 
-          memoria: '16GB DDR4', 
-          placaMae: 'BPC-H510M.2',
-          responsavel: 'Marcos',
-          origem: 'Mercado Livre',
-          observacao: 'Kit completo',
-          data: '2024-01-15'
+      const response = await api.get('/kits', {
+        params: {
+          page: page + 1,
+          limit: rowsPerPage,
+          search: searchTerm,
         },
-        { 
-          id: 2, 
-          processador: 'i7 9ª Geração', 
-          memoria: '32GB DDR4', 
-          placaMae: 'Revenger-H310/B250',
-          responsavel: 'Kell',
-          origem: 'Shopee',
-          observacao: '',
-          data: '2024-01-15'
-        },
-      ];
+      });
+      const data = response.data;
       
-      setKits(mockData);
-      setTotalRows(mockData.length);
+      setKits(data.dados || []);
+      setTotalRows(data.total || data.totalRegistros || data.dados?.length || 0);
     } catch (error) {
       console.error('Erro ao carregar kits:', error);
       alert('Erro ao carregar kits');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, rowsPerPage, searchTerm]);
 
   useEffect(() => {
     loadKits();
@@ -286,7 +282,7 @@ const KitPage = () => {
               display: 'flex',
               flexDirection: 'column',
               height: '86vh',
-              overflow: 'hidden',
+              overflow: 'auto',
             }}
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
@@ -300,12 +296,13 @@ const KitPage = () => {
                   Atualizar
                 </Button>
                 <Button
+                  variant="contained"
                   startIcon={<Download />}
                   onClick={handleExport}
-                  variant="outlined"
-                  color="success"
+                  size="small"
+                  sx={{ backgroundColor: '#16a34a', '&:hover': { backgroundColor: '#15803d' } }}
                 >
-                  Exportar
+                  Exportar Excel
                 </Button>
               </Box>
             </Box>
@@ -323,8 +320,8 @@ const KitPage = () => {
               page={page}
               rowsPerPage={rowsPerPage}
               totalRows={totalRows}
-              onPageChange={setPage}
-              onRowsPerPageChange={setRowsPerPage}
+              onPageChange={handlePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
               onPrint={handlePrint}
               loading={loading}
             />
@@ -346,7 +343,6 @@ const KitPage = () => {
             </Typography>
             <ul>
               <li><Typography variant="body2">Colocou o lacre?</Typography></li>
-              <li><Typography variant="body2">Colocou o adaptador Wi-Fi?</Typography></li>
             </ul>
           </Box>
         </DialogContent>

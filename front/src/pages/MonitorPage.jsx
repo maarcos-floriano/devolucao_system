@@ -16,18 +16,24 @@ import {
 import { Save, Refresh, Download } from '@mui/icons-material';
 import MonitorForm from '../components/forms/MonitorForm';
 import DataTable from '../components/tables/DataTable';
+import SearchBar from '../components/tables/SearchBar';
+import api from '../services/api';
 
 const MonitorPage = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [monitores, setMonitores] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalRows, setTotalRows] = useState(0);
   const [formData, setFormData] = useState({
     marca: '',
     tamanho: '',
-    quantidade: 1,
     rma: false,
     responsavel: '',
-    data: new Date().toISOString().split('T')[0],
+    fkDevolucao: null,
+    observacao: ''
   });
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
@@ -36,23 +42,41 @@ const MonitorPage = () => {
     onConfirm: null,
   });
 
+  // Funções de paginação
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+  };
+
+  const handleRowsPerPageChange = (newRowsPerPage) => {
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);
+  };
+
   // Carregar monitores
   const loadMonitores = useCallback(async () => {
     setLoading(true);
     try {
-      // Simulação - substitua pela sua API real
-      const mockData = [
-        { id: 1, marca: 'Ultra', tamanho: '21.5', quantidade: 2, rma: false, responsavel: 'Marcos', data: '2024-01-15' },
-        { id: 2, marca: 'Tronos', tamanho: '24', quantidade: 1, rma: true, responsavel: 'Kell', data: '2024-01-15' },
-      ];
-      setMonitores(mockData);
+      
+      const response = await api.get('/monitores', {
+        params: {
+          search: searchTerm,
+          page: page + 1,
+          limit: rowsPerPage,
+        },
+      });
+
+      const data = response.data;
+
+      setMonitores(data.dados || []);
+      setTotalRows(data.total || 0);
+
     } catch (error) {
       console.error('Erro ao carregar monitores:', error);
       alert('Erro ao carregar monitores');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, rowsPerPage]);
 
   useEffect(() => {
     loadMonitores();
@@ -74,10 +98,10 @@ const MonitorPage = () => {
           setFormData({
             marca: '',
             tamanho: '',
-            quantidade: 1,
             rma: false,
             responsavel: '',
-            data: new Date().toISOString().split('T')[0],
+            fkDevolucao: null,
+            observacao: ''
           });
           loadMonitores();
         } catch (error) {
@@ -200,9 +224,21 @@ const MonitorPage = () => {
             </Box>
           </Box>
 
+          <SearchBar
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Pesquisar por marca, tamanho, responsável..."
+            sx={{ mb: 2 }}
+          />
+
           <DataTable
             columns={columns}
             data={monitores}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            totalRows={totalRows}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
             loading={loading}
           />
         </Paper>

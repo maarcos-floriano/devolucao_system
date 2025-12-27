@@ -7,8 +7,8 @@ const createTables = require('./scripts/initTables');
 // Importar rotas
 const maquinaRoutes = require('./routes/maquinaRoutes');
 const monitorRoutes = require('./routes/monitorRoutes');
-// const devolucaoRoutes = require('./routes/devolucaoRoutes');
-// const kitRoutes = require('./routes/kitRoutes');
+const devolucaoRoutes = require('./routes/devolucaoRoutes');
+const kitRoutes = require('./routes/kitRoutes');
 
 class App {
   constructor() {
@@ -61,6 +61,8 @@ class App {
     // Rotas da API
     this.app.use('/api/maquinas', maquinaRoutes);
     this.app.use('/api/monitores', monitorRoutes);
+    this.app.use('/api/kits', kitRoutes);
+    this.app.use('/api/devolucao', devolucaoRoutes);
     
     // Rota de saúde
     this.app.get('/health', (req, res) => {
@@ -79,8 +81,8 @@ class App {
         endpoints: {
           maquinas: '/api/maquinas',
           monitores: '/api/monitores',
-        //   devolucao: '/api/devolucao',
-        //   kit: '/api/kit'
+          devolucao: '/api/devolucao',
+          kit: '/api/kits'
         }
       });
     });

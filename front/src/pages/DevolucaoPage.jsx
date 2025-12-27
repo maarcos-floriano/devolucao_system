@@ -16,6 +16,7 @@ import { Save, Refresh, Download, Print } from '@mui/icons-material';
 import DevolucaoForm from '../components/forms/DevolucaoForm';
 import DataTable from '../components/tables/DataTable';
 import SearchBar from '../components/tables/SearchBar';
+import api from '../services/api';
 
 const DevolucaoPage = () => {
   const [loading, setLoading] = useState(false);
@@ -40,11 +41,30 @@ const DevolucaoPage = () => {
     onConfirm: null,
   });
 
+  // Funções de paginação
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+  };
+
+  const handleRowsPerPageChange = (newRowsPerPage) => {
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);
+  };
+
   // Carregar devoluções
   const loadDevolucoes = useCallback(async () => {
     setLoading(true);
     try {
-      // Simulação - substitua pela sua API real
+      // Substitua pela sua API real
+      const response = await api.get('/devolucao', {
+        params: {
+          page: page + 1,
+          limit: rowsPerPage,
+          search: searchTerm,
+        },
+      });
+      
+      // Simulação com dados mockados enquanto não tem API
       const mockData = [
         { 
           id: 1, 
@@ -64,17 +84,116 @@ const DevolucaoPage = () => {
           dataHora: '2024-01-15 10:15:00',
           observacao: ''
         },
+        { 
+          id: 3, 
+          origem: 'Amazon', 
+          cliente: 'Pedro Costa', 
+          produto: 'Notebook', 
+          codigo: 'AMZ456789', 
+          dataHora: '2024-01-14 16:45:00',
+          observacao: 'Tela quebrada'
+        },
+        { 
+          id: 4, 
+          origem: 'Mercado Livre', 
+          cliente: 'Ana Souza', 
+          produto: 'Tablet', 
+          codigo: 'ML987654', 
+          dataHora: '2024-01-14 11:20:00',
+          observacao: 'Não liga'
+        },
+        { 
+          id: 5, 
+          origem: 'Shopee', 
+          cliente: 'Carlos Lima', 
+          produto: 'Smartphone', 
+          codigo: 'SH321654', 
+          dataHora: '2024-01-13 09:30:00',
+          observacao: 'Bateria com defeito'
+        },
+        { 
+          id: 6, 
+          origem: 'Amazon', 
+          cliente: 'Fernanda Rocha', 
+          produto: 'Fone Bluetooth', 
+          codigo: 'AMZ789123', 
+          dataHora: '2024-01-13 15:10:00',
+          observacao: 'Não pareia'
+        },
+        { 
+          id: 7, 
+          origem: 'Mercado Livre', 
+          cliente: 'Ricardo Alves', 
+          produto: 'Teclado Mecânico', 
+          codigo: 'ML456123', 
+          dataHora: '2024-01-12 13:25:00',
+          observacao: 'Tecla space não funciona'
+        },
+        { 
+          id: 8, 
+          origem: 'Shopee', 
+          cliente: 'Patrícia Santos', 
+          produto: 'Mouse Gamer', 
+          codigo: 'SH987321', 
+          dataHora: '2024-01-12 17:40:00',
+          observacao: 'Scroll com problema'
+        },
+        { 
+          id: 9, 
+          origem: 'Amazon', 
+          cliente: 'Luiz Ferreira', 
+          produto: 'Webcam', 
+          codigo: 'AMZ654987', 
+          dataHora: '2024-01-11 10:55:00',
+          observacao: 'Imagem pixelada'
+        },
+        { 
+          id: 10, 
+          origem: 'Mercado Livre', 
+          cliente: 'Juliana Martins', 
+          produto: 'SSD 1TB', 
+          codigo: 'ML321789', 
+          dataHora: '2024-01-11 14:15:00',
+          observacao: 'Não é reconhecido'
+        },
+        { 
+          id: 11, 
+          origem: 'Shopee', 
+          cliente: 'Roberto Nunes', 
+          produto: 'Placa de Vídeo', 
+          codigo: 'SH654987', 
+          dataHora: '2024-01-10 16:30:00',
+          observacao: 'Artefatos na tela'
+        },
+        { 
+          id: 12, 
+          origem: 'Amazon', 
+          cliente: 'Camila Oliveira', 
+          produto: 'Processador', 
+          codigo: 'AMZ123456', 
+          dataHora: '2024-01-10 11:45:00',
+          observacao: 'Superaquecimento'
+        },
       ];
       
-      setDevolucoes(mockData);
+      // Simulação de paginação no frontend
+      const startIndex = page * rowsPerPage;
+      const endIndex = startIndex + rowsPerPage;
+      const paginatedData = mockData.slice(startIndex, endIndex);
+      
+      setDevolucoes(paginatedData);
       setTotalRows(mockData.length);
+      
+      // Quando tiver API real, use:
+      // setDevolucoes(response.data.dados || []);
+      // setTotalRows(response.data.total || 0);
     } catch (error) {
       console.error('Erro ao carregar devoluções:', error);
       alert('Erro ao carregar devoluções');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, rowsPerPage, searchTerm]);
 
   useEffect(() => {
     loadDevolucoes();
@@ -290,8 +409,8 @@ const DevolucaoPage = () => {
               page={page}
               rowsPerPage={rowsPerPage}
               totalRows={totalRows}
-              onPageChange={setPage}
-              onRowsPerPageChange={setRowsPerPage}
+              onPageChange={handlePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
               loading={loading}
             />
           </Paper>

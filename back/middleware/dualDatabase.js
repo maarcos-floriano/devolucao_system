@@ -1,8 +1,6 @@
+// utils/DualDatabase.js (CORRIGIDO)
 const database = require('../config/database');
 
-/**
- * Middleware para executar operações em ambos os bancos
- */
 class DualDatabase {
   /**
    * Executa query em ambos os bancos (principal e backup)
@@ -10,7 +8,7 @@ class DualDatabase {
   static async executeOnBothPools(sql, params = []) {
     try {
       // Executa no banco principal
-      const resultMain = await database.mainPool.query(sql, params);
+      const [result] = await database.mainPool.query(sql, params);
       
       console.log("✅ Atualização realizada com sucesso:", sql, params);
 
@@ -19,7 +17,7 @@ class DualDatabase {
         console.error("⚠️ Falha ao salvar no banco de backup:", err.message);
       });
 
-      return resultMain;
+      return result;
     } catch (err) {
       console.error("❌ Erro no banco principal:", err.message);
       throw err;
@@ -31,7 +29,29 @@ class DualDatabase {
    */
   static async executeOnMainPool(sql, params = []) {
     try {
-      const result = await database.mainPool.query(sql, params);
+      const [rows] = await database.mainPool.query(sql, params);
+      return rows;
+    } catch (err) {
+      console.error("❌ Erro no banco principal:", err.message);
+      throw err;
+    }
+  }
+
+  /**
+   * Método específico para INSERT que retorna o insertId
+   */
+  static async insertOnBothPools(sql, params = []) {
+    try {
+      // Executa no banco principal
+      const [result] = await database.mainPool.query(sql, params);
+      
+      console.log("✅ INSERT realizado com sucesso:", sql, params);
+
+      // Executa no backup de forma assíncrona (não bloqueia)
+      database.backupPool.query(sql, params).catch(err => {
+        console.error("⚠️ Falha ao salvar no banco de backup:", err.message);
+      });
+
       return result;
     } catch (err) {
       console.error("❌ Erro no banco principal:", err.message);
@@ -86,6 +106,19 @@ class DualDatabase {
         await connBackup.rollback();
         connBackup.release();
       }
+      throw err;
+    }
+  }
+
+  /**
+   * Método para contar registros
+   */
+  static async count(sql, params = []) {
+    try {
+      const [rows] = await database.mainPool.query(sql, params);
+      return rows[0] ? rows[0] : { count: 0 };
+    } catch (err) {
+      console.error("❌ Erro ao contar registros:", err.message);
       throw err;
     }
   }

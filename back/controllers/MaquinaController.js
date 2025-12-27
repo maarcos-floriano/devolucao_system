@@ -31,26 +31,27 @@ class MaquinaController {
   // Listar todas as máquinas
   static async findAll(req, res) {
     try {
-      let { page = 1, limit = 10, search = '' } = req.query;
+      const { page = 1, limit = 10, search = '' } = req.query;
+            
+            const [dados, total] = await Promise.all([
+                Maquina.findAll({
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    search: search.toString()
+                }),
+                Maquina.count(search.toString())
+            ]);
 
-      // 🔒 blindagem
-      if (typeof search !== 'string') {
-        search = '';
-      }
+            const totalPaginas = Math.ceil(total / parseInt(limit));
 
-      page = Number(page);
-      limit = Number(limit);
-
-      const result = await Maquina.findAll({ page, limit, search });
-
-      res.json({
-        success: true,
-        data: result,
-        pagination: {
-          page,
-          limit
-        }
-      });
+            return res.json({
+                success: true,
+                dados,
+                total,
+                totalPaginas,
+                paginaAtual: parseInt(page),
+                limite: parseInt(limit)
+            });
     } catch (error) {
       console.error(error);
       res.status(500).json({ success: false, error: error.message });

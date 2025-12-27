@@ -86,7 +86,7 @@ class Maquina {
         Number(offset) // OFFSET como número
       ];
 
-      const [rows] = await DualDatabase.executeOnMainPool(sql, params);
+      const rows = await DualDatabase.executeOnMainPool(sql, params);
       
       return rows || [];
     } catch (error) {
@@ -105,7 +105,7 @@ class Maquina {
         AND saiu_venda = 0
       `;
 
-      const [rows] = await DualDatabase.executeOnMainPool(sql);
+      const rows = await DualDatabase.executeOnMainPool(sql);
       return rows;
     } catch (error) {
       throw new Error(`Erro ao buscar máquinas do dia: ${error.message}`);
@@ -182,6 +182,45 @@ class Maquina {
       return true;
     } catch (error) {
       throw new Error(`Erro ao excluir máquina: ${error.message}`);
+    }
+  }
+
+  //Count
+  static async count(search) {
+    try {
+      const termo = `%${search}%`; 
+      const sql = `
+        SELECT COUNT(*) AS total
+        FROM maquinas
+        WHERE (
+          processador LIKE ?
+          OR memoria LIKE ?
+          OR armazenamento LIKE ?
+          OR origem LIKE ?
+          OR responsavel LIKE ?
+          OR defeito LIKE ?
+          OR observacao LIKE ?
+          OR data LIKE ?
+          OR fkDevolucao LIKE ?
+        )
+        AND saiu_venda = 0
+      `;
+      const params = [
+        termo, // processador
+        termo, // memoria
+        termo, // armazenamento
+        termo, // origem
+        termo, // responsavel
+        termo, // defeito
+        termo, // observacao
+        termo, // data
+        termo  // fkDevolucao
+      ];
+      const rows = await DualDatabase.executeOnMainPool(sql, params);
+      return rows[0].total || 0;
+    }
+    catch (error) {
+      throw new Error(`Erro ao contar máquinas: ${error.message}`);
     }
   }
 

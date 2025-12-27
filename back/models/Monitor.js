@@ -37,11 +37,13 @@ class Monitor {
   }
 
   // Buscar todos os monitores
-  static async findAll(page = 1, limit = 10) {
+  static async findAll({ page, limit, search }) {
     try {
       const offset = (page - 1) * limit;
-      const sql = `SELECT * FROM monitores ORDER BY id DESC LIMIT ? OFFSET ?`;
-      const [rows] = await DualDatabase.executeOnMainPool(sql, [limit, offset]);
+      const termo = `%${search}%`;
+
+      const sql = `SELECT * FROM monitores WHERE marca LIKE ? OR tamanho LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?`;
+      const rows = await DualDatabase.executeOnMainPool(sql, [termo, termo, limit, offset]);
       return rows;
     } catch (error) {
       throw new Error(`Erro ao buscar monitores: ${error.message}`);
@@ -57,7 +59,7 @@ class Monitor {
         ORDER BY id DESC
       `;
       
-      const [rows] = await DualDatabase.executeOnMainPool(sql);
+      const rows = await DualDatabase.executeOnMainPool(sql);
       return rows;
     } catch (error) {
       throw new Error(`Erro ao buscar monitores do dia: ${error.message}`);
@@ -80,6 +82,17 @@ class Monitor {
     }
   }
 
+  //Count
+  static async count(search) {
+    try {
+      const termo = `%${search}%`;
+      const sql = `SELECT COUNT(*) AS count FROM monitores WHERE marca LIKE ? OR tamanho LIKE ?`;
+      const rows = await DualDatabase.executeOnMainPool(sql, [termo, termo]);
+      return rows[0].count;
+    } catch (error) {
+      throw new Error(`Erro ao contar monitores: ${error.message}`);
+    }
+  }
   // Método para exportar dados
   toJSON() {
     return {

@@ -38,13 +38,24 @@ const MaquinaPage = () => {
     fkDevolucao: null,
   });
 
+  // Funções de paginação
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+  };
+
+  const handleRowsPerPageChange = (newRowsPerPage) => {
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);
+  };
+
   // Carregar máquinas
   const loadMaquinas = useCallback(async () => {
     setLoading(true);
     try {
       // Buscar no backend
       const resp = await maquinaService.getAll(page + 1, rowsPerPage, searchTerm);
-      setMaquinas(resp.data || []);
+      setMaquinas(resp.dados || []);
+      setTotalRows(resp.total || resp.totalRegistros || 0);
     } catch (error) {
       console.error('Erro ao carregar máquinas:', error);
       alert('Erro ao carregar máquinas');
@@ -219,7 +230,7 @@ const MaquinaPage = () => {
   const columns = [
     { field: 'id', headerName: 'ID', width: 70 },
     { field: 'responsavel', headerName: 'Responsável', width: 130 },
-    { field: 'processador', headerName: 'Processador', width: 150 },
+    { field: 'processador', headerName: 'CPU', width: 150 },
     { field: 'memoria', headerName: 'Memória', width: 120 },
     { field: 'armazenamento', headerName: 'Armazenamento', width: 150 },
     { field: 'fonte', headerName: 'Fonte', width: 120 },
@@ -233,7 +244,7 @@ const MaquinaPage = () => {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ py: 2 }}>
+    <Box sx={{ flexGrow: 1 }}>
       <Typography variant="h4" gutterBottom sx={{ mb: 3, color: '#15803d' }}>
         Máquinas
       </Typography>
@@ -298,20 +309,12 @@ const MaquinaPage = () => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          height: '86vh',
-          overflow: 'hidden',
+          height: '90vh',
+          overflow: 'auto',
         }}
       >
-        <Box sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2,
-          pb: 2,
-          borderBottom: '1px solid',
-          borderColor: 'divider'
-        }}>
-          <Typography variant="h5" sx={{ color: 'primary.dark' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="h6">
             Histórico do Dia
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -343,21 +346,19 @@ const MaquinaPage = () => {
           sx={{ mb: 2 }}
         />
 
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
           <DataTable
             columns={columns}
             data={maquinas}
             page={page}
             rowsPerPage={rowsPerPage}
             totalRows={totalRows}
-            onPageChange={setPage}
-            onRowsPerPageChange={setRowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
             onPrint={handlePrint}
             loading={loading}
           />
-        </Box>
       </Paper>
-    </Container>
+    </Box>
   );
 };
 

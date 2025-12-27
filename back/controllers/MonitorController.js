@@ -31,18 +31,30 @@ class MonitorController {
   // Listar todos os monitores
   static async findAll(req, res) {
     try {
-      const monitores = await Monitor.findAll();
-      
-      res.json({
-        success: true,
-        data: monitores
-      });
+      const { page = 1, limit = 10, search = '' } = req.query;
+            
+            const [dados, total] = await Promise.all([
+                Monitor.findAll({
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    search: search.toString()
+                }),
+                Monitor.count(search.toString())
+            ]);
+
+            const totalPaginas = Math.ceil(total / parseInt(limit));
+
+            return res.json({
+                success: true,
+                dados,
+                total,
+                totalPaginas,
+                paginaAtual: parseInt(page),
+                limite: parseInt(limit)
+            });
     } catch (error) {
-      console.error('Erro ao listar monitores:', error);
-      res.status(500).json({ 
-        success: false,
-        error: error.message 
-      });
+      console.error(error);
+      res.status(500).json({ success: false, error: error.message });
     }
   }
 
