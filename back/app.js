@@ -9,6 +9,8 @@ const maquinaRoutes = require('./routes/maquinaRoutes');
 const monitorRoutes = require('./routes/monitorRoutes');
 const devolucaoRoutes = require('./routes/devolucaoRoutes');
 const kitRoutes = require('./routes/kitRoutes');
+const relatorioRoutes = require('./routes/relatorioRoutes');
+
 
 class App {
   constructor() {
@@ -63,6 +65,7 @@ class App {
     this.app.use('/api/monitores', monitorRoutes);
     this.app.use('/api/kits', kitRoutes);
     this.app.use('/api/devolucao', devolucaoRoutes);
+    this.app.use('/api/relatorios', relatorioRoutes);
     
     // Rota de saúde
     this.app.get('/health', (req, res) => {
@@ -82,7 +85,8 @@ class App {
           maquinas: '/api/maquinas',
           monitores: '/api/monitores',
           devolucao: '/api/devolucao',
-          kit: '/api/kits'
+          kit: '/api/kits',
+          relatorios: '/api/relatorios'
         }
       });
     });

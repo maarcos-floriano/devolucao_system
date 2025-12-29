@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx
+// src/pages/DashboardPage.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Grid,
@@ -25,13 +25,12 @@ import {
   Extension as KitIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
-import { Bar, Pie } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  ArcElement,
   Title,
   Tooltip,
   Legend,
@@ -42,13 +41,12 @@ ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  ArcElement,
   Title,
   Tooltip,
   Legend
 );
 
-const Dashboard = () => {
+const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState({
     maquinas: 0,
@@ -72,11 +70,11 @@ const Dashboard = () => {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // Carregar KPIs
+      // ✅ CORRIGIDO: Usar endpoints corretos com /api/
       const [maquinasRes, monitoresRes, devolucoesRes, kitsRes] = await Promise.all([
         api.get('/maquinas?page=1&limit=1'),
         api.get('/monitores?page=1&limit=1'),
-        api.get('/devolucao?page=1&limit=1'),
+        api.get('/devolucoes?page=1&limit=1'), // Corrigido para devolucoes (plural)
         api.get('/kits?page=1&limit=1'),
       ]);
 
@@ -87,7 +85,7 @@ const Dashboard = () => {
         kits: kitsRes.data.total || 0,
       });
 
-      // Carregar dados para gráficos
+      // ✅ CORRIGIDO: Usar prefixo correto
       const [todasMaquinas, todasKits] = await Promise.all([
         fetchAllPaginated('/maquinas'),
         fetchAllPaginated('/kits'),
@@ -239,23 +237,24 @@ const Dashboard = () => {
     localStorage.setItem('contadorDevolucoes', JSON.stringify(saveData));
   }, [contadores]);
 
-  // Funções de exportação
+  // ✅ CORRIGIDO: Funções de exportação com endpoints corretos
   const handleExportReport = (tipo) => {
     const hoje = new Date().toISOString().slice(0, 10);
-    window.open(`/api/relatorio-excel/${tipo}?data=${hoje}`, '_blank');
+    // Endpoint: /api/relatorios/excel/:tabela
+    window.open(`http://localhost:3000/api/relatorios/excel/${tipo}?data=${hoje}`, '_blank');
   };
 
   const handleExportSkuReport = (tipo) => {
     const endpoints = {
-      maquinas: '/api/relatorio-paulinho-maquinas',
-      monitores: '/api/relatorio-paulinho-monitores',
-      kit: '/api/relatorio-paulinho-kit',
+      maquinas: 'http://localhost:3000/api/relatorios/paulinho/maquinas',
+      monitores: 'http://localhost:3000/api/relatorios/paulinho/monitores',
+      kit: 'http://localhost:3000/api/relatorios/paulinho/kit',
     };
     window.open(endpoints[tipo], '_blank');
   };
 
   const handleSacReport = (periodo) => {
-    window.open(`/api/relatorio-sac/${periodo}`, '_blank');
+    window.open(`http://localhost:3000/api/relatorios/sac/${periodo}`, '_blank');
   };
 
   useEffect(() => {
@@ -591,4 +590,4 @@ const KpiCard = ({ title, value, icon, color }) => (
   </Card>
 );
 
-export default Dashboard;
+export default DashboardPage;
