@@ -15,7 +15,7 @@ const relatorioRoutes = require('./routes/relatorioRoutes');
 class App {
   constructor() {
     this.app = express();
-    this.port = process.env.PORT || 3000;
+    this.port = process.env.PORT || 3001;
     
     this.initializeDatabase();
     this.initializeMiddlewares();
@@ -115,7 +115,7 @@ class App {
   }
 
   start() {
-    this.app.listen(this.port, () => {
+    this.app.listen(this.port, '0.0.0.0', () => {
       console.log(`🚀 Servidor rodando em http://localhost:${this.port}`);
       console.log(`📊 Ambiente: ${process.env.NODE_ENV || 'development'}`);
     });

@@ -42,7 +42,7 @@ const DevolucaoPage = () => {
   });
 
   // Verificar permissões
-  const canEdit = () => hasRole('admin') || hasRole('tecnico');
+  const canEdit = () => hasRole('admin') || hasRole('tecnico') || hasRole('operador');
   const canDelete = () => hasRole('admin');
 
   // Funções de paginação
@@ -243,7 +243,7 @@ const DevolucaoPage = () => {
           </head>
           <body onload="window.print(); window.close();">
             <div class="etiqueta">
-              <h1>${devolucao.id}</h1>
+              <h1>${id}</h1>
               <div>
                 ${devolucao.cliente}<br>
                 ${devolucao.origem}

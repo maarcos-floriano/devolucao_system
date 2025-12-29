@@ -74,7 +74,7 @@ const DashboardPage = () => {
       const [maquinasRes, monitoresRes, devolucoesRes, kitsRes] = await Promise.all([
         api.get('/maquinas?page=1&limit=1'),
         api.get('/monitores?page=1&limit=1'),
-        api.get('/devolucoes?page=1&limit=1'), // Corrigido para devolucoes (plural)
+        api.get('/devolucao?page=1&limit=1'), // Corrigido para devolucoes (plural)
         api.get('/kits?page=1&limit=1'),
       ]);
 

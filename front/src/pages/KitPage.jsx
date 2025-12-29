@@ -32,7 +32,10 @@ const KitPage = () => {
   const [deletingKit, setDeletingKit] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [devolucoes, setDevolucoes] = useState([]);
+  const [loadingDevolucoes, setLoadingDevolucoes] = useState(false);
+  
+  const formDataInicial = {
     processador: '',
     memoria: '',
     placaMae: '',
@@ -43,7 +46,9 @@ const KitPage = () => {
     observacao: '',
     fkDevolucao: null,
     data: new Date().toISOString().split('T')[0],
-  });
+  };
+  
+  const [formData, setFormData] = useState(formDataInicial);
 
   // Verificar permissões
   const canEdit = () => hasRole('admin') || hasRole('tecnico');
@@ -57,6 +62,60 @@ const KitPage = () => {
   const handleRowsPerPageChange = (newRowsPerPage) => {
     setRowsPerPage(newRowsPerPage);
     setPage(0);
+  };
+
+  // Buscar devoluções quando a origem for selecionada
+  const loadDevolucoesByOrigem = useCallback(async (origemSelecionada) => {
+    if (!origemSelecionada || origemSelecionada === '') {
+      setDevolucoes([]);
+      setLoadingDevolucoes(false);
+      return;
+    }
+    
+    setLoadingDevolucoes(true);
+    
+    try {
+      const response = await api.get('/devolucao', {
+        params: {
+          search: origemSelecionada,
+          limit: 100
+        },
+      });
+      
+      const devolucoesFormatadas = response.data.dados?.map(devolucao => ({
+        id: devolucao.id,
+        label: `#${devolucao.id} - ${devolucao.cliente} - ${devolucao.produto}`,
+        cliente: devolucao.cliente,
+        produto: devolucao.produto,
+        origem: devolucao.origem,
+      })) || [];
+      
+      setDevolucoes(devolucoesFormatadas);
+    } catch (error) {
+      console.error('Erro ao buscar devoluções:', error);
+      setDevolucoes([]);
+    } finally {
+      setLoadingDevolucoes(false);
+    }
+  }, []);
+
+  // Atualizar formData e buscar devoluções quando origem mudar
+  const handleFormDataChange = (newFormData) => {
+    const origemAnterior = formData.origem;
+    const novaOrigem = newFormData.origem;
+
+    setFormData(newFormData);
+
+    if (origemAnterior !== novaOrigem) {
+      loadDevolucoesByOrigem(novaOrigem);
+
+      if (origemAnterior !== novaOrigem) {
+        setFormData(prev => ({
+          ...prev,
+          fkDevolucao: null
+        }));
+      }
+    }
   };
 
   // Carregar kits
@@ -107,6 +166,10 @@ const KitPage = () => {
       data: kit.data || new Date().toISOString().split('T')[0],
     });
     
+    if (kit.origem) {
+      loadDevolucoesByOrigem(kit.origem);
+    }
+    
     setEditDialogOpen(true);
   };
 
@@ -125,18 +188,8 @@ const KitPage = () => {
   const handleCloseEditDialog = () => {
     setEditDialogOpen(false);
     setEditingKit(null);
-    setFormData({
-      processador: '',
-      memoria: '',
-      placaMae: '',
-      origem: '',
-      responsavel: '',
-      lacre: '',
-      defeito: '',
-      observacao: '',
-      fkDevolucao: null,
-      data: new Date().toISOString().split('T')[0],
-    });
+    setFormData(formDataInicial);
+    setDevolucoes([]);
   };
 
   // FECHAR MODAL DE EXCLUSÃO
@@ -221,18 +274,8 @@ const KitPage = () => {
       
       handlePrint('new');
       
-      setFormData({
-        processador: '',
-        memoria: '',
-        placaMae: '',
-        origem: '',
-        responsavel: '',
-        lacre: '',
-        defeito: '',
-        observacao: '',
-        fkDevolucao: null,
-        data: new Date().toISOString().split('T')[0],
-      });
+      setFormData(formDataInicial);
+      setDevolucoes([]);
       loadKits();
     } catch (error) {
       alert('Erro ao salvar kit');
@@ -242,15 +285,15 @@ const KitPage = () => {
     }
   };
 
-  // Imprimir etiqueta
-  const handlePrint = (id) => {
-    const data = id === 'new' ? formData : kits.find(k => k.id === id) || formData;
+  // Imprimir/Reimprimir etiqueta
+  const handlePrint = (kit) => {
+    const data = kit === 'new' || kit?.id === 'new' ? formData : kits.find(k => k.id === kit) || kit || formData;
     
     const janela = window.open('', '_blank');
     const conteudoHTML = `
       <html>
       <head>
-        <title>Etiqueta</title>
+        <title>Etiqueta Kit</title>
         <style>
           @page {
             size: 100mm 30mm;
@@ -293,12 +336,12 @@ const KitPage = () => {
       </head>
       <body onload="window.print(); window.close();">
         <div class="etiqueta">
-          <h1>${data.id}</h1>
+          <h1>${data.id || 'NOVO'}</h1>
           <div>
             ${data.processador} </br> 
             ${data.memoria} </br> 
             ${data.placaMae} </br>
-            ${data.observacao}
+            ${data.observacao || ''}
           </div>
         </div>
       </body>
@@ -351,7 +394,9 @@ const KitPage = () => {
 
         <KitForm
           formData={formData}
-          onChange={setFormData}
+          onChange={handleFormDataChange}
+          devolucoes={devolucoes}
+          loadingDevolucoes={loadingDevolucoes}
           loading={submitting}
           isEditing={!!editingKit}
         />
@@ -372,7 +417,7 @@ const KitPage = () => {
             onClick={() => handlePrint('new')}
             fullWidth
           >
-            Imprimir
+            Imprimir Etiqueta
           </Button>
         </Box>
 
@@ -460,7 +505,9 @@ const KitPage = () => {
         <DialogContent sx={{ pt: 3 }}>
           <KitForm
             formData={formData}
-            onChange={setFormData}
+            onChange={handleFormDataChange}
+            devolucoes={devolucoes}
+            loadingDevolucoes={loadingDevolucoes}
             loading={submitting}
             isEditing={true}
           />

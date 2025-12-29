@@ -2,9 +2,6 @@
 const database = require('../config/database');
 
 class DualDatabase {
-  /**
-   * Executa query em ambos os bancos (principal e backup)
-   */
   static async executeOnBothPools(sql, params = []) {
     try {
       // Executa no banco principal
@@ -24,9 +21,6 @@ class DualDatabase {
     }
   }
 
-  /**
-   * Executa apenas no banco principal (para consultas)
-   */
   static async executeOnMainPool(sql, params = []) {
     try {
       const [rows] = await database.mainPool.query(sql, params);
@@ -37,9 +31,6 @@ class DualDatabase {
     }
   }
 
-  /**
-   * Método específico para INSERT que retorna o insertId
-   */
   static async insertOnBothPools(sql, params = []) {
     try {
       // Executa no banco principal
@@ -59,9 +50,6 @@ class DualDatabase {
     }
   }
 
-  /**
-   * Transação em ambos os bancos
-   */
   static async transaction(callback) {
     let connMain, connBackup;
     
