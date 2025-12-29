@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Grid,
   TextField,
@@ -6,6 +6,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  FormHelperText,
+  CircularProgress,
+  Box,
 } from '@mui/material';
 import {
   RESPONSAVEIS,
@@ -16,12 +19,13 @@ import {
   FONTES,
 } from '../../utils/constants';
 
-const MaquinaForm = ({ formData, onChange, loading = false }) => {
+const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = false, loading = false }) => {
+
   const handleChange = (field, value) => {
-    onChange(prev => ({
-      ...prev,
+    onChange({
+      ...formData,
       [field]: value
-    }));
+    });
   };
 
   const handleSelectChange = (e) => {
@@ -32,6 +36,12 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
   const handleTextChange = (e) => {
     const { name, value } = e.target;
     handleChange(name, value);
+  };
+
+  // Determinar se o campo de devolução deve estar habilitado
+  const isDevolucaoEnabled = () => {
+    const origensPermitidas = ['Mercado Livre', 'Shopee', 'Correios', 'Mineiro Express'];
+    return origensPermitidas.includes(formData.origem);
   };
 
   return (
@@ -226,19 +236,91 @@ const MaquinaForm = ({ formData, onChange, loading = false }) => {
         </FormControl>
       </Grid>
 
-      {/* Devolução (desabilitado por enquanto) */}
+      {/* Devolução - Agora habilitado baseado na origem */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth disabled>
-          <InputLabel>Devolução</InputLabel>
+        <FormControl 
+          fullWidth 
+          disabled={!isDevolucaoEnabled() || loading}
+        >
+          <InputLabel>Vincular a Devolução</InputLabel>
           <Select
             name="fkDevolucao"
             value={formData.fkDevolucao || ''}
             onChange={handleSelectChange}
-            label="Devolução"
+            label="Vincular a Devolução"
+            MenuProps={{
+              PaperProps: {
+                style: {
+                  maxHeight: 300,
+                },
+              },
+            }}
           >
-            <MenuItem value=""><em>Selecione a devolução</em></MenuItem>
+            <MenuItem value="">
+              <em>Selecione uma devolução</em>
+            </MenuItem>
+            
+            {loadingDevolucoes ? (
+              <MenuItem disabled>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={16} />
+                  Buscando devoluções de {formData.origem}...
+                </Box>
+              </MenuItem>
+            ) : devolucoes.length === 0 ? (
+              <MenuItem disabled>
+                {formData.origem && isDevolucaoEnabled()
+                  ? `Nenhuma devolução encontrada para origem: ${formData.origem}`
+                  : formData.origem && !isDevolucaoEnabled()
+                  ? `Vínculo não disponível para ${formData.origem}`
+                  : 'Selecione uma origem primeiro'
+                }
+              </MenuItem>
+            ) : (
+              devolucoes.map((devolucao) => (
+                <MenuItem key={devolucao.id} value={devolucao.id}>
+                  {devolucao.label}
+                </MenuItem>
+              ))
+            )}
           </Select>
+          
+          {!isDevolucaoEnabled() && formData.origem && (
+            <FormHelperText>
+              Opção disponível apenas para Mercado Livre, Shopee, Amazon e Magalu
+            </FormHelperText>
+          )}
+          
+          {isDevolucaoEnabled() && devolucoes.length > 0 && (
+            <FormHelperText>
+              {devolucoes.length} devoluções encontradas
+            </FormHelperText>
+          )}
         </FormControl>
+      </Grid>
+
+      {/* Placa de Vídeo (opcional) */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Placa de Vídeo (opcional)"
+          name="placaVideo"
+          value={formData.placaVideo}
+          onChange={handleTextChange}
+          disabled={loading}
+        />
+      </Grid>
+
+      {/* Gabinete (opcional) */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Gabinete (opcional)"
+          name="gabinete"
+          value={formData.gabinete}
+          onChange={handleTextChange}
+          disabled={loading}
+        />
       </Grid>
 
       {/* Observação */}

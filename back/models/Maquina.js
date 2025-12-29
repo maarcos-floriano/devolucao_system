@@ -21,7 +21,7 @@ class Maquina {
     const sql = `
       INSERT INTO maquinas 
       (processador, memoria, armazenamento, fonte, origem, observacao, defeito, lacre, data, responsavel, fkDevolucao)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
     `;
 
     const params = [
@@ -33,7 +33,6 @@ class Maquina {
       maquinaData.observacao,
       maquinaData.defeito,
       maquinaData.lacre,
-      maquinaData.data || new Date().toISOString().split('T')[0],
       maquinaData.responsavel,
       maquinaData.fkDevolucao || null
     ];

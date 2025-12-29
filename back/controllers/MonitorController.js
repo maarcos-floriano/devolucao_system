@@ -17,7 +17,7 @@ class MonitorController {
       res.status(201).json({
         success: true,
         message: 'Monitor criado com sucesso',
-        data: monitor.toJSON()
+        data: monitor
       });
     } catch (error) {
       console.error('Erro ao criar monitor:', error);
@@ -91,10 +91,62 @@ class MonitorController {
       
       res.json({
         success: true,
-        data: monitor.toJSON()
+        data: monitor
       });
     } catch (error) {
       console.error('Erro ao buscar monitor:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message 
+      });
+    }
+  }
+
+  // Atualizar monitor
+  static async update(req, res) {
+    try {
+      const { id } = req.params;
+      const monitorData = req.body;
+      const updatedMonitor = await Monitor.update(id, monitorData);
+
+      if (!updatedMonitor) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Monitor não encontrado' 
+        });
+      }
+      res.json({
+        success: true,
+        message: 'Monitor atualizado com sucesso',
+        data: updatedMonitor
+      });
+    }
+    catch (error) {
+      console.error('Erro ao atualizar monitor:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message 
+      });
+    }
+  }
+
+  // Deletar monitor
+  static async delete(req, res) {
+    try {
+      const { id } = req.params;
+      const deleted = await Monitor.delete(id); 
+      if (!deleted) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Monitor não encontrado' 
+        });
+      }
+      res.json({
+        success: true,
+        message: 'Monitor deletado com sucesso'
+      });
+    } catch (error) {
+      console.error('Erro ao deletar monitor:', error);
       res.status(500).json({ 
         success: false,
         error: error.message 

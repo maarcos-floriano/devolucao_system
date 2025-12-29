@@ -2,9 +2,13 @@ import api from './api';
 
 const maquinaService = {
   async create(payload) {
-    console.log(payload);
     
     const res = await api.post('/maquinas', payload);
+    return res.data;
+  },
+
+  async update(id, payload) {
+    const res = await api.put(`/maquinas/${id}`, payload);
     return res.data;
   },
 
@@ -29,7 +33,7 @@ const maquinaService = {
       console.error('Erro ao solicitar etiqueta:', err);
       return false;
     }
-  }
+  },
 };
 
 export default maquinaService;

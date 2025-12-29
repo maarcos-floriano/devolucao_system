@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// Para desenvolvimento local
+// Configuração base da API
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
   timeout: 10000,
@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-// Interceptor para requests
+// Interceptor para adicionar token às requisições
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -23,11 +23,12 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor para responses
+// Interceptor para tratar respostas
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Token expirado ou inválido
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';

@@ -137,7 +137,7 @@ class Kit {
                     defeito = ?, 
                     observacao = ?, 
                     origem = ?, 
-                    data = ?, 
+                    data = NOW(), 
                     responsavel = ?, 
                     fkDevolucao = ?
                 WHERE id = ?
@@ -150,7 +150,6 @@ class Kit {
                 kitData.defeito || kit.defeito,
                 kitData.observacao || kit.observacao,
                 kitData.origem || kit.origem,
-                kitData.data || kit.data,
                 kitData.responsavel || kit.responsavel,
                 kitData.fkDevolucao || kit.fkDevolucao,
                 id

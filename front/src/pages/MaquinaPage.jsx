@@ -1,21 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Grid,
   Paper,
   Typography,
   Box,
   Button,
   Alert,
   CircularProgress,
-  Container,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
-import { Save, Print, Refresh, Download } from '@mui/icons-material';
+import { Save, Print, Refresh, Download, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import MaquinaForm from '../components/forms/MaquinaForm';
 import DataTable from '../components/tables/DataTable';
 import SearchBar from '../components/tables/SearchBar';
 import maquinaService from '../services/maquinaService';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const MaquinaPage = () => {
+  const { user, hasRole } = useAuth();
+  
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [maquinas, setMaquinas] = useState([]);
@@ -23,7 +29,15 @@ const MaquinaPage = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalRows, setTotalRows] = useState(0);
-  const [formData, setFormData] = useState({
+  const [devolucoes, setDevolucoes] = useState([]);
+  const [loadingDevolucoes, setLoadingDevolucoes] = useState(false);
+  const [editingMaquina, setEditingMaquina] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [maquinaToDelete, setMaquinaToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  
+  const formDataInicial = {
     processador: '',
     memoria: '',
     armazenamento: '',
@@ -36,7 +50,19 @@ const MaquinaPage = () => {
     defeito: '',
     observacao: '',
     fkDevolucao: null,
-  });
+  };
+  
+  const [formData, setFormData] = useState(formDataInicial);
+
+  // Verificar se usuário pode editar
+  const canEdit = () => {
+    return hasRole('admin') || hasRole('tecnico');
+  };
+
+  // Verificar se usuário pode deletar (apenas admin)
+  const canDelete = () => {
+    return hasRole('admin');
+  };
 
   // Funções de paginação
   const handlePageChange = (newPage) => {
@@ -48,11 +74,64 @@ const MaquinaPage = () => {
     setPage(0);
   };
 
+  // Buscar devoluções quando a origem for selecionada
+  const loadDevolucoesByOrigem = useCallback(async (origemSelecionada) => {
+    if (!origemSelecionada || origemSelecionada === '') {
+      setDevolucoes([]);
+      setLoadingDevolucoes(false);
+      return;
+    }
+    
+    setLoadingDevolucoes(true);
+    
+    try {
+      const response = await api.get('/devolucao', {
+        params: {
+          search: origemSelecionada,
+          limit: 100
+        },
+      });
+      
+      const devolucoesFormatadas = response.data.dados?.map(devolucao => ({
+        id: devolucao.id,
+        label: `#${devolucao.id} - ${devolucao.cliente} - ${devolucao.produto}`,
+        cliente: devolucao.cliente,
+        produto: devolucao.produto,
+        origem: devolucao.origem,
+      })) || [];
+      
+      setDevolucoes(devolucoesFormatadas);
+    } catch (error) {
+      console.error('Erro ao buscar devoluções:', error);
+      setDevolucoes([]);
+    } finally {
+      setLoadingDevolucoes(false);
+    }
+  }, []);
+
+  // Atualizar formData e buscar devoluções quando origem mudar
+  const handleFormDataChange = (newFormData) => {
+    const origemAnterior = formData.origem;
+    const novaOrigem = newFormData.origem;
+
+    setFormData(newFormData);
+
+    if (origemAnterior !== novaOrigem) {
+      loadDevolucoesByOrigem(novaOrigem);
+
+      if (origemAnterior !== novaOrigem) {
+        setFormData(prev => ({
+          ...prev,
+          fkDevolucao: null
+        }));
+      }
+    }
+  };
+
   // Carregar máquinas
   const loadMaquinas = useCallback(async () => {
     setLoading(true);
     try {
-      // Buscar no backend
       const resp = await maquinaService.getAll(page + 1, rowsPerPage, searchTerm);
       setMaquinas(resp.dados || []);
       setTotalRows(resp.total || resp.totalRegistros || 0);
@@ -68,11 +147,129 @@ const MaquinaPage = () => {
     loadMaquinas();
   }, [loadMaquinas]);
 
+  // ABRIR MODAL DE EDIÇÃO
+  const handleEditClick = (maquina) => {
+    if (!canEdit()) {
+      alert('Você não tem permissão para editar máquinas. Apenas administradores e técnicos podem editar.');
+      return;
+    }
+    
+    setEditingMaquina(maquina);
+    setFormData({
+      processador: maquina.processador || '',
+      memoria: maquina.memoria || '',
+      armazenamento: maquina.armazenamento || '',
+      fonte: maquina.fonte || '',
+      placaVideo: maquina.placaVideo || '',
+      gabinete: maquina.gabinete || '',
+      origem: maquina.origem || '',
+      responsavel: maquina.responsavel || '',
+      lacre: maquina.lacre || '',
+      defeito: maquina.defeito || '',
+      observacao: maquina.observacao || '',
+      fkDevolucao: maquina.fkDevolucao || null,
+    });
+    
+    if (maquina.origem) {
+      loadDevolucoesByOrigem(maquina.origem);
+    }
+    
+    setEditDialogOpen(true);
+  };
+
+  // ABRIR MODAL DE EXCLUSÃO
+  const handleDeleteClick = (maquina) => {
+    if (!canDelete()) {
+      alert('Você não tem permissão para excluir máquinas. Apenas administradores podem excluir.');
+      return;
+    }
+    
+    setMaquinaToDelete(maquina);
+    setDeleteDialogOpen(true);
+  };
+
+  // FECHAR MODAL DE EDIÇÃO
+  const handleCloseEditDialog = () => {
+    setEditDialogOpen(false);
+    setEditingMaquina(null);
+    setFormData(formDataInicial);
+    setDevolucoes([]);
+  };
+
+  // FECHAR MODAL DE EXCLUSÃO
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setMaquinaToDelete(null);
+  };
+
+  // SALVAR EDIÇÃO
+  const handleSaveEdit = async () => {
+    if (!editingMaquina) return;
+    
+    const lacreConfirmado = window.confirm("Verificou o lacre?");
+    if (!lacreConfirmado) {
+      alert("Por favor, verifique o lacre antes de salvar.");
+      return;
+    }
+
+    const wifiConfirmado = window.confirm("Verificou o adaptador Wi-Fi?");
+    if (!wifiConfirmado) {
+      alert("Por favor, verifique o adaptador Wi-Fi antes de salvar.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const payload = { ...formData };
+      const res = await api.put(`/maquinas/${editingMaquina.id}`, payload);
+
+      alert('Máquina atualizada com sucesso!');
+      
+      handleCloseEditDialog();
+      loadMaquinas();
+      
+    } catch (error) {
+      alert('Erro ao atualizar máquina');
+      console.error(error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // EXCLUIR MÁQUINA
+  const handleConfirmDelete = async () => {
+    if (!maquinaToDelete) return;
+    
+    // Confirmação extra para exclusão
+    const confirmacao = window.confirm(`Tem certeza que deseja excluir a máquina #${maquinaToDelete.id}?\n\nEsta ação não pode ser desfeita!`);
+    if (!confirmacao) {
+      handleCloseDeleteDialog();
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      await api.delete(`/maquinas/${maquinaToDelete.id}`);
+
+      alert('Máquina excluída com sucesso!');
+      
+      handleCloseDeleteDialog();
+      loadMaquinas();
+      
+    } catch (error) {
+      console.error('Erro ao excluir máquina:', error);
+      alert(error.response?.data?.error || 'Erro ao excluir máquina');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Salvar máquina
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Confirmações antes de salvar
     const lacreConfirmado = window.confirm("Colocou o lacre?");
     if (!lacreConfirmado) {
       alert("Por favor, coloque o lacre antes de salvar.");
@@ -88,29 +285,19 @@ const MaquinaPage = () => {
     setSubmitting(true);
 
     try {
-      // Enviar para backend
       const payload = { ...formData };
       const res = await maquinaService.create(payload);
 
       alert('Máquina cadastrada!');
 
-      // Imprimir etiqueta (se API retornar id em res.data ou res.data.data)
       const newId = res.data?.id || res.id || 'new';
       handlePrint({ id: newId, ...formData });
 
-      setFormData({
-        processador: '',
-        memoria: '',
-        armazenamento: '',
-        fonte: '',
-        origem: '',
-        responsavel: '',
-        lacre: '',
-        defeito: '',
-        observacao: '',
-        fkDevolucao: null,
-      });
-      // Reload
+      setFormData(formDataInicial);
+      setDevolucoes([]);
+
+      loadMaquinas();
+      setLoadingDevolucoes(false);
       loadMaquinas();
     } catch (error) {
       alert('Erro ao salvar máquina');
@@ -266,7 +453,9 @@ const MaquinaPage = () => {
 
         <MaquinaForm
           formData={formData}
-          onChange={setFormData}
+          onChange={handleFormDataChange}
+          devolucoes={devolucoes}
+          loadingDevolucoes={loadingDevolucoes}
           loading={submitting}
         />
 
@@ -292,8 +481,10 @@ const MaquinaPage = () => {
 
         <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
           <Typography variant="body2">
-            <strong>Instruções:</strong> Preencha todos os campos obrigatórios.
-            O sistema pedirá confirmação sobre lacre e adaptador Wi-Fi antes de salvar.
+            <strong>Permissões:</strong> 
+            {hasRole('admin') ? ' Administrador (pode editar e excluir)' : ''}
+            {hasRole('tecnico') ? ' Técnico (pode editar)' : ''}
+            {!hasRole('admin') && !hasRole('tecnico') ? ' Visualização apenas' : ''}
           </Typography>
         </Alert>
       </Paper>
@@ -346,18 +537,143 @@ const MaquinaPage = () => {
           sx={{ mb: 2 }}
         />
 
-          <DataTable
-            columns={columns}
-            data={maquinas}
-            page={page}
-            rowsPerPage={rowsPerPage}
-            totalRows={totalRows}
-            onPageChange={handlePageChange}
-            onRowsPerPageChange={handleRowsPerPageChange}
-            onPrint={handlePrint}
-            loading={loading}
-          />
+        <DataTable
+          columns={columns}
+          data={maquinas}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          totalRows={totalRows}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          onPrint={handlePrint}
+          onEdit={canEdit() ? handleEditClick : null}
+          onDelete={canDelete() ? handleDeleteClick : null}
+          loading={loading}
+        />
       </Paper>
+
+      {/* MODAL DE EDIÇÃO */}
+      <Dialog 
+        open={editDialogOpen} 
+        onClose={handleCloseEditDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: '#fef3c7', color: '#92400e' }}>
+          <EditIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Editar Máquina #{editingMaquina?.id}
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3 }}>
+          <MaquinaForm
+            formData={formData}
+            onChange={handleFormDataChange}
+            devolucoes={devolucoes}
+            loadingDevolucoes={loadingDevolucoes}
+            loading={submitting}
+            isEditing={true}
+          />
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3, pt: 2 }}>
+          <Button 
+            onClick={handleCloseEditDialog}
+            variant="outlined"
+            disabled={submitting}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSaveEdit}
+            variant="contained"
+            startIcon={<Save />}
+            disabled={submitting}
+            sx={{ 
+              bgcolor: '#f59e0b',
+              '&:hover': { bgcolor: '#d97706' }
+            }}
+          >
+            {submitting ? <CircularProgress size={24} color="inherit" /> : 'Salvar Alterações'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* MODAL DE EXCLUSÃO */}
+      <Dialog 
+        open={deleteDialogOpen} 
+        onClose={handleCloseDeleteDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: '#fee2e2', color: '#991b1b' }}>
+          <DeleteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Excluir Máquina #{maquinaToDelete?.id}
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3 }}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <strong>Atenção!</strong> Esta ação é irreversível.
+          </Alert>
+          
+          <Typography variant="body1" sx={{ mb: 1 }}>
+            Você está prestes a excluir a seguinte máquina:
+          </Typography>
+          
+          <Box sx={{ 
+            p: 2, 
+            bgcolor: '#f8fafc', 
+            borderRadius: 1,
+            border: '1px solid #e2e8f0'
+          }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              ID: {maquinaToDelete?.id}
+            </Typography>
+            <Typography variant="body2">
+              Processador: {maquinaToDelete?.processador}
+            </Typography>
+            <Typography variant="body2">
+              Memória: {maquinaToDelete?.memoria}
+            </Typography>
+            <Typography variant="body2">
+              Responsável: {maquinaToDelete?.responsavel}
+            </Typography>
+            <Typography variant="body2">
+              Origem: {maquinaToDelete?.origem}
+            </Typography>
+            {maquinaToDelete?.defeito && (
+              <Typography variant="body2">
+                Defeito: {maquinaToDelete?.defeito}
+              </Typography>
+            )}
+          </Box>
+          
+          <Typography variant="body2" sx={{ mt: 2, color: '#dc2626', fontWeight: 600 }}>
+            Tem certeza que deseja prosseguir com a exclusão?
+          </Typography>
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3, pt: 2 }}>
+          <Button 
+            onClick={handleCloseDeleteDialog}
+            variant="outlined"
+            disabled={deleting}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            startIcon={<DeleteIcon />}
+            disabled={deleting}
+            sx={{ 
+              bgcolor: '#dc2626',
+              '&:hover': { bgcolor: '#b91c1c' }
+            }}
+          >
+            {deleting ? <CircularProgress size={24} color="inherit" /> : 'Excluir Máquina'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

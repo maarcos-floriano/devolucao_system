@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Grid,
   Paper,
   Typography,
   Box,
@@ -12,13 +11,16 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { Save, Refresh, Download, Print } from '@mui/icons-material';
+import { Save, Refresh, Download, Print, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import DevolucaoForm from '../components/forms/DevolucaoForm';
 import DataTable from '../components/tables/DataTable';
 import SearchBar from '../components/tables/SearchBar';
 import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const DevolucaoPage = () => {
+  const { hasRole } = useAuth();
+  
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [devolucoes, setDevolucoes] = useState([]);
@@ -26,20 +28,22 @@ const DevolucaoPage = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalRows, setTotalRows] = useState(0);
+  const [editingDevolucao, setEditingDevolucao] = useState(null);
+  const [deletingDevolucao, setDeletingDevolucao] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     origem: '',
     cliente: '',
     produto: '',
     codigo: '',
     observacao: '',
-    dataHora: '',
+    dataHora: new Date().toISOString().slice(0, 16),
   });
-  const [confirmDialog, setConfirmDialog] = useState({
-    open: false,
-    title: '',
-    message: '',
-    onConfirm: null,
-  });
+
+  // Verificar permissões
+  const canEdit = () => hasRole('admin') || hasRole('tecnico');
+  const canDelete = () => hasRole('admin');
 
   // Funções de paginação
   const handlePageChange = (newPage) => {
@@ -55,138 +59,17 @@ const DevolucaoPage = () => {
   const loadDevolucoes = useCallback(async () => {
     setLoading(true);
     try {
-      // Substitua pela sua API real
       const response = await api.get('/devolucao', {
         params: {
+          search: searchTerm,
           page: page + 1,
           limit: rowsPerPage,
-          search: searchTerm,
         },
       });
+
+      setDevolucoes(response.data.dados);
+      setTotalRows(response.data.total);
       
-      // Simulação com dados mockados enquanto não tem API
-      const mockData = [
-        { 
-          id: 1, 
-          origem: 'Mercado Livre', 
-          cliente: 'João Silva', 
-          produto: 'PC Gamer', 
-          codigo: 'ML123456', 
-          dataHora: '2024-01-15 14:30:00',
-          observacao: 'Defeito na placa de vídeo'
-        },
-        { 
-          id: 2, 
-          origem: 'Shopee', 
-          cliente: 'Maria Santos', 
-          produto: 'Monitor 24"', 
-          codigo: 'SH789012', 
-          dataHora: '2024-01-15 10:15:00',
-          observacao: ''
-        },
-        { 
-          id: 3, 
-          origem: 'Amazon', 
-          cliente: 'Pedro Costa', 
-          produto: 'Notebook', 
-          codigo: 'AMZ456789', 
-          dataHora: '2024-01-14 16:45:00',
-          observacao: 'Tela quebrada'
-        },
-        { 
-          id: 4, 
-          origem: 'Mercado Livre', 
-          cliente: 'Ana Souza', 
-          produto: 'Tablet', 
-          codigo: 'ML987654', 
-          dataHora: '2024-01-14 11:20:00',
-          observacao: 'Não liga'
-        },
-        { 
-          id: 5, 
-          origem: 'Shopee', 
-          cliente: 'Carlos Lima', 
-          produto: 'Smartphone', 
-          codigo: 'SH321654', 
-          dataHora: '2024-01-13 09:30:00',
-          observacao: 'Bateria com defeito'
-        },
-        { 
-          id: 6, 
-          origem: 'Amazon', 
-          cliente: 'Fernanda Rocha', 
-          produto: 'Fone Bluetooth', 
-          codigo: 'AMZ789123', 
-          dataHora: '2024-01-13 15:10:00',
-          observacao: 'Não pareia'
-        },
-        { 
-          id: 7, 
-          origem: 'Mercado Livre', 
-          cliente: 'Ricardo Alves', 
-          produto: 'Teclado Mecânico', 
-          codigo: 'ML456123', 
-          dataHora: '2024-01-12 13:25:00',
-          observacao: 'Tecla space não funciona'
-        },
-        { 
-          id: 8, 
-          origem: 'Shopee', 
-          cliente: 'Patrícia Santos', 
-          produto: 'Mouse Gamer', 
-          codigo: 'SH987321', 
-          dataHora: '2024-01-12 17:40:00',
-          observacao: 'Scroll com problema'
-        },
-        { 
-          id: 9, 
-          origem: 'Amazon', 
-          cliente: 'Luiz Ferreira', 
-          produto: 'Webcam', 
-          codigo: 'AMZ654987', 
-          dataHora: '2024-01-11 10:55:00',
-          observacao: 'Imagem pixelada'
-        },
-        { 
-          id: 10, 
-          origem: 'Mercado Livre', 
-          cliente: 'Juliana Martins', 
-          produto: 'SSD 1TB', 
-          codigo: 'ML321789', 
-          dataHora: '2024-01-11 14:15:00',
-          observacao: 'Não é reconhecido'
-        },
-        { 
-          id: 11, 
-          origem: 'Shopee', 
-          cliente: 'Roberto Nunes', 
-          produto: 'Placa de Vídeo', 
-          codigo: 'SH654987', 
-          dataHora: '2024-01-10 16:30:00',
-          observacao: 'Artefatos na tela'
-        },
-        { 
-          id: 12, 
-          origem: 'Amazon', 
-          cliente: 'Camila Oliveira', 
-          produto: 'Processador', 
-          codigo: 'AMZ123456', 
-          dataHora: '2024-01-10 11:45:00',
-          observacao: 'Superaquecimento'
-        },
-      ];
-      
-      // Simulação de paginação no frontend
-      const startIndex = page * rowsPerPage;
-      const endIndex = startIndex + rowsPerPage;
-      const paginatedData = mockData.slice(startIndex, endIndex);
-      
-      setDevolucoes(paginatedData);
-      setTotalRows(mockData.length);
-      
-      // Quando tiver API real, use:
-      // setDevolucoes(response.data.dados || []);
-      // setTotalRows(response.data.total || 0);
     } catch (error) {
       console.error('Erro ao carregar devoluções:', error);
       alert('Erro ao carregar devoluções');
@@ -199,50 +82,142 @@ const DevolucaoPage = () => {
     loadDevolucoes();
   }, [loadDevolucoes]);
 
-  // Salvar devolução
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // ABRIR MODAL DE EDIÇÃO
+  const handleEditClick = (devolucao) => {
+    if (!canEdit()) {
+      alert('Você não tem permissão para editar devoluções. Apenas administradores e técnicos podem editar.');
+      return;
+    }
     
-    setConfirmDialog({
-      open: true,
-      title: 'Confirmar Devolução',
-      message: 'Confirma o registro desta devolução?',
-      onConfirm: async () => {
-        setSubmitting(true);
-        try {
-          alert('Devolução salva com sucesso!');
-          
-          await handlePrint();
-          
-          setFormData({
-            origem: '',
-            cliente: '',
-            produto: '',
-            codigo: '',
-            observacao: '',
-            dataHora: '',
-          });
-          loadDevolucoes();
-        } catch (error) {
-          alert('Erro ao salvar devolução');
-          console.error(error);
-        } finally {
-          setSubmitting(false);
-          setConfirmDialog({ ...confirmDialog, open: false });
-        }
-      },
+    setEditingDevolucao(devolucao);
+    setFormData({
+      origem: devolucao.origem || '',
+      cliente: devolucao.cliente || '',
+      produto: devolucao.produto || '',
+      codigo: devolucao.codigo || '',
+      observacao: devolucao.observacao || '',
+      dataHora: devolucao.dataHora || new Date().toISOString().slice(0, 16),
+    });
+    
+    setEditDialogOpen(true);
+  };
+
+  // ABRIR MODAL DE EXCLUSÃO
+  const handleDeleteClick = (devolucao) => {
+    if (!canDelete()) {
+      alert('Você não tem permissão para excluir devoluções. Apenas administradores podem excluir.');
+      return;
+    }
+    
+    setDeletingDevolucao(devolucao);
+    setDeleteDialogOpen(true);
+  };
+
+  // FECHAR MODAL DE EDIÇÃO
+  const handleCloseEditDialog = () => {
+    setEditDialogOpen(false);
+    setEditingDevolucao(null);
+    setFormData({
+      origem: '',
+      cliente: '',
+      produto: '',
+      codigo: '',
+      observacao: '',
+      dataHora: new Date().toISOString().slice(0, 16),
     });
   };
 
-  // Imprimir etiqueta
-  const handlePrint = async () => {
+  // FECHAR MODAL DE EXCLUSÃO
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setDeletingDevolucao(null);
+  };
+
+  // SALVAR EDIÇÃO
+  const handleSaveEdit = async () => {
+    if (!editingDevolucao) return;
+    
+    setSubmitting(true);
     try {
-      // Simulação - substitua pela sua API real
-      const devolucao = {
-        id: Math.floor(Math.random() * 1000) + 1,
-        cliente: formData.cliente || 'Cliente Exemplo',
-        origem: formData.origem || 'Mercado Livre'
-      };
+      const payload = { ...formData };
+      await api.put(`/devolucao/${editingDevolucao.id}`, payload);
+
+      alert('Devolução atualizada com sucesso!');
+      
+      handleCloseEditDialog();
+      loadDevolucoes();
+      
+    } catch (error) {
+      alert('Erro ao atualizar devolução');
+      console.error(error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // EXCLUIR DEVOLUÇÃO
+  const handleConfirmDelete = async () => {
+    if (!deletingDevolucao) return;
+    
+    const confirmacao = window.confirm(`Tem certeza que deseja excluir a devolução #${deletingDevolucao.id}?\n\nEsta ação não pode ser desfeita!`);
+    if (!confirmacao) {
+      handleCloseDeleteDialog();
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.delete(`/devolucao/${deletingDevolucao.id}`);
+
+      alert('Devolução excluída com sucesso!');
+      
+      handleCloseDeleteDialog();
+      loadDevolucoes();
+      
+    } catch (error) {
+      console.error('Erro ao excluir devolução:', error);
+      alert(error.response?.data?.error || 'Erro ao excluir devolução');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Salvar nova devolução
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    setSubmitting(true);
+    try {
+      const payload = { ...formData };
+      const response = await api.post('/devolucao', payload);
+
+      alert('Devolução salva com sucesso!');
+      
+      await handlePrint(response.data.id || 'new');
+      
+      setFormData({
+        origem: '',
+        cliente: '',
+        produto: '',
+        codigo: '',
+        observacao: '',
+        dataHora: new Date().toISOString().slice(0, 16),
+      });
+      loadDevolucoes();
+    } catch (error) {
+      alert('Erro ao salvar devolução');
+      console.error(error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Imprimir etiqueta
+  const handlePrint = async (id) => {
+    try {
+      const devolucao = id === 'new' 
+        ? { id: 'NOVO', cliente: formData.cliente || 'Cliente', origem: formData.origem || 'Origem' }
+        : devolucoes.find(d => d.id === id) || { id, cliente: 'Cliente', origem: 'Origem' };
       
       const janela = window.open('', '_blank');
       const conteudoHTML = `
@@ -310,130 +285,229 @@ const DevolucaoPage = () => {
         Devolução
       </Typography>
 
-
-        {/* Formulário */}
-          <Paper 
-            elevation={2}
-            sx={{
-              p: 3,
-              mb: 3,
-              border: '2px solid',
-              borderColor: 'primary.main',
-              borderRadius: 3,
-            }}
-          >
-            <Typography variant="h6" gutterBottom>
-              Registrar Devolução
-            </Typography>
-
-            <DevolucaoForm
-              formData={formData}
-              onChange={setFormData}
-              loading={submitting}
-            />
-
-            <Box sx={{ mt: 2, display: 'flex', gap: 2, flexDirection: 'column' }}>
-              <Button
-                variant="contained"
-                startIcon={<Save />}
-                onClick={handleSubmit}
-                disabled={submitting}
-                fullWidth
-              >
-                {submitting ? <CircularProgress size={24} /> : 'Salvar Devolução'}
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Print />}
-                onClick={handlePrint}
-                fullWidth
-              >
-                Imprimir Etiqueta
-              </Button>
-            </Box>
-
-            <Alert severity="info" sx={{ mt: 3 }}>
-              <Typography variant="body2">
-                <strong>Instruções:</strong> Após salvar, a etiqueta será impressa automaticamente.
-                A data e hora são preenchidas automaticamente.
-              </Typography>
-            </Alert>
-          </Paper>
-
-        {/* Tabela de Histórico */}
-          <Paper 
-          elevation={2}
-          sx={{
-            p: 3,
-            border: '2px solid',
-            borderColor: 'primary.main',
-            borderRadius: 3,
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            height: '86vh',
-            overflow: 'hidden',
-          }}
-        >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h6">Histórico de Devoluções</Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  startIcon={<Refresh />}
-                  onClick={loadDevolucoes}
-                  disabled={loading}
-                >
-                  Atualizar
-                </Button>
-                <Button
-                  startIcon={<Download />}
-                  onClick={handleExport}
-                  variant="outlined"
-                  color="success"
-                >
-                  Exportar
-                </Button>
-              </Box>
-            </Box>
-
-            <SearchBar
-              value={searchTerm}
-              onChange={setSearchTerm}
-              placeholder="Pesquisar por origem, cliente, produto ou código..."
-              sx={{ mb: 2 }}
-            />
-
-            <DataTable
-              columns={columns}
-              data={devolucoes}
-              page={page}
-              rowsPerPage={rowsPerPage}
-              totalRows={totalRows}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-              loading={loading}
-            />
-          </Paper>
-
-      {/* Diálogo de Confirmação */}
-      <Dialog
-        open={confirmDialog.open}
-        onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
+      {/* Formulário */}
+      <Paper 
+        elevation={2}
+        sx={{
+          p: 3,
+          mb: 3,
+          border: '2px solid',
+          borderColor: 'primary.main',
+          borderRadius: 3,
+        }}
       >
-        <DialogTitle>{confirmDialog.title}</DialogTitle>
-        <DialogContent>
-          <Typography>{confirmDialog.message}</Typography>
+        <Typography variant="h6" gutterBottom>
+          Registrar Devolução
+        </Typography>
+
+        <DevolucaoForm
+          formData={formData}
+          onChange={setFormData}
+          loading={submitting}
+          isEditing={!!editingDevolucao}
+        />
+
+        <Box sx={{ mt: 2, display: 'flex', gap: 2, flexDirection: 'column' }}>
+          <Button
+            variant="contained"
+            startIcon={<Save />}
+            onClick={handleSubmit}
+            disabled={submitting}
+            fullWidth
+          >
+            {submitting ? <CircularProgress size={24} /> : editingDevolucao ? 'Atualizar Devolução' : 'Salvar Devolução'}
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Print />}
+            onClick={() => handlePrint('new')}
+            fullWidth
+          >
+            Imprimir Etiqueta
+          </Button>
+        </Box>
+
+        <Alert severity="info" sx={{ mt: 3 }}>
+          <Typography variant="body2">
+            <strong>Permissões:</strong> 
+            {hasRole('admin') ? ' Administrador (pode editar e excluir)' : ''}
+            {hasRole('tecnico') ? ' Técnico (pode editar)' : ''}
+            {!hasRole('admin') && !hasRole('tecnico') ? ' Visualização apenas' : ''}
+          </Typography>
+        </Alert>
+      </Paper>
+
+      {/* Tabela de Histórico */}
+      <Paper 
+        elevation={2}
+        sx={{
+          p: 3,
+          border: '2px solid',
+          borderColor: 'primary.main',
+          borderRadius: 3,
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          height: '86vh',
+          overflow: 'auto',
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="h6">Histórico de Devoluções</Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              startIcon={<Refresh />}
+              onClick={loadDevolucoes}
+              disabled={loading}
+            >
+              Atualizar
+            </Button>
+            <Button
+              startIcon={<Download />}
+              onClick={handleExport}
+              variant="outlined"
+              color="success"
+            >
+              Exportar
+            </Button>
+          </Box>
+        </Box>
+
+        <SearchBar
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Pesquisar por origem, cliente, produto ou código..."
+          sx={{ mb: 2 }}
+        />
+
+        <DataTable
+          columns={columns}
+          data={devolucoes}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          totalRows={totalRows}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          onEdit={canEdit() ? handleEditClick : null}
+          onDelete={canDelete() ? handleDeleteClick : null}
+          loading={loading}
+        />
+      </Paper>
+
+      {/* MODAL DE EDIÇÃO */}
+      <Dialog 
+        open={editDialogOpen} 
+        onClose={handleCloseEditDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: '#fef3c7', color: '#92400e' }}>
+          <EditIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Editar Devolução #{editingDevolucao?.id}
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3 }}>
+          <DevolucaoForm
+            formData={formData}
+            onChange={setFormData}
+            loading={submitting}
+            isEditing={true}
+          />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}>
+        
+        <DialogActions sx={{ p: 3, pt: 2 }}>
+          <Button 
+            onClick={handleCloseEditDialog}
+            variant="outlined"
+            disabled={submitting}
+          >
             Cancelar
           </Button>
           <Button
-            onClick={confirmDialog.onConfirm}
+            onClick={handleSaveEdit}
             variant="contained"
-            color="primary"
+            startIcon={<Save />}
+            disabled={submitting}
+            sx={{ 
+              bgcolor: '#f59e0b',
+              '&:hover': { bgcolor: '#d97706' }
+            }}
           >
-            Confirmar
+            {submitting ? <CircularProgress size={24} color="inherit" /> : 'Salvar Alterações'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* MODAL DE EXCLUSÃO */}
+      <Dialog 
+        open={deleteDialogOpen} 
+        onClose={handleCloseDeleteDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: '#fee2e2', color: '#991b1b' }}>
+          <DeleteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Excluir Devolução #{deletingDevolucao?.id}
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3 }}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <strong>Atenção!</strong> Esta ação é irreversível.
+          </Alert>
+          
+          <Typography variant="body1" sx={{ mb: 1 }}>
+            Você está prestes a excluir a seguinte devolução:
+          </Typography>
+          
+          <Box sx={{ 
+            p: 2, 
+            bgcolor: '#f8fafc', 
+            borderRadius: 1,
+            border: '1px solid #e2e8f0'
+          }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              ID: {deletingDevolucao?.id}
+            </Typography>
+            <Typography variant="body2">
+              Cliente: {deletingDevolucao?.cliente}
+            </Typography>
+            <Typography variant="body2">
+              Produto: {deletingDevolucao?.produto}
+            </Typography>
+            <Typography variant="body2">
+              Origem: {deletingDevolucao?.origem}
+            </Typography>
+            {deletingDevolucao?.codigo && (
+              <Typography variant="body2">
+                Código: {deletingDevolucao?.codigo}
+              </Typography>
+            )}
+          </Box>
+          
+          <Typography variant="body2" sx={{ mt: 2, color: '#dc2626', fontWeight: 600 }}>
+            Tem certeza que deseja prosseguir com a exclusão?
+          </Typography>
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3, pt: 2 }}>
+          <Button 
+            onClick={handleCloseDeleteDialog}
+            variant="outlined"
+            disabled={submitting}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            startIcon={<DeleteIcon />}
+            disabled={submitting}
+            sx={{ 
+              bgcolor: '#dc2626',
+              '&:hover': { bgcolor: '#b91c1c' }
+            }}
+          >
+            {submitting ? <CircularProgress size={24} color="inherit" /> : 'Excluir Devolução'}
           </Button>
         </DialogActions>
       </Dialog>

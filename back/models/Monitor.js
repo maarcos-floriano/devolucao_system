@@ -15,16 +15,15 @@ class Monitor {
   static async create(monitorData) {
     const sql = `
       INSERT INTO monitores 
-      (marca, tamanho, quantidade, rma, data, responsavel)
-      VALUES (?, ?, ?, ?, ?, ?)
+      (marca, tamanho, rma, data, observacao, responsavel)
+      VALUES (?, ?, ?, NOW(), ?, ?)
     `;
     
     const params = [
       monitorData.marca,
       monitorData.tamanho,
-      monitorData.quantidade || 1,
       monitorData.rma || false,
-      monitorData.data || new Date().toISOString().split('T')[0],
+      monitorData.observacao || null,
       monitorData.responsavel
     ];
 
@@ -93,6 +92,42 @@ class Monitor {
       throw new Error(`Erro ao contar monitores: ${error.message}`);
     }
   }
+
+  // Atualizar monitor
+  static async update(id, monitorData) {
+    const sql = `
+      UPDATE monitores
+      SET marca = ?, tamanho = ?, rma = ?, data = NOW(), responsavel = ?
+      WHERE id = ?
+    `;
+    const params = [
+      monitorData.marca,
+      monitorData.tamanho,
+      monitorData.rma || false,
+      monitorData.responsavel,
+      id
+    ];
+
+    try {
+      await DualDatabase.executeOnBothPools(sql, params);
+      return { id, ...monitorData };
+    } catch (error) {
+      throw new Error(`Erro ao atualizar monitor: ${error.message}`);
+    }
+  }
+
+  // Deletar monitor
+  static async delete(id) {
+    const sql = `DELETE FROM monitores WHERE id = ?`;
+
+    try {
+      await DualDatabase.executeOnBothPools(sql, [id]);
+      return true;
+    } catch (error) {
+      throw new Error(`Erro ao deletar monitor: ${error.message}`);
+    } 
+  }
+
   // Método para exportar dados
   toJSON() {
     return {

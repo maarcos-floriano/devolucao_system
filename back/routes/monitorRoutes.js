@@ -21,5 +21,7 @@ router.post('/', validateMonitor, MonitorController.create);
 router.get('/', MonitorController.findAll);
 router.get('/dia', MonitorController.findToday);
 router.get('/:id', MonitorController.findById);
+router.put('/:id', validateMonitor, MonitorController.update);
+router.delete('/:id', MonitorController.delete);
 
 module.exports = router;

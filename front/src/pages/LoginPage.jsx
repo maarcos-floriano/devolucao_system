@@ -18,7 +18,7 @@ const LoginPage = () => {
     username: '',
     password: '',
   });
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, error } = useAuth();
   const navigate = useNavigate();
 
@@ -32,14 +32,21 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    
+    // Prevenir múltiplos submits
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
     try {
       await login(credentials);
-      navigate('/dashboard');
+      // Navegação após login bem-sucedido
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       console.error('Erro no login:', err);
+      // O erro já é tratado no AuthContext
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -115,7 +122,7 @@ const LoginPage = () => {
               autoFocus
               value={credentials.username}
               onChange={handleChange}
-              disabled={loading}
+              disabled={isSubmitting}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
@@ -137,7 +144,7 @@ const LoginPage = () => {
               autoComplete="current-password"
               value={credentials.password}
               onChange={handleChange}
-              disabled={loading}
+              disabled={isSubmitting}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
@@ -165,10 +172,13 @@ const LoginPage = () => {
                 '&:hover': {
                   backgroundColor: '#16a34a',
                 },
+                '&:disabled': {
+                  backgroundColor: '#9ca3af',
+                }
               }}
-              disabled={loading}
+              disabled={isSubmitting || !credentials.username || !credentials.password}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Entrar no Sistema'}
+              {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Entrar no Sistema'}
             </Button>
 
             {/* Credenciais de teste */}
