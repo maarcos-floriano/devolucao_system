@@ -74,7 +74,7 @@ const DashboardPage = () => {
       const [maquinasRes, monitoresRes, devolucoesRes, kitsRes] = await Promise.all([
         api.get('/maquinas?page=1&limit=1'),
         api.get('/monitores?page=1&limit=1'),
-        api.get('/devolucao?page=1&limit=1'), // Corrigido para devolucoes (plural)
+        api.get('/devolucao?page=1&limit=1'),
         api.get('/kits?page=1&limit=1'),
       ]);
 
@@ -240,21 +240,20 @@ const DashboardPage = () => {
   // ✅ CORRIGIDO: Funções de exportação com endpoints corretos
   const handleExportReport = (tipo) => {
     const hoje = new Date().toISOString().slice(0, 10);
-    // Endpoint: /api/relatorios/excel/:tabela
-    window.open(`http://localhost:3000/api/relatorios/excel/${tipo}?data=${hoje}`, '_blank');
+    window.open(`http://localhost:3001/api/relatorios/excel/${tipo}?data=${hoje}`, '_blank');
   };
 
   const handleExportSkuReport = (tipo) => {
     const endpoints = {
-      maquinas: 'http://localhost:3000/api/relatorios/paulinho/maquinas',
-      monitores: 'http://localhost:3000/api/relatorios/paulinho/monitores',
-      kit: 'http://localhost:3000/api/relatorios/paulinho/kit',
+      maquinas: 'http://localhost:3001/api/relatorios/paulinho/maquinas',
+      monitores: 'http://localhost:3001/api/relatorios/paulinho/monitores',
+      kit: 'http://localhost:3001/api/relatorios/paulinho/kit',
     };
     window.open(endpoints[tipo], '_blank');
   };
 
   const handleSacReport = (periodo) => {
-    window.open(`http://localhost:3000/api/relatorios/sac/${periodo}`, '_blank');
+    window.open(`http://localhost:3001/api/relatorios/sac/${periodo}`, '_blank');
   };
 
   useEffect(() => {

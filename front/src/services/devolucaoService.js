@@ -14,7 +14,7 @@ const devolucaoService = {
   },
 
   async getToday() {
-    const response = await api.get('/api/devolucao/dia');
+    const response = await api.get('/api/devolucao/hoje');
     return response.data;
   },
 

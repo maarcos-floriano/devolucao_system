@@ -13,8 +13,7 @@ class RelatorioController {
         return res.status(400).json({ error: "Tabela inválida" });
       }
 
-      const sql = `SELECT * FROM ${tabela} WHERE DATE(data) = ? ORDER BY data DESC`;
-      const [rows] = await DualDatabase.executeOnMainPool(sql, [data]);
+      const rows = await Relatorio.gerarRelatorioSimples(tabela, data);
 
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet(`Relatório ${tabela}`);

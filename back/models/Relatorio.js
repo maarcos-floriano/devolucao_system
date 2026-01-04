@@ -351,6 +351,16 @@ class Relatorio {
       });
     });
   }
+
+  static async gerarRelatorioSimples(tabela, data) {
+    try {
+      const sql = `SELECT * FROM ${tabela} WHERE DATE(data) = ? ORDER BY data DESC`;
+      const rows = await DualDatabase.executeOnMainPool(sql, [data]);
+      return rows || [];
+    } catch (error) {
+      throw new Error(`Erro ao gerar relatório simples: ${error.message}`);
+    }
+  }
 }
 
 module.exports = Relatorio; 

@@ -16,13 +16,6 @@ router.get('/relatorio/diario', DevolucaoController.exportDailyReport);
 router.get('/relatorio/periodo', DevolucaoController.getReportByPeriod);
 router.get('/origem', DevolucaoController.getByOrigin);
 
-// Rotas para compatibilidade com o frontend existente
-router.get('/api/', DevolucaoController.findAll);
-router.post('/api/', DevolucaoController.create);
-router.get('/api/:id', DevolucaoController.findById);
-router.put('/api/:id', DevolucaoController.update);
-router.delete('/api/:id', DevolucaoController.delete);
-
 // Rotas para relatórios (compatíveis com o dashboard HTML)
 router.get('/api/relatorio-excel/', DevolucaoController.exportDailyReport);
 
