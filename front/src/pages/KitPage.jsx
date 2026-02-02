@@ -162,8 +162,7 @@ const KitPage = () => {
       lacre: kit.lacre || '',
       defeito: kit.defeito || '',
       observacao: kit.observacao || '',
-      fkDevolucao: kit.fkDevolucao || null,
-      data: kit.data || new Date().toISOString().split('T')[0],
+      fkDevolucao: kit.fkDevolucao || null
     });
     
     if (kit.origem) {
@@ -272,7 +271,7 @@ const KitPage = () => {
 
       alert('Kit salvo com sucesso!');
       
-      handlePrint('new');
+      handlePrint(response.data.id);
       
       setFormData(formDataInicial);
       setDevolucoes([]);
@@ -285,7 +284,6 @@ const KitPage = () => {
     }
   };
 
-  // Imprimir/Reimprimir etiqueta
   const handlePrint = (kit) => {
     const data = kit === 'new' || kit?.id === 'new' ? formData : kits.find(k => k.id === kit) || kit || formData;
     
@@ -414,7 +412,7 @@ const KitPage = () => {
           <Button
             variant="outlined"
             startIcon={<Print />}
-            onClick={() => handlePrint('new')}
+            onClick={() => handlePrint(formData)}
             fullWidth
           >
             Imprimir Etiqueta

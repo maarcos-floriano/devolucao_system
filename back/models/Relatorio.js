@@ -64,6 +64,7 @@ class Relatorio {
           COUNT(*) AS quantidade
         FROM kit
         WHERE saiu_venda = 0
+          AND DATE(data) = CURDATE()
         GROUP BY processador, memoria, placaMae
         ORDER BY quantidade DESC
       `;
@@ -164,14 +165,13 @@ class Relatorio {
   }
 
   // Relatório SAC diário
-  static async relatorioSACDiario(data) {
+  static async relatorioSACDiario() {
     try {
-      const dataBusca = data ? data : new Date().toISOString().slice(0, 10);
-
-      console.log(`Gerando relatório SAC do dia: ${dataBusca}`);
+      const hoje = new Date();
+      const dataBusca = hoje.toISOString().slice(0, 10);
 
       // Busca devoluções do dia
-      const [devolucoes] = await DualDatabase.executeOnMainPool(`
+      const devolucoes = await DualDatabase.executeOnMainPool(`
         SELECT 
           d.id AS devolucao_id,
           d.origem,
@@ -221,6 +221,8 @@ class Relatorio {
         resultado.push(item);
       }
 
+      console.log(resultado);
+      
       return {
         data: dataBusca,
         dados: resultado,

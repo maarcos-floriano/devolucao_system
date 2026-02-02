@@ -18,8 +18,10 @@ async function createTables() {
         lacre TEXT,
         data DATETIME,
         responsavel TEXT,
+        placaVideo TEXT,
+        gabinete TEXT,
         saiu_venda BOOLEAN DEFAULT 0,
-        data_saida_venda DATETIME,
+        data_saida DATETIME,
         fkDevolucao INT
       )`,
       `CREATE TABLE IF NOT EXISTS monitores (

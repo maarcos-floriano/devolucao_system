@@ -240,20 +240,20 @@ const DashboardPage = () => {
   // ✅ CORRIGIDO: Funções de exportação com endpoints corretos
   const handleExportReport = (tipo) => {
     const hoje = new Date().toISOString().slice(0, 10);
-    window.open(`http://localhost:3001/api/relatorios/excel/${tipo}?data=${hoje}`, '_blank');
+    window.open(`http://192.168.15.100:3001/api/relatorios/excel/${tipo}?data=${hoje}`, '_blank');
   };
 
   const handleExportSkuReport = (tipo) => {
     const endpoints = {
-      maquinas: 'http://localhost:3001/api/relatorios/paulinho/maquinas',
-      monitores: 'http://localhost:3001/api/relatorios/paulinho/monitores',
-      kit: 'http://localhost:3001/api/relatorios/paulinho/kit',
+      maquinas: 'http://192.168.15.100:3001/api/relatorios/paulinho/maquinas',
+      monitores: 'http://192.168.15.100:3001/api/relatorios/paulinho/monitores',
+      kit: 'http://192.168.15.100:3001/api/relatorios/paulinho/kit',
     };
     window.open(endpoints[tipo], '_blank');
   };
 
   const handleSacReport = (periodo) => {
-    window.open(`http://localhost:3001/api/relatorios/sac/${periodo}`, '_blank');
+    window.open(`http://192.168.15.100:3001/api/relatorios/sac/${periodo}`, '_blank');
   };
 
   useEffect(() => {

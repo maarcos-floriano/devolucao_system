@@ -155,6 +155,7 @@ const MaquinaPage = () => {
     }
     
     setEditingMaquina(maquina);
+    console.log(maquina);
     setFormData({
       processador: maquina.processador || '',
       memoria: maquina.memoria || '',
@@ -290,7 +291,7 @@ const MaquinaPage = () => {
 
       alert('Máquina cadastrada!');
 
-      const newId = res.data?.id || res.id || 'new';
+      const newId = res.data?.id || res.id;
       handlePrint({ id: newId, ...formData });
 
       setFormData(formDataInicial);

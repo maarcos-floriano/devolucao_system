@@ -3,4 +3,3 @@
 /.env
 
 /back/.env
-/back/config/database.js

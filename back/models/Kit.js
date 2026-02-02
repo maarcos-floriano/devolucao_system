@@ -61,13 +61,14 @@ class Kit {
                     defeito LIKE ? OR 
                     observacao LIKE ? OR 
                     origem LIKE ? OR 
-                    responsavel LIKE ?
+                    responsavel LIKE ? OR
+                    id LIKE ?
                 )
                 AND saiu_venda = 0
                 ORDER BY id DESC
                 LIMIT ? OFFSET ?
             `;
-            const params = [termo, termo, termo, termo, termo, termo, termo, termo, limit, offset];
+            const params = [termo, termo, termo, termo, termo, termo, termo, termo, termo, limit, offset];
             
             const rows = await DualDatabase.executeOnMainPool(sql, params);
             return rows;

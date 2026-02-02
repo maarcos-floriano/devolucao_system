@@ -13,6 +13,8 @@ class Maquina {
     this.lacre = data.lacre;
     this.data = data.data;
     this.responsavel = data.responsavel;
+    this.placaVideo = data.placaVideo;
+    this.gabinete = data.gabinete;
     this.fkDevolucao = data.fkDevolucao;
   }
 
@@ -20,8 +22,8 @@ class Maquina {
   static async create(maquinaData) {
     const sql = `
       INSERT INTO maquinas 
-      (processador, memoria, armazenamento, fonte, origem, observacao, defeito, lacre, data, responsavel, fkDevolucao)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
+      (processador, memoria, armazenamento, fonte, origem, observacao, defeito, lacre, data, responsavel, placaVideo, gabinete, fkDevolucao)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)
     `;
 
     const params = [
@@ -34,6 +36,8 @@ class Maquina {
       maquinaData.defeito,
       maquinaData.lacre,
       maquinaData.responsavel,
+      maquinaData.placaVideo || null,
+      maquinaData.gabinete || null,
       maquinaData.fkDevolucao || null
     ];
 
@@ -64,6 +68,9 @@ class Maquina {
           OR observacao LIKE ?
           OR data LIKE ?
           OR fkDevolucao LIKE ?
+          OR id LIKE ?
+          OR placaVideo LIKE ?
+          OR gabinete LIKE ?
         )
         AND saiu_venda = 0
         ORDER BY id DESC
@@ -81,6 +88,9 @@ class Maquina {
         termo, // observacao
         termo, // data
         termo, // fkDevolucao
+        termo, // id
+        termo, // placaVideo
+        termo, // gabinete
         Number(limit), // LIMIT como número
         Number(offset) // OFFSET como número
       ];
@@ -147,6 +157,8 @@ class Maquina {
           lacre = ?,
           data = ?,
           responsavel = ?,
+          placaVideo = ?,
+          gabinete = ?,
           fkDevolucao = ?
         WHERE id = ?
       `;
@@ -162,6 +174,8 @@ class Maquina {
         maquinaData.lacre || maquina.lacre,
         maquinaData.data || maquina.data,
         maquinaData.responsavel || maquina.responsavel,
+        maquinaData.placaVideo || maquina.placaVideo,
+        maquinaData.gabinete || maquina.gabinete,
         maquinaData.fkDevolucao || maquina.fkDevolucao,
         id
       ];
@@ -201,6 +215,9 @@ class Maquina {
           OR observacao LIKE ?
           OR data LIKE ?
           OR fkDevolucao LIKE ?
+          OR id LIKE ?
+          OR placaVideo LIKE ?
+          OR gabinete LIKE ?
         )
         AND saiu_venda = 0
       `;
@@ -213,7 +230,10 @@ class Maquina {
         termo, // defeito
         termo, // observacao
         termo, // data
-        termo  // fkDevolucao
+        termo, // fkDevolucao
+        termo, // id
+        termo, // placaVideo
+        termo  // gabinete
       ];
       const rows = await DualDatabase.executeOnMainPool(sql, params);
       return rows[0].total || 0;
@@ -237,6 +257,8 @@ class Maquina {
       lacre: this.lacre,
       data: this.data,
       responsavel: this.responsavel,
+      placaVideo: this.placaVideo,
+      gabinete: this.gabinete,
       fkDevolucao: this.fkDevolucao
     };
   }

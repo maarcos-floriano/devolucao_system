@@ -64,7 +64,12 @@ class RelatorioController {
         { header: "QTD", key: "quantidade", width: 15 }
       ];
 
-      dados.forEach(r => worksheet.addRow(r));
+      // Verificar se dados é um array antes de iterar
+      if (dados && Array.isArray(dados)) {
+        dados.forEach(r => worksheet.addRow(r));
+      } else {
+        worksheet.addRow(["Nenhum dado disponível"]);
+      }
 
       res.setHeader(
         "Content-Type",
@@ -98,7 +103,12 @@ class RelatorioController {
         { header: "QTD", key: "quantidade", width: 15 }
       ];
 
-      dados.forEach(r => worksheet.addRow(r));
+      // Verificar se dados é um array antes de iterar
+      if (dados && Array.isArray(dados)) {
+        dados.forEach(r => worksheet.addRow(r));
+      } else {
+        worksheet.addRow(["Nenhum dado disponível"]);
+      }
 
       res.setHeader(
         "Content-Type",
@@ -133,7 +143,12 @@ class RelatorioController {
         { header: "QTD", key: "quantidade", width: 15 }
       ];
 
-      dados.forEach(r => worksheet.addRow(r));
+      // Verificar se dados é um array antes de iterar
+      if (dados && Array.isArray(dados)) {
+        dados.forEach(r => worksheet.addRow(r));
+      } else {
+        worksheet.addRow(["Nenhum dado disponível"]);
+      }
 
       res.setHeader(
         "Content-Type",
@@ -154,15 +169,50 @@ class RelatorioController {
     }
   }
 
-  // Relatório SAC semanal
+  // Relatório SAC semanal - CORRIGIDO
   static async relatorioSACSemanal(req, res) {
     try {
-      const { dataInicio, dataFim } = req.query;
+
+      const hoje = new Date();
+      const dataFim = new Date(hoje);
+      const dataInicio = new Date(hoje);
+
+      // Data fim é hoje
+      dataFim.setHours(23, 59, 59, 999);
+
+      // Data início é 7 dias atrás (00:00:00)
+      dataInicio.setDate(hoje.getDate() - 6); // -6 para incluir hoje
+      dataInicio.setHours(0, 0, 0, 0);
+
+      
+
+      // Validação de datas
+      if (!dataInicio || !dataFim) {
+        return res.status(400).json({
+          error: "As datas de início e fim são obrigatórias"
+        });
+      }
+
       const resultado = await Relatorio.relatorioSACSemanal(dataInicio, dataFim);
+
+      // Verificar se resultado existe e tem a estrutura esperada
+      if (!resultado) {
+        return res.status(404).json({
+          error: "Nenhum dado encontrado para o período especificado"
+        });
+      }
+
+      // Garantir que resultado.dados é um array
+      const dados = resultado.dados || [];
+      const periodo = resultado.periodo || { inicio: dataInicio, fim: dataFim };
+      const totalDevolucoes = resultado.totalDevolucoes || 0;
+      const totalItens = resultado.totalItens || 0;
 
       // Gerar Excel
       const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet(`Relatório SAC - ${resultado.periodo.inicio} a ${resultado.periodo.fim}`);
+      const worksheet = workbook.addWorksheet(
+        `Relatório SAC - ${periodo.inicio} a ${periodo.fim}`
+      );
 
       // Cabeçalho
       worksheet.columns = [
@@ -181,56 +231,68 @@ class RelatorioController {
       ];
 
       // Adicionar título
-      worksheet.insertRow(1, [`Relatório SAC - Período: ${resultado.periodo.inicio} a ${resultado.periodo.fim}`]);
+      worksheet.insertRow(1, [
+        `Relatório SAC - Período: ${periodo.inicio} a ${periodo.fim}`
+      ]);
       worksheet.mergeCells('A1:L1');
       worksheet.getRow(1).font = { bold: true, size: 14 };
       worksheet.getRow(1).alignment = { horizontal: 'center' };
 
-      // Preencher dados
+      // Preencher dados - COM VERIFICAÇÃO DE SEGURANÇA
       let linhaAtual = 3;
-      resultado.dados.forEach(devolucao => {
-        if (devolucao.itens.length === 0) {
-          worksheet.addRow({
-            devolucao_id: devolucao.devolucao_id,
-            origem: devolucao.origem,
-            cliente: devolucao.cliente,
-            produto: devolucao.produto,
-            codigo: devolucao.codigo,
-            obs_devolucao: devolucao.obs_devolucao,
-            data_devolucao: devolucao.data_devolucao,
-            tipo_item: "Nenhum item",
-            item_id: "",
-            defeito: "",
-            descricao: "Nenhum item associado a esta devolução",
-            observacao_item: ""
-          });
-          linhaAtual++;
-        } else {
-          devolucao.itens.forEach((item, idx) => {
+
+      if (Array.isArray(dados) && dados.length > 0) {
+        dados.forEach(devolucao => {
+          // Garantir que devolucao.itens é um array
+          const itens = devolucao.itens || [];
+
+          if (itens.length === 0) {
             worksheet.addRow({
-              devolucao_id: idx === 0 ? devolucao.devolucao_id : "",
-              origem: idx === 0 ? devolucao.origem : "",
-              cliente: idx === 0 ? devolucao.cliente : "",
-              produto: idx === 0 ? devolucao.produto : "",
-              codigo: idx === 0 ? devolucao.codigo : "",
-              obs_devolucao: idx === 0 ? devolucao.obs_devolucao : "",
-              data_devolucao: idx === 0 ? devolucao.data_devolucao : "",
-              tipo_item: item.tipo,
-              item_id: item.item_id,
-              defeito: item.defeito,
-              descricao: item.descricao,
-              observacao_item: item.observacao
+              devolucao_id: devolucao.devolucao_id || '',
+              origem: devolucao.origem || '',
+              cliente: devolucao.cliente || '',
+              produto: devolucao.produto || '',
+              codigo: devolucao.codigo || '',
+              obs_devolucao: devolucao.obs_devolucao || '',
+              data_devolucao: devolucao.data_devolucao || '',
+              tipo_item: "Nenhum item",
+              item_id: "",
+              defeito: "",
+              descricao: "Nenhum item associado a esta devolução",
+              observacao_item: ""
             });
             linhaAtual++;
-          });
-        }
-      });
+          } else {
+            itens.forEach((item, idx) => {
+              worksheet.addRow({
+                devolucao_id: idx === 0 ? (devolucao.devolucao_id || '') : "",
+                origem: idx === 0 ? (devolucao.origem || '') : "",
+                cliente: idx === 0 ? (devolucao.cliente || '') : "",
+                produto: idx === 0 ? (devolucao.produto || '') : "",
+                codigo: idx === 0 ? (devolucao.codigo || '') : "",
+                obs_devolucao: idx === 0 ? (devolucao.obs_devolucao || '') : "",
+                data_devolucao: idx === 0 ? (devolucao.data_devolucao || '') : "",
+                tipo_item: item.tipo || '',
+                item_id: item.item_id || '',
+                defeito: item.defeito || '',
+                descricao: item.descricao || '',
+                observacao_item: item.observacao || ''
+              });
+              linhaAtual++;
+            });
+          }
+        });
+      } else {
+        // Se não houver dados, adicionar mensagem
+        worksheet.addRow(["Nenhum registro encontrado para o período especificado"]);
+        linhaAtual++;
+      }
 
       // Adicionar estatísticas
       worksheet.addRow([]);
       worksheet.addRow(["RESUMO DO PERÍODO:"]);
-      worksheet.addRow([`Total de devoluções: ${resultado.totalDevolucoes}`]);
-      worksheet.addRow([`Total de itens associados: ${resultado.totalItens}`]);
+      worksheet.addRow([`Total de devoluções: ${totalDevolucoes}`]);
+      worksheet.addRow([`Total de itens associados: ${totalItens}`]);
 
       // Configurar resposta
       res.setHeader(
@@ -239,7 +301,7 @@ class RelatorioController {
       );
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=relatorio_sac_${resultado.periodo.inicio}_a_${resultado.periodo.fim}.xlsx`
+        `attachment; filename=relatorio_sac_${periodo.inicio}_a_${periodo.fim}.xlsx`
       );
 
       await workbook.xlsx.write(res);
@@ -247,19 +309,35 @@ class RelatorioController {
 
     } catch (error) {
       console.error("Erro ao gerar relatório SAC semanal:", error.message);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: "Erro interno ao gerar relatório",
+        details: error.message
+      });
     }
   }
 
-  // Relatório SAC diário
+  // Relatório SAC diário - CORRIGIDO
   static async relatorioSACDiario(req, res) {
     try {
-      const { data } = req.query;
-      const resultado = await Relatorio.relatorioSACDiario(data);
+
+      const resultado = await Relatorio.relatorioSACDiario();
+
+      // Verificar se resultado existe e tem a estrutura esperada
+      if (!resultado) {
+        return res.status(404).json({
+          error: "Nenhum dado encontrado para a data especificada"
+        });
+      }
+
+      // Garantir que resultado.dados é um array
+      const dados = resultado.dados || [];
+      const dataRelatorio = resultado.data || data;
+      const totalDevolucoes = resultado.totalDevolucoes || 0;
+      const totalItens = resultado.totalItens || 0;
 
       // Gerar Excel
       const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet(`Relatório SAC - ${resultado.data}`);
+      const worksheet = workbook.addWorksheet(`Relatório SAC - ${dataRelatorio}`);
 
       // Cabeçalho
       worksheet.columns = [
@@ -278,56 +356,66 @@ class RelatorioController {
       ];
 
       // Adicionar título
-      worksheet.insertRow(1, [`Relatório SAC - Dia: ${resultado.data}`]);
+      worksheet.insertRow(1, [`Relatório SAC - Dia: ${dataRelatorio}`]);
       worksheet.mergeCells('A1:L1');
       worksheet.getRow(1).font = { bold: true, size: 14 };
       worksheet.getRow(1).alignment = { horizontal: 'center' };
 
-      // Preencher dados
+      // Preencher dados - COM VERIFICAÇÃO DE SEGURANÇA
       let linhaAtual = 3;
-      resultado.dados.forEach(devolucao => {
-        if (devolucao.itens.length === 0) {
-          worksheet.addRow({
-            devolucao_id: devolucao.devolucao_id,
-            origem: devolucao.origem,
-            cliente: devolucao.cliente,
-            produto: devolucao.produto,
-            codigo: devolucao.codigo,
-            obs_devolucao: devolucao.obs_devolucao,
-            data_devolucao: devolucao.data_devolucao,
-            tipo_item: "Nenhum item",
-            item_id: "",
-            defeito: "",
-            descricao: "Nenhum item associado a esta devolução",
-            observacao_item: ""
-          });
-          linhaAtual++;
-        } else {
-          devolucao.itens.forEach((item, idx) => {
+
+      if (Array.isArray(dados) && dados.length > 0) {
+        dados.forEach(devolucao => {
+          // Garantir que devolucao.itens é um array
+          const itens = devolucao.itens || [];
+
+          if (itens.length === 0) {
             worksheet.addRow({
-              devolucao_id: idx === 0 ? devolucao.devolucao_id : "",
-              origem: idx === 0 ? devolucao.origem : "",
-              cliente: idx === 0 ? devolucao.cliente : "",
-              produto: idx === 0 ? devolucao.produto : "",
-              codigo: idx === 0 ? devolucao.codigo : "",
-              obs_devolucao: idx === 0 ? devolucao.obs_devolucao : "",
-              data_devolucao: idx === 0 ? devolucao.data_devolucao : "",
-              tipo_item: item.tipo,
-              item_id: item.item_id,
-              defeito: item.defeito,
-              descricao: item.descricao,
-              observacao_item: item.observacao
+              devolucao_id: devolucao.devolucao_id || '',
+              origem: devolucao.origem || '',
+              cliente: devolucao.cliente || '',
+              produto: devolucao.produto || '',
+              codigo: devolucao.codigo || '',
+              obs_devolucao: devolucao.obs_devolucao || '',
+              data_devolucao: devolucao.data_devolucao || dataRelatorio,
+              tipo_item: "Nenhum item",
+              item_id: "",
+              defeito: "",
+              descricao: "Nenhum item associado a esta devolução",
+              observacao_item: ""
             });
             linhaAtual++;
-          });
-        }
-      });
+          } else {
+            itens.forEach((item, idx) => {
+              worksheet.addRow({
+                devolucao_id: idx === 0 ? (devolucao.devolucao_id || '') : "",
+                origem: idx === 0 ? (devolucao.origem || '') : "",
+                cliente: idx === 0 ? (devolucao.cliente || '') : "",
+                produto: idx === 0 ? (devolucao.produto || '') : "",
+                codigo: idx === 0 ? (devolucao.codigo || '') : "",
+                obs_devolucao: idx === 0 ? (devolucao.obs_devolucao || '') : "",
+                data_devolucao: idx === 0 ? (devolucao.data_devolucao || dataRelatorio) : "",
+                tipo_item: item.tipo || '',
+                item_id: item.item_id || '',
+                defeito: item.defeito || '',
+                descricao: item.descricao || '',
+                observacao_item: item.observacao || ''
+              });
+              linhaAtual++;
+            });
+          }
+        });
+      } else {
+        // Se não houver dados, adicionar mensagem
+        worksheet.addRow(["Nenhum registro encontrado para a data especificada"]);
+        linhaAtual++;
+      }
 
       // Adicionar estatísticas
       worksheet.addRow([]);
       worksheet.addRow(["RESUMO DO DIA:"]);
-      worksheet.addRow([`Total de devoluções: ${resultado.totalDevolucoes}`]);
-      worksheet.addRow([`Total de itens associados: ${resultado.totalItens}`]);
+      worksheet.addRow([`Total de devoluções: ${totalDevolucoes}`]);
+      worksheet.addRow([`Total de itens associados: ${totalItens}`]);
 
       // Configurar resposta
       res.setHeader(
@@ -336,7 +424,7 @@ class RelatorioController {
       );
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=relatorio_sac_diario_${resultado.data}.xlsx`
+        `attachment; filename=relatorio_sac_diario_${dataRelatorio}.xlsx`
       );
 
       await workbook.xlsx.write(res);
@@ -344,7 +432,10 @@ class RelatorioController {
 
     } catch (error) {
       console.error("Erro ao gerar relatório SAC diário:", error.message);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: "Erro interno ao gerar relatório",
+        details: error.message
+      });
     }
   }
 }

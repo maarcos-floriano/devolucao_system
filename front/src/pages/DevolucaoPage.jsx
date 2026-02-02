@@ -33,6 +33,7 @@ const DevolucaoPage = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
+    id : '',
     origem: '',
     cliente: '',
     produto: '',
@@ -184,84 +185,90 @@ const DevolucaoPage = () => {
 
   // Salvar nova devolução
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  setSubmitting(true);
+  try {
+    const payload = { ...formData };
+    const response = await api.post('/devolucao', payload);
+    let newDevolucao = response.data.data;
+    alert('Devolução salva com sucesso!');
     
-    setSubmitting(true);
-    try {
-      const payload = { ...formData };
-      const response = await api.post('/devolucao', payload);
+    console.log(newDevolucao);
+    
+    // Imprimir etiqueta automaticamente após salvar
+    handlePrint(newDevolucao);
 
-      alert('Devolução salva com sucesso!');
-      
-      await handlePrint(response.data.id || 'new');
-      
-      setFormData({
-        origem: '',
-        cliente: '',
-        produto: '',
-        codigo: '',
-        observacao: '',
-        dataHora: new Date().toISOString().slice(0, 16),
-      });
-      loadDevolucoes();
-    } catch (error) {
-      alert('Erro ao salvar devolução');
-      console.error(error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    // Reseta o formulário
+    setFormData({
+      origem: '',
+      cliente: '',
+      produto: '',
+      codigo: '',
+      observacao: '',
+      dataHora: new Date().toISOString().slice(0, 16),
+    });
+    
+    // Recarrega a lista
+    loadDevolucoes();
+    
+  } catch (error) {
+    alert('Erro ao salvar devolução');
+    console.error(error);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   // Imprimir etiqueta
-  const handlePrint = async (id) => {
-    try {
-      const devolucao = id === 'new' 
-        ? { id: 'NOVO', cliente: formData.cliente || 'Cliente', origem: formData.origem || 'Origem' }
-        : devolucoes.find(d => d.id === id) || { id, cliente: 'Cliente', origem: 'Origem' };
-      
-      const janela = window.open('', '_blank');
-      const conteudoHTML = `
-        <html>
-          <head>
-            <title>Etiqueta Devolução</title>
-            <style>
-              @page { size: 100mm 30mm; margin: 0; padding: 0; }
-              html, body {
-                width: 100mm; height: 30mm; margin: 0; padding: 0;
-              }
-              body {
-                display: flex; justify-content: center; align-items: center;
-                font-size: 20px; font-family: Arial, sans-serif; text-align: center;
-              }
-              .etiqueta {
-                width: 100%; padding: 0 10px; display: flex;
-                flex-direction: row; justify-content: space-evenly; align-items: center;
-              }
-              .etiqueta h1 { margin: 0; font-size: 50px; }
-              .etiqueta div { margin-top: 5px; font-size: 20px; }
-            </style>
-          </head>
-          <body onload="window.print(); window.close();">
-            <div class="etiqueta">
-              <h1>${id}</h1>
-              <div>
-                ${devolucao.cliente}<br>
-                ${devolucao.origem}
-              </div>
+  const handlePrint = async (devolucaoData) => {
+  try {
+
+    console.log(devolucaoData);    
+
+    const janela = window.open('', '_blank');
+    const conteudoHTML = `
+      <html>
+        <head>
+          <title>Etiqueta Devolução</title>
+          <style>
+            @page { size: 100mm 30mm; margin: 0; padding: 0; }
+            html, body {
+              width: 100mm; height: 30mm; margin: 0; padding: 0;
+            }
+            body {
+              display: flex; justify-content: center; align-items: center;
+              font-size: 20px; font-family: Arial, sans-serif; text-align: center;
+            }
+            .etiqueta {
+              width: 100%; padding: 0 10px; display: flex;
+              flex-direction: row; justify-content: space-evenly; align-items: center;
+            }
+            .etiqueta h1 { margin: 0; font-size: 50px; }
+            .etiqueta div { margin-top: 5px; font-size: 20px; }
+          </style>
+        </head>
+        <body onload="window.print(); window.close();">
+          <div class="etiqueta">
+            <h1>${devolucaoData.id}</h1>
+            <div>
+              ${devolucaoData.cliente || 'Cliente não especificado'}<br>
+              ${devolucaoData.origem || 'Origem não especificada'}
             </div>
-          </body>
-        </html>
-      `;
-      
-      janela.document.write(conteudoHTML);
-      janela.document.close();
-      
-      alert('Etiqueta impressa com sucesso');
-    } catch (error) {
-      alert('Erro ao imprimir etiqueta');
-      console.error(error);
-    }
-  };
+          </div>
+        </body>
+      </html>
+    `;
+    
+    janela.document.write(conteudoHTML);
+    janela.document.close();
+    
+    alert('Etiqueta impressa com sucesso');
+  } catch (error) {
+    alert('Erro ao imprimir etiqueta');
+    console.error(error);
+  }
+};
 
   // Exportar para Excel
   const handleExport = async () => {
