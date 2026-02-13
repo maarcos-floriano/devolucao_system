@@ -239,8 +239,7 @@ const DashboardPage = () => {
 
   // ✅ CORRIGIDO: Funções de exportação com endpoints corretos
   const handleExportReport = (tipo) => {
-    const hoje = new Date().toISOString().slice(0, 10);
-    window.open(`http://192.168.15.100:3001/api/relatorios/excel/${tipo}?data=${hoje}`, '_blank');
+    window.open(`http://192.168.15.100:3001/api/relatorios/excel/${tipo}`, '_blank');
   };
 
   const handleExportSkuReport = (tipo) => {
@@ -252,8 +251,8 @@ const DashboardPage = () => {
     window.open(endpoints[tipo], '_blank');
   };
 
-  const handleSacReport = (periodo) => {
-    window.open(`http://192.168.15.100:3001/api/relatorios/sac/${periodo}`, '_blank');
+  const handleSacReport = () => {
+    window.open('http://192.168.15.100:3001/api/relatorios/sac/semanal', '_blank');
   };
 
   useEffect(() => {
@@ -453,7 +452,7 @@ const DashboardPage = () => {
       {/* Relatórios */}
       <Paper elevation={2} sx={{ p: 3, borderRadius: 3 }}>
         <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
-          📄 Relatórios do Dia
+          📄 Relatórios da Semana
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={3}>
@@ -464,7 +463,7 @@ const DashboardPage = () => {
               onClick={() => handleExportReport('devolucao')}
               sx={{ bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}
             >
-              Devoluções de Hoje
+              Devoluções da Semana
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -475,7 +474,7 @@ const DashboardPage = () => {
               onClick={() => handleExportReport('maquinas')}
               sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' } }}
             >
-              Máquinas de Hoje
+              Máquinas da Semana
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -486,7 +485,7 @@ const DashboardPage = () => {
               onClick={() => handleExportReport('kit')}
               sx={{ bgcolor: '#8b5cf6', '&:hover': { bgcolor: '#7c3aed' } }}
             >
-              Kit de Hoje
+              Kit da Semana
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -497,7 +496,7 @@ const DashboardPage = () => {
               onClick={() => handleExportReport('monitores')}
               sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
             >
-              Monitores de Hoje
+              Monitores da Semana
             </Button>
           </Grid>
 
@@ -539,21 +538,10 @@ const DashboardPage = () => {
               fullWidth
               variant="outlined"
               startIcon={<DownloadIcon />}
-              onClick={() => handleSacReport('diario')}
-              sx={{ borderColor: '#f59e0b', color: '#f59e0b' }}
-            >
-              SAC Diário
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={() => handleSacReport('semanal')}
+              onClick={handleSacReport}
               sx={{ borderColor: '#ec4899', color: '#ec4899' }}
             >
-              SAC Semanal
+              SAC (Semanal)
             </Button>
           </Grid>
         </Grid>

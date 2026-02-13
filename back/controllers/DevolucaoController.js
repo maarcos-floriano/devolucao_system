@@ -212,12 +212,12 @@ class DevolucaoController {
             // Por enquanto, retornamos JSON
             return res.json({
                 success: true,
-                message: 'Relatório gerado com sucesso',
+                message: 'Relatório semanal gerado com sucesso',
                 data: relatorio,
                 total: relatorio.length
             });
         } catch (error) {
-            console.error('Erro ao exportar relatório:', error);
+            console.error('Erro ao exportar relatório semanal:', error);
             return res.status(500).json({
                 success: false,
                 error: 'Erro interno do servidor',

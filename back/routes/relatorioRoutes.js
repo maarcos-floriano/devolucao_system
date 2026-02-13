@@ -12,6 +12,7 @@ router.get('/paulinho/kit', RelatorioController.relatorioPaulinhoKit);
 
 // Relatórios SAC
 router.get('/sac/semanal', RelatorioController.relatorioSACSemanal);
-router.get('/sac/diario', RelatorioController.relatorioSACDiario);
+// Mantido por compatibilidade: endpoint diário agora gera relatório semanal.
+router.get('/sac/diario', RelatorioController.relatorioSACSemanal);
 
 module.exports = router;
