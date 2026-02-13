@@ -198,10 +198,16 @@ class Devolucao {
         }
     }
 
-    // Relatório diário
-    static async getDailyReport(date) {
+    // Relatório semanal (últimos 7 dias)
+    static async getDailyReport(dateFim) {
         try {
-            const targetDate = date || new Date().toISOString().split('T')[0];
+            const fim = dateFim ? new Date(dateFim) : new Date();
+            if (Number.isNaN(fim.getTime())) {
+                throw new Error('Data final inválida');
+            }
+
+            const inicio = new Date(fim);
+            inicio.setDate(fim.getDate() - 6);
             
             const sql = `
                 SELECT 
@@ -213,14 +219,14 @@ class Devolucao {
                     observacao,
                     DATE_FORMAT(data, '%d/%m/%Y %H:%i:%s') as data_formatada
                 FROM devolucao
-                WHERE DATE(data) = ?
+                WHERE DATE(data) BETWEEN ? AND ?
                 ORDER BY id DESC
             `;
             
-            const rows = await DualDatabase.executeOnMainPool(sql, [targetDate]);
+            const rows = await DualDatabase.executeOnMainPool(sql, [inicio.toISOString().slice(0, 10), fim.toISOString().slice(0, 10)]);
             return rows;
         } catch (error) {
-            throw new Error(`Erro ao gerar relatório diário: ${error.message}`);
+            throw new Error(`Erro ao gerar relatório semanal: ${error.message}`);
         }
     }
 

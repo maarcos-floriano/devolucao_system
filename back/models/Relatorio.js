@@ -20,7 +20,7 @@ class Relatorio {
           GROUP_CONCAT(id ORDER BY id SEPARATOR '-') AS ids,
           COUNT(*) AS quantidade
         FROM maquinas
-        WHERE DATE(data) = CURDATE()
+        WHERE DATE(data) BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE()
           AND saiu_venda = 0
         GROUP BY processador, memoria, armazenamento, fonte, placaVideo
         ORDER BY quantidade DESC;
@@ -33,7 +33,7 @@ class Relatorio {
     }
   }
 
-  // Relatório de monitores do dia
+  // Relatório de monitores da semana
   static async relatorioMonitoresDia() {
     try {
       const sql = `
@@ -42,7 +42,7 @@ class Relatorio {
           COUNT(*) AS quantidade
         FROM monitores
         WHERE rma = 0
-        AND DATE(data) = CURDATE()
+        AND DATE(data) BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE()
         GROUP BY tamanho
         ORDER BY quantidade DESC
       `;
@@ -64,7 +64,7 @@ class Relatorio {
           COUNT(*) AS quantidade
         FROM kit
         WHERE saiu_venda = 0
-          AND DATE(data) = CURDATE()
+          AND DATE(data) BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE()
         GROUP BY processador, memoria, placaMae
         ORDER BY quantidade DESC
       `;
@@ -164,77 +164,11 @@ class Relatorio {
     }
   }
 
-  // Relatório SAC diário
+  // Relatório SAC diário (compatibilidade): agora retorna o período semanal
   static async relatorioSACDiario() {
-    try {
-      const hoje = new Date();
-      const dataBusca = hoje.toISOString().slice(0, 10);
-
-      // Busca devoluções do dia
-      const devolucoes = await DualDatabase.executeOnMainPool(`
-        SELECT 
-          d.id AS devolucao_id,
-          d.origem,
-          d.cliente,
-          d.produto,
-          d.codigo,
-          d.observacao AS obs_devolucao,
-          DATE_FORMAT(d.data, '%d/%m/%Y %H:%i') AS data_devolucao
-        FROM devolucao d
-        WHERE DATE(d.data) = ?
-        ORDER BY d.data DESC
-      `, [dataBusca]);
-
-      const resultado = [];
-
-      for (const dev of devolucoes) {
-        const item = {
-          devolucao_id: dev.devolucao_id,
-          origem: dev.origem,
-          cliente: dev.cliente,
-          produto: dev.produto,
-          codigo: dev.codigo,
-          obs_devolucao: dev.obs_devolucao,
-          data_devolucao: dev.data_devolucao,
-          itens: []
-        };
-
-        // Buscar itens baseado no tipo de produto
-        switch (dev.produto) {
-          case 'Computador Completo':
-            await this._buscarItensComputadorCompleto(dev.devolucao_id, item);
-            break;
-          case 'Máquina':
-            await this._buscarMaquinas(dev.devolucao_id, item);
-            break;
-          case 'Monitor':
-            await this._buscarMonitores(dev.devolucao_id, item);
-            break;
-          case 'Kit':
-            await this._buscarKits(dev.devolucao_id, item);
-            break;
-          case 'Periferico':
-            await this._buscarPerifericos(dev.devolucao_id, item);
-            break;
-        }
-
-        resultado.push(item);
-      }
-
-      console.log(resultado);
-      
-      return {
-        data: dataBusca,
-        dados: resultado,
-        totalDevolucoes: resultado.length,
-        totalItens: resultado.reduce((acc, dev) => acc + dev.itens.length, 0)
-      };
-    } catch (error) {
-      throw new Error(`Erro ao gerar relatório SAC diário: ${error.message}`);
-    }
+    return this.relatorioSACSemanal();
   }
 
-  // Métodos auxiliares privados
   static async _buscarItensComputadorCompleto(devolucaoId, item) {
     // Máquinas
     const [maquinas] = await DualDatabase.executeOnMainPool(`
@@ -354,13 +288,24 @@ class Relatorio {
     });
   }
 
-  static async gerarRelatorioSimples(tabela, data) {
+  static async gerarRelatorioSimples(tabela, dataFim) {
     try {
-      const sql = `SELECT * FROM ${tabela} WHERE DATE(data) = ? ORDER BY data DESC`;
-      const rows = await DualDatabase.executeOnMainPool(sql, [data]);
+      const fim = dataFim ? new Date(dataFim) : new Date();
+      if (Number.isNaN(fim.getTime())) {
+        throw new Error('Data inválida para o relatório');
+      }
+
+      const inicio = new Date(fim);
+      inicio.setDate(fim.getDate() - 6);
+
+      const dataInicio = inicio.toISOString().slice(0, 10);
+      const dataFinal = fim.toISOString().slice(0, 10);
+
+      const sql = `SELECT * FROM ${tabela} WHERE DATE(data) BETWEEN ? AND ? ORDER BY data DESC`;
+      const rows = await DualDatabase.executeOnMainPool(sql, [dataInicio, dataFinal]);
       return rows || [];
     } catch (error) {
-      throw new Error(`Erro ao gerar relatório simples: ${error.message}`);
+      throw new Error(`Erro ao gerar relatório semanal: ${error.message}`);
     }
   }
 }

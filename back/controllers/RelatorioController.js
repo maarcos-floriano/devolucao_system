@@ -2,11 +2,11 @@ const ExcelJS = require('exceljs');
 const Relatorio = require('../models/Relatorio');
 
 class RelatorioController {
-  // Relatório Excel simples por tabela e data
+  // Relatório Excel simples por tabela (período semanal)
   static async relatorioExcel(req, res) {
     try {
       const { tabela } = req.params;
-      const { data } = req.query;
+      const { data } = req.query; // usado como data final opcional
 
       const tabelasPermitidas = ["devolucao", "maquinas", "monitores", "kit"];
       if (!tabelasPermitidas.includes(tabela)) {
@@ -36,9 +36,10 @@ class RelatorioController {
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       );
+      const dataReferencia = data || new Date().toISOString().slice(0, 10);
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=relatorio_${tabela}_${data}.xlsx`
+        `attachment; filename=relatorio_${tabela}_semanal_${dataReferencia}.xlsx`
       );
 
       await workbook.xlsx.write(res);
@@ -316,7 +317,7 @@ class RelatorioController {
     }
   }
 
-  // Relatório SAC diário - CORRIGIDO
+  // Relatório SAC diário (compatibilidade): agora responde com dados semanais
   static async relatorioSACDiario(req, res) {
     try {
 
@@ -331,7 +332,8 @@ class RelatorioController {
 
       // Garantir que resultado.dados é um array
       const dados = resultado.dados || [];
-      const dataRelatorio = resultado.data || data;
+      const periodoRelatorio = resultado.periodo || {};
+      const dataRelatorio = `${periodoRelatorio.inicio || 'inicio'}_a_${periodoRelatorio.fim || 'fim'}`;
       const totalDevolucoes = resultado.totalDevolucoes || 0;
       const totalItens = resultado.totalItens || 0;
 
@@ -356,7 +358,7 @@ class RelatorioController {
       ];
 
       // Adicionar título
-      worksheet.insertRow(1, [`Relatório SAC - Dia: ${dataRelatorio}`]);
+      worksheet.insertRow(1, [`Relatório SAC - Período: ${dataRelatorio}`]);
       worksheet.mergeCells('A1:L1');
       worksheet.getRow(1).font = { bold: true, size: 14 };
       worksheet.getRow(1).alignment = { horizontal: 'center' };
@@ -413,7 +415,7 @@ class RelatorioController {
 
       // Adicionar estatísticas
       worksheet.addRow([]);
-      worksheet.addRow(["RESUMO DO DIA:"]);
+      worksheet.addRow(["RESUMO DO PERÍODO:"]);
       worksheet.addRow([`Total de devoluções: ${totalDevolucoes}`]);
       worksheet.addRow([`Total de itens associados: ${totalItens}`]);
 
@@ -424,14 +426,14 @@ class RelatorioController {
       );
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=relatorio_sac_diario_${dataRelatorio}.xlsx`
+        `attachment; filename=relatorio_sac_semanal_${dataRelatorio}.xlsx`
       );
 
       await workbook.xlsx.write(res);
       res.end();
 
     } catch (error) {
-      console.error("Erro ao gerar relatório SAC diário:", error.message);
+      console.error("Erro ao gerar relatório SAC semanal (compatibilidade /diario):", error.message);
       res.status(500).json({
         error: "Erro interno ao gerar relatório",
         details: error.message

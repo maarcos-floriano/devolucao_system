@@ -190,39 +190,48 @@ class Kit {
         }
     }
 
-    // Relatório diário
-    static async getDailyReport(date) {
+    // Relatório semanal (últimos 7 dias)
+    static async getDailyReport(dateFim) {
         try {
-            const targetDate = date || new Date().toISOString().split('T')[0];
+            const fim = dateFim ? new Date(dateFim) : new Date();
+            if (Number.isNaN(fim.getTime())) {
+                throw new Error('Data final inválida');
+            }
+
+            const inicio = new Date(fim);
+            inicio.setDate(fim.getDate() - 6);
+
             const sql = `
                 SELECT * FROM kit
-                WHERE DATE(data) = ?
+                WHERE DATE(data) BETWEEN ? AND ?
                 AND saiu_venda = 0
                 ORDER BY id DESC
             `;
-            const rows = await DualDatabase.executeOnMainPool(sql, [targetDate]);
+            const rows = await DualDatabase.executeOnMainPool(sql, [inicio.toISOString().slice(0, 10), fim.toISOString().slice(0, 10)]);
             return rows;
         } catch (error) {
-            throw new Error(`Erro ao gerar relatório diário: ${error.message}`);
+            throw new Error(`Erro ao gerar relatório semanal: ${error.message}`);
         }
     }
 
     // Relatório SKU para Paulinho
     static async getSkuReport() {
         try {
-            const hoje = new Date().toISOString().split('T')[0];
+            const fim = new Date();
+            const inicio = new Date(fim);
+            inicio.setDate(fim.getDate() - 6);
             const sql = `
                 SELECT 
                     processador,
                     COUNT(*) as quantidade,
                     GROUP_CONCAT(id SEPARATOR ', ') as ids
                 FROM kit 
-                WHERE DATE(data) = ? 
+                WHERE DATE(data) BETWEEN ? AND ? 
                 AND saiu_venda = 0
                 GROUP BY processador
                 ORDER BY processador
             `;
-            const rows = await DualDatabase.executeOnMainPool(sql, [hoje]);
+            const rows = await DualDatabase.executeOnMainPool(sql, [inicio.toISOString().slice(0, 10), fim.toISOString().slice(0, 10)]);
             return rows;
         } catch (error) {
             throw new Error(`Erro ao gerar relatório SKU: ${error.message}`);
