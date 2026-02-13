@@ -252,8 +252,8 @@ const DashboardPage = () => {
     window.open(endpoints[tipo], '_blank');
   };
 
-  const handleSacReport = (periodo) => {
-    window.open(`http://192.168.15.100:3001/api/relatorios/sac/${periodo}`, '_blank');
+  const handleSacReport = () => {
+    window.open('http://192.168.15.100:3001/api/relatorios/sac/semanal', '_blank');
   };
 
   useEffect(() => {
@@ -539,21 +539,10 @@ const DashboardPage = () => {
               fullWidth
               variant="outlined"
               startIcon={<DownloadIcon />}
-              onClick={() => handleSacReport('diario')}
-              sx={{ borderColor: '#f59e0b', color: '#f59e0b' }}
-            >
-              SAC Diário
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={() => handleSacReport('semanal')}
+              onClick={handleSacReport}
               sx={{ borderColor: '#ec4899', color: '#ec4899' }}
             >
-              SAC Semanal
+              SAC (Semanal)
             </Button>
           </Grid>
         </Grid>
