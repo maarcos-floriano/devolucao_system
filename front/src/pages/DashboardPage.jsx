@@ -8,17 +8,12 @@ import {
   Card,
   CardContent,
   Button,
-  IconButton,
-  Chip,
-  Stack,
   CircularProgress,
   Container,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Download as DownloadIcon,
-  Add as AddIcon,
-  Remove as RemoveIcon,
   Computer as ComputerIcon,
   Monitor as MonitorIcon,
   KeyboardReturn as ReturnIcon,
@@ -54,14 +49,9 @@ const DashboardPage = () => {
     devolucoes: 0,
     kits: 0,
   });
-  const [contadores, setContadores] = useState({
-    mercadoLivre: 0,
-    correios: 0,
-    shopee: 0,
-    mineiro: 0,
-  });
   const [chartsData, setChartsData] = useState({
     maquinasPorResponsavel: { labels: [], datasets: [] },
+    maquinasHojePorResponsavel: { labels: [], datasets: [] },
     kitsPorConfiguracao: { labels: [], datasets: [] },
     maquinasPorConfiguracao: { labels: [], datasets: [] },
   });
@@ -93,27 +83,16 @@ const DashboardPage = () => {
 
       // Preparar dados dos gráficos
       const maquinasPorResponsavel = processMaquinasPorResponsavel(todasMaquinas);
+      const maquinasHojePorResponsavel = processMaquinasHojePorResponsavel(todasMaquinas);
       const kitsPorConfiguracao = processKitsPorConfiguracao(todasKits);
       const maquinasPorConfiguracao = processMaquinasPorConfiguracao(todasMaquinas);
 
       setChartsData({
         maquinasPorResponsavel,
+        maquinasHojePorResponsavel,
         kitsPorConfiguracao,
         maquinasPorConfiguracao,
       });
-
-      // Carregar contadores do localStorage
-      const savedCounters = JSON.parse(localStorage.getItem('contadorDevolucoes')) || {};
-      const today = new Date().toLocaleDateString();
-      
-      if (savedCounters.data === today) {
-        setContadores({
-          mercadoLivre: savedCounters.mercadoLivre || 0,
-          correios: savedCounters.correios || 0,
-          shopee: savedCounters.shopee || 0,
-          mineiro: savedCounters.mineiro || 0,
-        });
-      }
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
     } finally {
@@ -164,6 +143,42 @@ const DashboardPage = () => {
         borderWidth: 2,
         borderRadius: 8,
       }]
+    };
+  };
+
+  const processMaquinasHojePorResponsavel = (maquinas) => {
+    const hoje = new Date();
+    const maquinasDoDia = maquinas.filter((m) => {
+      if (!m.data) return false;
+      const dataMaquina = new Date(m.data);
+      if (Number.isNaN(dataMaquina.getTime())) return false;
+
+      return (
+        dataMaquina.getDate() === hoje.getDate()
+        && dataMaquina.getMonth() === hoje.getMonth()
+        && dataMaquina.getFullYear() === hoje.getFullYear()
+      );
+    });
+
+    const responsaveis = {};
+    maquinasDoDia.forEach((m) => {
+      const responsavel = m.responsavel || 'Sem responsável';
+      responsaveis[responsavel] = (responsaveis[responsavel] || 0) + 1;
+    });
+
+    return {
+      labels: Object.keys(responsaveis),
+      datasets: [{
+        label: 'Máquinas registradas hoje',
+        data: Object.values(responsaveis),
+        backgroundColor: [
+          '#2563eb', '#16a34a', '#f59e0b', '#ef4444',
+          '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16',
+        ],
+        borderColor: '#ffffff',
+        borderWidth: 2,
+        borderRadius: 8,
+      }],
     };
   };
 
@@ -219,23 +234,6 @@ const DashboardPage = () => {
       }]
     };
   };
-
-  // Manipular contadores
-  const handleCounterChange = (tipo, valor) => {
-    setContadores(prev => {
-      const newValue = Math.max(0, (prev[tipo] || 0) + valor);
-      return { ...prev, [tipo]: newValue };
-    });
-  };
-
-  // Salvar contadores no localStorage
-  useEffect(() => {
-    const saveData = {
-      data: new Date().toLocaleDateString(),
-      ...contadores,
-    };
-    localStorage.setItem('contadorDevolucoes', JSON.stringify(saveData));
-  }, [contadores]);
 
   // ✅ CORRIGIDO: Funções de exportação com endpoints corretos
   const handleExportReport = (tipo) => {
@@ -352,7 +350,7 @@ const DashboardPage = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KpiCard
-            title="Devoluções"
+            title="Total de Devoluções"
             value={kpis.devolucoes}
             icon={<ReturnIcon />}
             color="#f59e0b"
@@ -384,45 +382,11 @@ const DashboardPage = () => {
         <Grid item xs={12} lg={4}>
           <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
             <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
-              Devoluções do Dia
+              Máquinas Registradas Hoje por Responsável
             </Typography>
-            <Stack spacing={2}>
-              {Object.entries(contadores).map(([key, value]) => (
-                <Box key={key} display="flex" alignItems="center" justifyContent="space-between">
-                  <Typography>
-                    {key === 'mercadoLivre' && '🛒 Mercado Livre'}
-                    {key === 'correios' && '📮 Correios'}
-                    {key === 'shopee' && '🛍️ Shopee'}
-                    {key === 'mineiro' && '🚚 Mineiro Express'}
-                  </Typography>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleCounterChange(key, -1)}
-                      sx={{ bgcolor: '#ef4444', color: 'white', '&:hover': { bgcolor: '#dc2626' } }}
-                    >
-                      <RemoveIcon />
-                    </IconButton>
-                    <Chip
-                      label={value}
-                      sx={{
-                        bgcolor: '#f3f4f6',
-                        fontWeight: 'bold',
-                        fontSize: '1.1rem',
-                        minWidth: 50,
-                      }}
-                    />
-                    <IconButton
-                      size="small"
-                      onClick={() => handleCounterChange(key, 1)}
-                      sx={{ bgcolor: '#22c55e', color: 'white', '&:hover': { bgcolor: '#16a34a' } }}
-                    >
-                      <AddIcon />
-                    </IconButton>
-                  </Box>
-                </Box>
-              ))}
-            </Stack>
+            <Box height={300}>
+              <Bar data={chartsData.maquinasHojePorResponsavel} options={chartOptions} />
+            </Box>
           </Paper>
         </Grid>
 
