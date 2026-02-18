@@ -21,7 +21,7 @@ const MOCK_USERS = [
     password: 'tec123',
     name: 'Técnico',
     role: 'tecnico',
-    permissions: ['maquinas', 'monitores', 'kit']
+    permissions: ['maquinas', 'monitores', 'kit', 'chamados']
   },
   {
     id: 3,
@@ -29,7 +29,7 @@ const MOCK_USERS = [
     password: 'op123',
     name: 'Operador',
     role: 'operador',
-    permissions: ['devolucao', 'dashboard', 'maquinas' ]
+    permissions: ['devolucao', 'dashboard', 'maquinas', 'chamados' ]
   },
   {
     id: 4,
