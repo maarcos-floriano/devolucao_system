@@ -22,8 +22,10 @@ import DataTable from '../components/tables/DataTable';
 import SearchBar from '../components/tables/SearchBar';
 import chamadoService from '../services/chamadoService';
 import devolucaoService from '../services/devolucaoService';
+import { ORIGENS } from '../utils/constants';
 
 const initialFormData = {
+  origem: '',
   devolucao_id: '',
   problema: '',
   status: 'aberto',
@@ -67,17 +69,23 @@ const ChamadosPage = () => {
     }
   }, [page, rowsPerPage, searchTerm, statusFilter]);
 
-  const loadDevolucoes = useCallback(async () => {
+  const loadDevolucoesByOrigem = useCallback(async (origemSelecionada) => {
+    if (!origemSelecionada) {
+      setDevolucoes([]);
+      setLoadingDevolucoes(false);
+      return;
+    }
+
     setLoadingDevolucoes(true);
     try {
-      const dados = await devolucaoService.getDevolucoesForSelect('');
+      const dados = await devolucaoService.getDevolucoesForSelect(origemSelecionada);
       const devolucoesFormatadas = (dados || []).map((devolucao) => ({
         id: devolucao.id,
         label: `#${devolucao.id} - ${devolucao.cliente} - ${devolucao.produto}`,
       }));
       setDevolucoes(devolucoesFormatadas);
     } catch (error) {
-      console.error('Erro ao carregar devoluções para seleção:', error);
+      console.error('Erro ao carregar devoluções por origem:', error);
       setDevolucoes([]);
     } finally {
       setLoadingDevolucoes(false);
@@ -88,9 +96,6 @@ const ChamadosPage = () => {
     loadChamados();
   }, [loadChamados]);
 
-  useEffect(() => {
-    loadDevolucoes();
-  }, [loadDevolucoes]);
 
   const handleSubmit = async () => {
     if (!formData.devolucao_id || !formData.problema.trim()) {
@@ -117,6 +122,7 @@ const ChamadosPage = () => {
   const handleEditClick = (chamado) => {
     setEditingChamado(chamado);
     setFormData({
+      origem: chamado.origem || '',
       devolucao_id: String(chamado.devolucao_id),
       problema: chamado.problema || '',
       status: chamado.status || 'aberto',
@@ -193,8 +199,28 @@ const ChamadosPage = () => {
           Abrir Chamado de Acompanhamento
         </Typography>
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '360px 1fr' }, gap: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px 320px 1fr' }, gap: 2 }}>
           <FormControl fullWidth>
+            <InputLabel>Origem</InputLabel>
+            <Select
+              value={formData.origem}
+              onChange={(e) => {
+                const origemSelecionada = e.target.value;
+                setFormData((prev) => ({ ...prev, origem: origemSelecionada, devolucao_id: '' }));
+                loadDevolucoesByOrigem(origemSelecionada);
+              }}
+              label="Origem"
+            >
+              <MenuItem value=""><em>Selecione...</em></MenuItem>
+              {ORIGENS.map((origem) => (
+                <MenuItem key={origem.value} value={origem.value}>
+                  {origem.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth disabled={!formData.origem}>
             <InputLabel>Vincular a Devolução</InputLabel>
             <Select
               value={formData.devolucao_id}
@@ -216,11 +242,13 @@ const ChamadosPage = () => {
                 <MenuItem disabled>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CircularProgress size={16} />
-                    Carregando devoluções...
+                    Buscando devoluções de {formData.origem}...
                   </Box>
                 </MenuItem>
               ) : devolucoes.length === 0 ? (
-                <MenuItem disabled>Nenhuma devolução encontrada</MenuItem>
+                <MenuItem disabled>
+                  {formData.origem ? `Nenhuma devolução encontrada para origem: ${formData.origem}` : 'Selecione uma origem primeiro'}
+                </MenuItem>
               ) : (
                 devolucoes.map((devolucao) => (
                   <MenuItem key={devolucao.id} value={String(devolucao.id)}>
@@ -230,9 +258,11 @@ const ChamadosPage = () => {
               )}
             </Select>
             <FormHelperText>
-              {devolucoes.length > 0
-                ? `${devolucoes.length} devoluções disponíveis para vínculo`
-                : 'Selecione a devolução relacionada ao problema'}
+              {formData.origem
+                ? devolucoes.length > 0
+                  ? `${devolucoes.length} devoluções encontradas para ${formData.origem}`
+                  : `Sem devoluções para ${formData.origem}`
+                : 'Selecione uma origem para carregar as devoluções'}
             </FormHelperText>
           </FormControl>
 
