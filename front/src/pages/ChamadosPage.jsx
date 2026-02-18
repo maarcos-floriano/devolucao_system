@@ -8,15 +8,20 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  FormHelperText,
+  InputLabel,
   MenuItem,
   Paper,
+  Select,
   TextField,
   Typography,
 } from '@mui/material';
-import { AddAlert, Save, Refresh, Edit as EditIcon } from '@mui/icons-material';
+import { Save, Refresh, Edit as EditIcon } from '@mui/icons-material';
 import DataTable from '../components/tables/DataTable';
 import SearchBar from '../components/tables/SearchBar';
 import chamadoService from '../services/chamadoService';
+import devolucaoService from '../services/devolucaoService';
 
 const initialFormData = {
   devolucao_id: '',
@@ -37,6 +42,8 @@ const ChamadosPage = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingChamado, setEditingChamado] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
+  const [devolucoes, setDevolucoes] = useState([]);
+  const [loadingDevolucoes, setLoadingDevolucoes] = useState(false);
 
   const loadChamados = useCallback(async () => {
     setLoading(true);
@@ -52,19 +59,42 @@ const ChamadosPage = () => {
       setTotalRows(response.total || 0);
     } catch (error) {
       console.error('Erro ao carregar chamados:', error);
-      alert('Erro ao carregar chamados');
+      // Se não houver chamados ou ocorrer erro de listagem, mantém tabela vazia sem alert.
+      setChamados([]);
+      setTotalRows(0);
     } finally {
       setLoading(false);
     }
   }, [page, rowsPerPage, searchTerm, statusFilter]);
 
+  const loadDevolucoes = useCallback(async () => {
+    setLoadingDevolucoes(true);
+    try {
+      const dados = await devolucaoService.getDevolucoesForSelect('');
+      const devolucoesFormatadas = (dados || []).map((devolucao) => ({
+        id: devolucao.id,
+        label: `#${devolucao.id} - ${devolucao.cliente} - ${devolucao.produto}`,
+      }));
+      setDevolucoes(devolucoesFormatadas);
+    } catch (error) {
+      console.error('Erro ao carregar devoluções para seleção:', error);
+      setDevolucoes([]);
+    } finally {
+      setLoadingDevolucoes(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadChamados();
   }, [loadChamados]);
 
+  useEffect(() => {
+    loadDevolucoes();
+  }, [loadDevolucoes]);
+
   const handleSubmit = async () => {
     if (!formData.devolucao_id || !formData.problema.trim()) {
-      alert('Informe ID da devolução e o problema.');
+      alert('Informe a devolução e o problema.');
       return;
     }
 
@@ -163,14 +193,49 @@ const ChamadosPage = () => {
           Abrir Chamado de Acompanhamento
         </Typography>
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '140px 1fr' }, gap: 2 }}>
-          <TextField
-            label="Devolução #"
-            type="number"
-            value={formData.devolucao_id}
-            onChange={(e) => setFormData((prev) => ({ ...prev, devolucao_id: e.target.value }))}
-            fullWidth
-          />
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '360px 1fr' }, gap: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel>Vincular a Devolução</InputLabel>
+            <Select
+              value={formData.devolucao_id}
+              onChange={(e) => setFormData((prev) => ({ ...prev, devolucao_id: e.target.value }))}
+              label="Vincular a Devolução"
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    maxHeight: 300,
+                  },
+                },
+              }}
+            >
+              <MenuItem value="">
+                <em>Selecione uma devolução</em>
+              </MenuItem>
+
+              {loadingDevolucoes ? (
+                <MenuItem disabled>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircularProgress size={16} />
+                    Carregando devoluções...
+                  </Box>
+                </MenuItem>
+              ) : devolucoes.length === 0 ? (
+                <MenuItem disabled>Nenhuma devolução encontrada</MenuItem>
+              ) : (
+                devolucoes.map((devolucao) => (
+                  <MenuItem key={devolucao.id} value={String(devolucao.id)}>
+                    {devolucao.label}
+                  </MenuItem>
+                ))
+              )}
+            </Select>
+            <FormHelperText>
+              {devolucoes.length > 0
+                ? `${devolucoes.length} devoluções disponíveis para vínculo`
+                : 'Selecione a devolução relacionada ao problema'}
+            </FormHelperText>
+          </FormControl>
+
           <TextField
             label="Qual é o problema?"
             value={formData.problema}
