@@ -70,6 +70,17 @@ async function createTables() {
         responsavel TEXT,
         fkDevolucao INT,
         data DATETIME
+        )`,
+      `CREATE TABLE IF NOT EXISTS chamados (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        devolucao_id INT NOT NULL,
+        problema TEXT NOT NULL,
+        status VARCHAR(20) DEFAULT 'aberto',
+        acao_tomada TEXT,
+        criado_em DATETIME,
+        resolvido_em DATETIME,
+        INDEX idx_chamados_status (status),
+        INDEX idx_chamados_devolucao (devolucao_id)
       )`
     ];
 

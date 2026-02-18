@@ -29,7 +29,7 @@ export const PROCESSADORES = {
     'i7 10ª Geração', 'i7 11ª Geração'
   ],
   ryzen: [
-    'R5 5500', 'R5 2ª - GPU', 'R5 5600GT', 'R5 7ª'
+    'R5 5500', 'R5 2ª - GPU', 'R5 5600GT', 'R5 7ª', 'R7 5700G'
   ]
 };
 

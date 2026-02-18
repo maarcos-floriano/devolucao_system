@@ -13,7 +13,7 @@ const MOCK_USERS = [
     password: 'lider123',
     name: 'Administrador RMA',
     role: 'admin',
-    permissions: ['dashboard', 'devolucao', 'maquinas', 'monitores', 'kit', 'rma']
+    permissions: ['dashboard', 'devolucao', 'maquinas', 'monitores', 'kit', 'rma', 'chamados']
   },
   {
     id: 2,
@@ -29,7 +29,7 @@ const MOCK_USERS = [
     password: 'op123',
     name: 'Operador',
     role: 'operador',
-    permissions: ['devolucao', 'dashboard', 'maquinas', 'rma' ]
+    permissions: ['devolucao', 'dashboard', 'maquinas', 'chamados' ]
   },
   {
     id: 4,
@@ -206,6 +206,10 @@ export const AuthProvider = ({ children }) => {
   // Verificar permissões
   const hasPermission = useCallback((permission) => {
     if (!user) return false;
+
+    // Chamados deve estar disponível para todos os perfis autenticados
+    if (permission === 'chamados') return true;
+
     if (user.role === 'admin') return true;
     return user.permissions?.includes(permission) || false;
   }, [user]);
