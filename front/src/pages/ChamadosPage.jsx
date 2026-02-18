@@ -8,17 +8,24 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  FormHelperText,
+  InputLabel,
   MenuItem,
   Paper,
+  Select,
   TextField,
   Typography,
 } from '@mui/material';
-import { AddAlert, Save, Refresh, Edit as EditIcon } from '@mui/icons-material';
+import { Save, Refresh, Edit as EditIcon } from '@mui/icons-material';
 import DataTable from '../components/tables/DataTable';
 import SearchBar from '../components/tables/SearchBar';
 import chamadoService from '../services/chamadoService';
+import devolucaoService from '../services/devolucaoService';
+import { ORIGENS } from '../utils/constants';
 
 const initialFormData = {
+  origem: '',
   devolucao_id: '',
   problema: '',
   status: 'aberto',
@@ -37,6 +44,8 @@ const ChamadosPage = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingChamado, setEditingChamado] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
+  const [devolucoes, setDevolucoes] = useState([]);
+  const [loadingDevolucoes, setLoadingDevolucoes] = useState(false);
 
   const loadChamados = useCallback(async () => {
     setLoading(true);
@@ -52,19 +61,40 @@ const ChamadosPage = () => {
       setTotalRows(response.total || 0);
     } catch (error) {
       console.error('Erro ao carregar chamados:', error);
-      alert('Erro ao carregar chamados');
+      setChamados([]);
+      setTotalRows(0);
     } finally {
       setLoading(false);
     }
   }, [page, rowsPerPage, searchTerm, statusFilter]);
+  const loadDevolucoesByOrigem = useCallback(async (origemSelecionada) => {
+    if (!origemSelecionada) {
+      setDevolucoes([]);
+      setLoadingDevolucoes(false);
+      return;
+    }
 
+    setLoadingDevolucoes(true);
+    try {
+      const dados = await devolucaoService.getDevolucoesForSelect(origemSelecionada);
+      const devolucoesFormatadas = (dados || []).map((devolucao) => ({
+        id: devolucao.id,
+        label: `#${devolucao.id} - ${devolucao.cliente} - ${devolucao.produto}`,
+      }));
+      setDevolucoes(devolucoesFormatadas);
+    } catch (error) {
+      console.error('Erro ao carregar devoluções por origem:', error);
+      setDevolucoes([]);
+    } finally {
+      setLoadingDevolucoes(false);
+    }
+  }, []);
   useEffect(() => {
     loadChamados();
   }, [loadChamados]);
-
   const handleSubmit = async () => {
     if (!formData.devolucao_id || !formData.problema.trim()) {
-      alert('Informe ID da devolução e o problema.');
+      alert('Informe a devolução e o problema.');
       return;
     }
 
@@ -87,6 +117,7 @@ const ChamadosPage = () => {
   const handleEditClick = (chamado) => {
     setEditingChamado(chamado);
     setFormData({
+      origem: chamado.origem || '',
       devolucao_id: String(chamado.devolucao_id),
       problema: chamado.problema || '',
       status: chamado.status || 'aberto',
@@ -162,15 +193,72 @@ const ChamadosPage = () => {
         <Typography variant="h6" gutterBottom>
           Abrir Chamado de Acompanhamento
         </Typography>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px 320px 1fr' }, gap: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel>Origem</InputLabel>
+            <Select
+              value={formData.origem}
+              onChange={(e) => {
+                const origemSelecionada = e.target.value;
+                setFormData((prev) => ({ ...prev, origem: origemSelecionada, devolucao_id: '' }));
+                loadDevolucoesByOrigem(origemSelecionada);
+              }}
+              label="Origem"
+            >
+              <MenuItem value=""><em>Selecione...</em></MenuItem>
+              {ORIGENS.map((origem) => (
+                <MenuItem key={origem.value} value={origem.value}>
+                  {origem.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '140px 1fr' }, gap: 2 }}>
-          <TextField
-            label="Devolução #"
-            type="number"
-            value={formData.devolucao_id}
-            onChange={(e) => setFormData((prev) => ({ ...prev, devolucao_id: e.target.value }))}
-            fullWidth
-          />
+          <FormControl fullWidth disabled={!formData.origem}>
+            <InputLabel>Vincular a Devolução</InputLabel>
+            <Select
+              value={formData.devolucao_id}
+              onChange={(e) => setFormData((prev) => ({ ...prev, devolucao_id: e.target.value }))}
+              label="Vincular a Devolução"
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    maxHeight: 300,
+                  },
+                },
+              }}
+            >
+              <MenuItem value="">
+                <em>Selecione uma devolução</em>
+              </MenuItem>
+
+              {loadingDevolucoes ? (
+                <MenuItem disabled>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircularProgress size={16} />
+                    Buscando devoluções de {formData.origem}...
+                  </Box>
+                </MenuItem>
+              ) : devolucoes.length === 0 ? (
+                <MenuItem disabled>
+                  {formData.origem ? `Nenhuma devolução encontrada para origem: ${formData.origem}` : 'Selecione uma origem primeiro'}
+                </MenuItem>
+              ) : (
+                devolucoes.map((devolucao) => (
+                  <MenuItem key={devolucao.id} value={String(devolucao.id)}>
+                    {devolucao.label}
+                  </MenuItem>
+                ))
+              )}
+            </Select>
+            <FormHelperText>
+              {formData.origem
+                ? devolucoes.length > 0
+                  ? `${devolucoes.length} devoluções encontradas para ${formData.origem}`
+                  : `Sem devoluções para ${formData.origem}`
+                : 'Selecione uma origem para carregar as devoluções'}
+            </FormHelperText>
+          </FormControl>
           <TextField
             label="Qual é o problema?"
             value={formData.problema}

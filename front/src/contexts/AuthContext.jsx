@@ -206,6 +206,10 @@ export const AuthProvider = ({ children }) => {
   // Verificar permissões
   const hasPermission = useCallback((permission) => {
     if (!user) return false;
+
+    // Chamados deve estar disponível para todos os perfis autenticados
+    if (permission === 'chamados') return true;
+
     if (user.role === 'admin') return true;
     return user.permissions?.includes(permission) || false;
   }, [user]);

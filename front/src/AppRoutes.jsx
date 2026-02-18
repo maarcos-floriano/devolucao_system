@@ -51,6 +51,12 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
   
   // Verificar permissão se for necessário
   if (requiredPermission && !hasPermission(requiredPermission)) {
+    console.log('[ProtectedRoute] acesso negado', {
+      requiredPermission,
+      user,
+      pathname: window.location.pathname,
+      reason: 'hasPermission retornou false',
+    });
     return <Navigate to="/dashboard" />;
   }
   
