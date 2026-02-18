@@ -57,7 +57,6 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
       pathname: window.location.pathname,
       reason: 'hasPermission retornou false',
     });
-
     return <Navigate to="/dashboard" />;
   }
   

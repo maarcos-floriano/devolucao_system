@@ -61,14 +61,12 @@ const ChamadosPage = () => {
       setTotalRows(response.total || 0);
     } catch (error) {
       console.error('Erro ao carregar chamados:', error);
-      // Se não houver chamados ou ocorrer erro de listagem, mantém tabela vazia sem alert.
       setChamados([]);
       setTotalRows(0);
     } finally {
       setLoading(false);
     }
   }, [page, rowsPerPage, searchTerm, statusFilter]);
-
   const loadDevolucoesByOrigem = useCallback(async (origemSelecionada) => {
     if (!origemSelecionada) {
       setDevolucoes([]);
@@ -91,12 +89,9 @@ const ChamadosPage = () => {
       setLoadingDevolucoes(false);
     }
   }, []);
-
   useEffect(() => {
     loadChamados();
   }, [loadChamados]);
-
-
   const handleSubmit = async () => {
     if (!formData.devolucao_id || !formData.problema.trim()) {
       alert('Informe a devolução e o problema.');
@@ -198,7 +193,6 @@ const ChamadosPage = () => {
         <Typography variant="h6" gutterBottom>
           Abrir Chamado de Acompanhamento
         </Typography>
-
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px 320px 1fr' }, gap: 2 }}>
           <FormControl fullWidth>
             <InputLabel>Origem</InputLabel>
@@ -265,7 +259,6 @@ const ChamadosPage = () => {
                 : 'Selecione uma origem para carregar as devoluções'}
             </FormHelperText>
           </FormControl>
-
           <TextField
             label="Qual é o problema?"
             value={formData.problema}
