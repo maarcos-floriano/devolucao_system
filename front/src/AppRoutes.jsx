@@ -12,7 +12,7 @@ import { useAuth } from './contexts/AuthContext';
 
 // Componente de rota protegida
 const ProtectedRoute = ({ children, requiredPermission }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, hasPermission } = useAuth();
   
   if (loading) {
     return (
@@ -50,7 +50,7 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
   }
   
   // Verificar permissão se for necessário
-  if (requiredPermission && !user.permissions?.includes(requiredPermission)) {
+  if (requiredPermission && !hasPermission(requiredPermission)) {
     return <Navigate to="/dashboard" />;
   }
   

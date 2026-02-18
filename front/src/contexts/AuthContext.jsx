@@ -13,7 +13,7 @@ const MOCK_USERS = [
     password: 'lider123',
     name: 'Administrador RMA',
     role: 'admin',
-    permissions: ['dashboard', 'devolucao', 'maquinas', 'monitores', 'kit']
+    permissions: ['dashboard', 'devolucao', 'maquinas', 'monitores', 'kit', 'chamados']
   },
   {
     id: 2,
