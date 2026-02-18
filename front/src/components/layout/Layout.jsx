@@ -1,50 +1,88 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import {
   AppBar,
+  Avatar,
+  Badge,
   Box,
   CssBaseline,
+  Divider,
   Drawer,
   IconButton,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  Toolbar,
-  Typography,
-  Avatar,
   Menu,
   MenuItem,
-  Divider,
+  Toolbar,
   Tooltip,
+  Typography,
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
-  Dashboard,
+  AddAlert,
   Computer,
-  Monitor,
+  Dashboard,
   KeyboardReturn,
-  SettingsInputComponent,
   Logout,
+  Menu as MenuIcon,
+  Monitor,
   Person,
+  SettingsInputComponent,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import chamadoService from '../../services/chamadoService';
 
 const drawerWidth = 260;
-
-const menuItems = [
-  { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard', permission: 'dashboard' },
-  { text: 'Máquinas', icon: <Computer />, path: '/maquinas', permission: 'maquinas' },
-  { text: 'Monitores', icon: <Monitor />, path: '/monitores', permission: 'monitores' },
-  { text: 'Devolução', icon: <KeyboardReturn />, path: '/devolucao', permission: 'devolucao' },
-  { text: 'Kits', icon: <SettingsInputComponent />, path: '/kit', permission: 'kit' },
-];
 
 const Layout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [openChamados, setOpenChamados] = useState(0);
   const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
+
+  const menuItems = [
+    { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard', permission: 'dashboard' },
+    { text: 'Máquinas', icon: <Computer />, path: '/maquinas', permission: 'maquinas' },
+    { text: 'Monitores', icon: <Monitor />, path: '/monitores', permission: 'monitores' },
+    { text: 'Devolução', icon: <KeyboardReturn />, path: '/devolucao', permission: 'devolucao' },
+    { text: 'Kits', icon: <SettingsInputComponent />, path: '/kit', permission: 'kit' },
+    {
+      text: 'Chamados',
+      icon: (
+        <Badge color="error" badgeContent={openChamados > 99 ? '99+' : openChamados} invisible={openChamados === 0}>
+          <AddAlert />
+        </Badge>
+      ),
+      path: '/chamados',
+      permission: 'chamados',
+    },
+  ];
+
+  useEffect(() => {
+    let active = true;
+
+    const loadOpenCount = async () => {
+      if (!hasPermission('chamados')) return;
+      try {
+        const response = await chamadoService.getOpenCount();
+        if (active) {
+          setOpenChamados(response.total || 0);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar chamados abertos:', error);
+      }
+    };
+
+    loadOpenCount();
+    const interval = setInterval(loadOpenCount, 30000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [hasPermission]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -69,38 +107,33 @@ const Layout = () => {
     setMobileOpen(false);
   };
 
-  // Filtrar itens do menu baseado nas permissões
-  const filteredMenuItems = menuItems.filter(item => 
-    hasPermission(item.permission)
-  );
+  const filteredMenuItems = menuItems.filter((item) => hasPermission(item.permission));
 
   const drawer = (
     <div>
-      <Toolbar sx={{ 
-        backgroundColor: '#22c55e',
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
+      <Toolbar
+        sx={{
+          backgroundColor: '#22c55e',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <Typography variant="h6" noWrap sx={{ fontWeight: 700 }}>
           RMA Sistema
         </Typography>
       </Toolbar>
-      
-      <Box sx={{ 
-        p: 2, 
-        textAlign: 'center',
-        borderBottom: '1px solid #e5e7eb'
-      }}>
-        <Avatar 
-          sx={{ 
-            width: 60, 
-            height: 60, 
+
+      <Box sx={{ p: 2, textAlign: 'center', borderBottom: '1px solid #e5e7eb' }}>
+        <Avatar
+          sx={{
+            width: 60,
+            height: 60,
             margin: '0 auto 10px',
             backgroundColor: '#22c55e',
             fontSize: '24px',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
           }}
         >
           {user?.name?.charAt(0) || 'U'}
@@ -109,11 +142,10 @@ const Layout = () => {
           {user?.name || 'Usuário'}
         </Typography>
         <Typography variant="caption" sx={{ color: '#6b7280' }}>
-          {user?.role === 'admin' ? 'Administrador' : 
-           user?.role === 'tecnico' ? 'Técnico' : 'Operador'}
+          {user?.role === 'admin' ? 'Administrador' : user?.role === 'tecnico' ? 'Técnico' : 'Operador'}
         </Typography>
       </Box>
-      
+
       <List sx={{ mt: 1 }}>
         {filteredMenuItems.map((item) => (
           <ListItem
@@ -124,32 +156,21 @@ const Layout = () => {
               mb: 0.5,
               mx: 1,
               borderRadius: 2,
-              '&:hover': {
-                backgroundColor: '#f0fdf4',
-              },
-              '&.Mui-selected': {
-                backgroundColor: '#dcfce7',
-                color: '#166534',
-                '& .MuiListItemIcon-root': {
-                  color: '#166534',
-                },
-              },
+              '&:hover': { backgroundColor: '#f0fdf4' },
             }}
           >
-            <ListItemIcon sx={{ color: '#22c55e' }}>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText 
-              primary={item.text} 
-              primaryTypographyProps={{ 
+            <ListItemIcon sx={{ color: '#22c55e' }}>{item.icon}</ListItemIcon>
+            <ListItemText
+              primary={item.text}
+              primaryTypographyProps={{
                 fontWeight: 500,
-                fontSize: '15px'
+                fontSize: '15px',
               }}
             />
           </ListItem>
         ))}
       </List>
-      
+
       <Box sx={{ mt: 'auto', p: 2 }}>
         <Divider sx={{ mb: 2 }} />
         <Typography variant="caption" sx={{ color: '#6b7280', display: 'block', textAlign: 'center' }}>
@@ -165,8 +186,7 @@ const Layout = () => {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      
-      {/* AppBar */}
+
       <AppBar
         position="fixed"
         sx={{
@@ -178,44 +198,22 @@ const Layout = () => {
         }}
       >
         <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
+          <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, display: { sm: 'none' } }}>
             <MenuIcon />
           </IconButton>
-          
+
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="h6" noWrap sx={{ color: '#166534', fontWeight: 600 }}>
               Sistema de Gerenciamento RMA
             </Typography>
           </Box>
-          
-          {/* Menu do usuário */}
+
           <Tooltip title="Configurações da conta">
-            <IconButton
-              onClick={handleMenuOpen}
-              sx={{ 
-                p: 0,
-                '&:hover': { backgroundColor: '#f0fdf4' }
-              }}
-            >
-              <Avatar 
-                sx={{ 
-                  width: 40, 
-                  height: 40, 
-                  backgroundColor: '#22c55e',
-                  fontSize: '16px'
-                }}
-              >
-                {user?.name?.charAt(0) || 'U'}
-              </Avatar>
+            <IconButton onClick={handleMenuOpen} sx={{ p: 0, '&:hover': { backgroundColor: '#f0fdf4' } }}>
+              <Avatar sx={{ width: 40, height: 40, backgroundColor: '#22c55e', fontSize: '16px' }}>{user?.name?.charAt(0) || 'U'}</Avatar>
             </IconButton>
           </Tooltip>
-          
+
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
@@ -226,17 +224,16 @@ const Layout = () => {
                 minWidth: 200,
                 borderRadius: 2,
                 boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-              }
+              },
             }}
           >
             <MenuItem disabled>
               <ListItemIcon>
                 <Person fontSize="small" />
               </ListItemIcon>
-              <ListItemText 
-                primary={user?.name} 
-                secondary={user?.role === 'admin' ? 'Administrador' : 
-                          user?.role === 'tecnico' ? 'Técnico' : 'Operador'}
+              <ListItemText
+                primary={user?.name}
+                secondary={user?.role === 'admin' ? 'Administrador' : user?.role === 'tecnico' ? 'Técnico' : 'Operador'}
               />
             </MenuItem>
             <Divider />
@@ -250,24 +247,18 @@ const Layout = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Drawer */}
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      >
+      <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
-          }}
+          ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
               width: drawerWidth,
-              borderRight: '1px solid #e5e7eb'
+              borderRight: '1px solid #e5e7eb',
             },
           }}
         >
@@ -277,10 +268,10 @@ const Layout = () => {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
               width: drawerWidth,
-              borderRight: '1px solid #e5e7eb'
+              borderRight: '1px solid #e5e7eb',
             },
           }}
           open
@@ -289,7 +280,6 @@ const Layout = () => {
         </Drawer>
       </Box>
 
-      {/* Conteúdo principal */}
       <Box
         component="main"
         sx={{
