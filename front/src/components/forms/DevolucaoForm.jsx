@@ -6,7 +6,11 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Box,
+  Button,
+  Typography,
 } from '@mui/material';
+import { UploadFile } from '@mui/icons-material';
 import { ORIGENS_DEVOLUCAO } from '../../utils/constants';
 
 const DevolucaoForm = ({ formData, onChange, loading = false }) => {
@@ -52,6 +56,11 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
     const dataHora = new Date(value).toISOString();
     const dataHoraBr = dataHora.split('T').join(' ').split('.')[0];
     handleChange('dataHora', dataHoraBr);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    handleChange('imagemArquivo', file);
   };
 
   return (
@@ -146,6 +155,34 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
           onChange={handleTextChange}
           disabled={loading}
         />
+      </Grid>
+
+      {/* Imagem */}
+      <Grid item xs={12} sm={6}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Button
+            variant="outlined"
+            component="label"
+            startIcon={<UploadFile />}
+            disabled={loading}
+          >
+            {formData.imagemArquivo ? 'Trocar imagem anexada' : 'Anexar imagem'}
+            <input hidden type="file" accept="image/*" onChange={handleImageChange} />
+          </Button>
+          <Typography variant="caption" color="text.secondary">
+            Formatos aceitos: JPG, PNG, WEBP (máx. 5MB).
+          </Typography>
+          {formData.imagemArquivo && (
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              Arquivo: {formData.imagemArquivo.name}
+            </Typography>
+          )}
+          {!formData.imagemArquivo && formData.imagem && (
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              Imagem já cadastrada para esta devolução.
+            </Typography>
+          )}
+        </Box>
       </Grid>
     </Grid>
   );

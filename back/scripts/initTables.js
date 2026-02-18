@@ -42,6 +42,7 @@ async function createTables() {
         produto TEXT,
         codigo TEXT,
         observacao TEXT,
+        imagem TEXT,
         data DATETIME
       )`,
       `CREATE TABLE IF NOT EXISTS kit (
@@ -72,6 +73,27 @@ async function createTables() {
         await database.backupPool.query(query);
       } catch (backupError) {
         console.warn(`⚠️ Não foi possível criar tabela no backup: ${backupError.message}`);
+      }
+    }
+
+    // Compatibilidade com bancos já existentes
+    const devolucaoAlterQuery = 'ALTER TABLE devolucao ADD COLUMN imagem TEXT';
+
+    try {
+      await conn.query(devolucaoAlterQuery);
+      console.log('✅ Coluna imagem adicionada na tabela devolucao (principal).');
+    } catch (error) {
+      if (error.code !== 'ER_DUP_FIELDNAME') {
+        throw error;
+      }
+    }
+
+    try {
+      await database.backupPool.query(devolucaoAlterQuery);
+      console.log('✅ Coluna imagem adicionada na tabela devolucao (backup).');
+    } catch (error) {
+      if (error.code !== 'ER_DUP_FIELDNAME') {
+        console.warn(`⚠️ Não foi possível atualizar tabela devolucao no backup: ${error.message}`);
       }
     }
 
