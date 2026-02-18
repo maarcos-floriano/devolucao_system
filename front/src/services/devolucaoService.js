@@ -2,34 +2,34 @@ import api from './api';
 
 const devolucaoService = {
   async create(devolucaoData) {
-    const response = await api.post('/api/devolucao', devolucaoData);
+    const response = await api.post('/devolucao', devolucaoData);
     return response.data;
   },
 
   async getAll(page = 1, limit = 10, search = '') {
-    const response = await api.get('/api/devolucao', {
+    const response = await api.get('/devolucao', {
       params: { page, limit, search }
     });
     return response.data;
   },
 
   async getToday() {
-    const response = await api.get('/api/devolucao/hoje');
+    const response = await api.get('/devolucao/hoje');
     return response.data;
   },
 
   async getLast() {
-    const response = await api.get('/api/devolucao/ultima');
+    const response = await api.get('/devolucao/ultima');
     return response.data;
   },
 
   async getById(id) {
-    const response = await api.get(`/api/devolucao/${id}`);
+    const response = await api.get(`/devolucao/${id}`);
     return response.data;
   },
 
   async update(id, field, value) {
-    const response = await api.put(`/api/devolucao/${id}`, { field, value });
+    const response = await api.put(`/devolucao/${id}`, { field, value });
     return response.data;
   },
 
