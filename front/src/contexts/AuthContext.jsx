@@ -13,7 +13,7 @@ const MOCK_USERS = [
     password: 'lider123',
     name: 'Administrador RMA',
     role: 'admin',
-    permissions: ['dashboard', 'devolucao', 'maquinas', 'monitores', 'kit']
+    permissions: ['dashboard', 'devolucao', 'maquinas', 'monitores', 'kit', 'rma']
   },
   {
     id: 2,
@@ -21,7 +21,7 @@ const MOCK_USERS = [
     password: 'tec123',
     name: 'Técnico',
     role: 'tecnico',
-    permissions: ['maquinas', 'monitores', 'kit']
+    permissions: ['maquinas', 'monitores', 'kit', 'rma']
   },
   {
     id: 3,
@@ -29,7 +29,7 @@ const MOCK_USERS = [
     password: 'op123',
     name: 'Operador',
     role: 'operador',
-    permissions: ['devolucao', 'dashboard', 'maquinas' ]
+    permissions: ['devolucao', 'dashboard', 'maquinas', 'rma' ]
   },
   {
     id: 4,
@@ -37,7 +37,7 @@ const MOCK_USERS = [
     password: '123',
     name: 'Operador RMA',
     role: 'operador',
-    permissions: ['dashboard']
+    permissions: ['dashboard', 'rma']
   }
 ];
 

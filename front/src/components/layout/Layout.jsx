@@ -25,6 +25,7 @@ import {
   Monitor,
   KeyboardReturn,
   SettingsInputComponent,
+  BuildCircle,
   Logout,
   Person,
 } from '@mui/icons-material';
@@ -38,6 +39,7 @@ const menuItems = [
   { text: 'Monitores', icon: <Monitor />, path: '/monitores', permission: 'monitores' },
   { text: 'Devolução', icon: <KeyboardReturn />, path: '/devolucao', permission: 'devolucao' },
   { text: 'Kits', icon: <SettingsInputComponent />, path: '/kit', permission: 'kit' },
+  { text: 'RMA', icon: <BuildCircle />, path: '/rma', permission: 'rma' },
 ];
 
 const Layout = () => {

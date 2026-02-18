@@ -7,6 +7,7 @@ import MaquinaPage from './pages/MaquinaPage';
 import MonitorPage from './pages/MonitorPage';
 import DevolucaoPage from './pages/DevolucaoPage';
 import KitPage from './pages/KitPage';
+import RmaPage from './pages/RmaPage';
 import { useAuth } from './contexts/AuthContext';
 
 // Componente de rota protegida
@@ -90,6 +91,11 @@ const AppRoutes = () => {
         <Route path="kit" element={
           <ProtectedRoute requiredPermission="kit">
             <KitPage />
+          </ProtectedRoute>
+        } />
+        <Route path="rma" element={
+          <ProtectedRoute requiredPermission="rma">
+            <RmaPage />
           </ProtectedRoute>
         } />
       </Route>

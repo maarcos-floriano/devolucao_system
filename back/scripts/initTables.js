@@ -58,6 +58,18 @@ async function createTables() {
         saiu_venda BOOLEAN DEFAULT 0,
         data_saida_venda DATETIME,
         fkDevolucao INT
+      )`,
+      `CREATE TABLE IF NOT EXISTS rma (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tipo_item TEXT,
+        descricao_item TEXT,
+        problema TEXT,
+        destino TEXT,
+        status TEXT,
+        observacao TEXT,
+        responsavel TEXT,
+        fkDevolucao INT,
+        data DATETIME
       )`
     ];
 
