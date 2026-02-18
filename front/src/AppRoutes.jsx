@@ -7,11 +7,12 @@ import MaquinaPage from './pages/MaquinaPage';
 import MonitorPage from './pages/MonitorPage';
 import DevolucaoPage from './pages/DevolucaoPage';
 import KitPage from './pages/KitPage';
+import ChamadosPage from './pages/ChamadosPage';
 import { useAuth } from './contexts/AuthContext';
 
 // Componente de rota protegida
 const ProtectedRoute = ({ children, requiredPermission }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, hasPermission } = useAuth();
   
   if (loading) {
     return (
@@ -49,7 +50,14 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
   }
   
   // Verificar permissão se for necessário
-  if (requiredPermission && !user.permissions?.includes(requiredPermission)) {
+  if (requiredPermission && !hasPermission(requiredPermission)) {
+    console.log('[ProtectedRoute] acesso negado', {
+      requiredPermission,
+      user,
+      pathname: window.location.pathname,
+      reason: 'hasPermission retornou false',
+    });
+
     return <Navigate to="/dashboard" />;
   }
   
@@ -90,6 +98,12 @@ const AppRoutes = () => {
         <Route path="kit" element={
           <ProtectedRoute requiredPermission="kit">
             <KitPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="chamados" element={
+          <ProtectedRoute requiredPermission="chamados">
+            <ChamadosPage />
           </ProtectedRoute>
         } />
       </Route>
