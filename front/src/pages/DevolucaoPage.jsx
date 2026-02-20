@@ -127,7 +127,7 @@ const DevolucaoPage = () => {
       observacao: devolucao.observacao || '',
       imagem: devolucao.imagem || '',
       imagemArquivo: null,
-      dataHora: devolucao.dataHora || new Date().toISOString().slice(0, 16),
+      dataHora: devolucao.data || devolucao.dataHora || new Date().toISOString().slice(0, 16),
     });
     
     setEditDialogOpen(true);
@@ -320,7 +320,7 @@ const DevolucaoPage = () => {
     { field: 'cliente', headerName: 'Cliente', width: 150 },
     { field: 'produto', headerName: 'Produto', width: 150 },
     { field: 'codigo', headerName: 'Código', width: 150 },
-    { field: 'dataHora', headerName: 'Data/Hora', width: 180, type: 'datetime' },
+    { field: 'data', headerName: 'Data/Hora', width: 180, type: 'datetime' },
     { field: 'observacao', headerName: 'Observação', width: 200 },
     {
       field: 'imagem',

@@ -23,8 +23,14 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
     }));
   }, [onChange]);
 
-  // Preencher data/hora atual automaticamente
+  // Preencher data/hora inicial sem sobrescrever edição existente
   useEffect(() => {
+    if (formData.dataHora) {
+      const dataNormalizada = formData.dataHora.replace(' ', 'T').slice(0, 16);
+      setLocalDateTime(dataNormalizada);
+      return;
+    }
+
     const agora = new Date();
     const pad = (n) => String(n).padStart(2, '0');
     
@@ -36,8 +42,10 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
     
     const dateTimeValue = `${ano}-${mes}-${dia}T${hora}:${minuto}`;
     setLocalDateTime(dateTimeValue);
-    handleChange('dataHora', dateTimeValue);
-  }, [handleChange]);
+    const dataHoraIso = new Date(dateTimeValue).toISOString();
+    const dataHoraBr = dataHoraIso.split('T').join(' ').split('.')[0];
+    handleChange('dataHora', dataHoraBr);
+  }, [formData.dataHora, handleChange]);
 
   const handleSelectChange = (e) => {
     const { name, value } = e.target;
