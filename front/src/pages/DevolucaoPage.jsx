@@ -10,13 +10,15 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Chip,
 } from '@mui/material';
-import { Save, Refresh, Download, Print, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Save, Refresh, Download, Print, Edit as EditIcon, Delete as DeleteIcon, CameraAlt } from '@mui/icons-material';
 import DevolucaoForm from '../components/forms/DevolucaoForm';
 import DataTable from '../components/tables/DataTable';
 import SearchBar from '../components/tables/SearchBar';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { ORIGENS_DEVOLUCAO } from '../utils/constants';
 
 const DevolucaoPage = () => {
   const { hasRole } = useAuth();
@@ -32,6 +34,7 @@ const DevolucaoPage = () => {
   const [deletingDevolucao, setDeletingDevolucao] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
   const [formData, setFormData] = useState({
     id : '',
     origem: '',
@@ -214,6 +217,63 @@ const DevolucaoPage = () => {
     }
   };
 
+
+  const inferOrigem = (text) => {
+    if (!text) return '';
+    const normalizedText = text.toLowerCase();
+    return ORIGENS_DEVOLUCAO.find((origem) => normalizedText.includes(origem.toLowerCase())) || '';
+  };
+
+  const handleScanEtiqueta = async (file) => {
+    if (!file) return;
+
+    setFormData((prev) => ({ ...prev, imagemArquivo: file }));
+    setScanLoading(true);
+
+    try {
+      const nextValues = {};
+      const barcodeDetectorAvailable = typeof window !== 'undefined' && 'BarcodeDetector' in window;
+
+      if (barcodeDetectorAvailable) {
+        const detector = new window.BarcodeDetector({
+          formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'qr_code', 'upc_a', 'upc_e'],
+        });
+        const bitmap = await createImageBitmap(file);
+        const results = await detector.detect(bitmap);
+
+        if (results.length && results[0]?.rawValue) {
+          nextValues.codigo = results[0].rawValue;
+        }
+      }
+
+      const fileName = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+      const origemInferida = inferOrigem(fileName);
+
+      if (!nextValues.cliente && fileName.length >= 3) {
+        nextValues.cliente = fileName.split(' ').slice(0, 2).join(' ').trim();
+      }
+
+      if (origemInferida) {
+        nextValues.origem = origemInferida;
+      }
+
+      if (Object.keys(nextValues).length > 0) {
+        setFormData((prev) => ({ ...prev, ...nextValues }));
+      }
+
+      if (!barcodeDetectorAvailable) {
+        alert('Seu navegador ainda não suporta leitura automática de código de barras. A imagem foi anexada para preenchimento manual.');
+      } else {
+        alert('Leitura concluída! Confira os campos preenchidos automaticamente antes de salvar.');
+      }
+    } catch (error) {
+      console.error('Erro ao escanear etiqueta:', error);
+      alert('Não foi possível ler automaticamente a etiqueta. A imagem foi anexada para conferência manual.');
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
   // Salvar nova devolução
   const handleSubmit = async (e) => {
   e.preventDefault();
@@ -344,21 +404,26 @@ const DevolucaoPage = () => {
       <Paper 
         elevation={2}
         sx={{
-          p: 3,
+          p: { xs: 2, sm: 3 },
           mb: 3,
           border: '2px solid',
           borderColor: 'primary.main',
           borderRadius: 3,
         }}
       >
-        <Typography variant="h6" gutterBottom>
-          Registrar Devolução
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Typography variant="h6" gutterBottom sx={{ mb: 0 }}>
+            Registrar Devolução
+          </Typography>
+          <Chip icon={<CameraAlt />} label="Escaneie pelo celular" color="primary" variant="outlined" />
+        </Box>
 
         <DevolucaoForm
           formData={formData}
           onChange={setFormData}
           loading={submitting}
+          scanLoading={scanLoading}
+          onScanRequest={handleScanEtiqueta}
           isEditing={!!editingDevolucao}
         />
 
@@ -383,6 +448,9 @@ const DevolucaoPage = () => {
         </Box>
 
         <Alert severity="info" sx={{ mt: 3 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Agora você pode anexar uma foto da etiqueta no botão <strong>Escanear etiqueta</strong> para tentar preencher automaticamente o código e a origem.
+          </Typography>
           <Typography variant="body2">
             <strong>Permissões:</strong> 
             {hasRole('admin') ? ' Administrador (pode editar e excluir)' : ''}
@@ -396,14 +464,14 @@ const DevolucaoPage = () => {
       <Paper 
         elevation={2}
         sx={{
-          p: 3,
+          p: { xs: 2, sm: 3 },
           border: '2px solid',
           borderColor: 'primary.main',
           borderRadius: 3,
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          height: '86vh',
+          height: { xs: 'auto', md: '86vh' },
           overflow: 'auto',
         }}
       >
@@ -466,6 +534,8 @@ const DevolucaoPage = () => {
             formData={formData}
             onChange={setFormData}
             loading={submitting}
+            scanLoading={scanLoading}
+            onScanRequest={handleScanEtiqueta}
             isEditing={true}
           />
         </DialogContent>
