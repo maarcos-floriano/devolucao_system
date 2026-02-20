@@ -98,9 +98,10 @@ const DataTable = ({
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 2,
+          overflowX: 'auto',
         }}
       >
-        <Table stickyHeader size="small">
+        <Table stickyHeader size="small" sx={{ minWidth: 760 }}>
           <TableHead>
             <TableRow>
               {columns.map((column) => (
@@ -280,8 +281,15 @@ const DataTable = ({
           sx={{
             borderTop: '1px solid',
             borderColor: 'divider',
+            '& .MuiTablePagination-toolbar': {
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: 1,
+              py: 1,
+            },
             '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-              fontSize: '14px',
+              fontSize: { xs: '12px', sm: '14px' },
+              margin: 0,
             },
           }}
         />

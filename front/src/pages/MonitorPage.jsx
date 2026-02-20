@@ -345,7 +345,7 @@ const MonitorPage = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 2 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 3, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
         Monitores
       </Typography>
 
@@ -353,7 +353,7 @@ const MonitorPage = () => {
       <Paper 
         elevation={2}
         sx={{
-          p: 3,
+          p: { xs: 2, sm: 3 },
           mb: 3,
           border: '2px solid',
           borderColor: 'primary.main',
@@ -399,20 +399,20 @@ const MonitorPage = () => {
       <Paper 
         elevation={2}
         sx={{
-          p: 3,
+          p: { xs: 2, sm: 3 },
           border: '2px solid',
           borderColor: 'primary.main',
           borderRadius: 3,
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          height: '86vh',
+          height: { xs: 'auto', md: '86vh' },
           overflow: 'hidden',
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="h6">Histórico de Monitores</Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
               startIcon={<Refresh />}
               onClick={loadMonitores}

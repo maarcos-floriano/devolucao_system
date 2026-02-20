@@ -396,7 +396,7 @@ const DevolucaoPage = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 3, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
         Devolução
       </Typography>
 
@@ -475,9 +475,9 @@ const DevolucaoPage = () => {
           overflow: 'auto',
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="h6">Histórico de Devoluções</Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
               startIcon={<Refresh />}
               onClick={loadDevolucoes}
