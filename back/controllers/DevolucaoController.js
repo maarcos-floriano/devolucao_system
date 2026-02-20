@@ -10,7 +10,7 @@ class DevolucaoController {
     // Criar nova devolução
     static async create(req, res) {
         try {
-            const { origem, cliente, produto, codigo, observacao, data, dataHora } = req.body;
+            const { origem, cliente, produto, codigo, observacao } = req.body;
             
             // Validação básica
             if (!origem || !cliente || !produto) {
@@ -26,8 +26,7 @@ class DevolucaoController {
                 produto,
                 codigo: codigo || '',
                 observacao: observacao || '',
-                imagem: buildImagePath(req.file),
-                data: data || dataHora || new Date()
+                imagem: buildImagePath(req.file)
             };
 
             const novaDevolucao = await Devolucao.create(devolucaoData);
@@ -117,9 +116,8 @@ class DevolucaoController {
                 ...req.body,
             };
 
-            if (devolucaoData.dataHora && !devolucaoData.data) {
-                devolucaoData.data = devolucaoData.dataHora;
-            }
+            delete devolucaoData.data;
+            delete devolucaoData.dataHora;
 
             if (req.file) {
                 devolucaoData.imagem = buildImagePath(req.file);

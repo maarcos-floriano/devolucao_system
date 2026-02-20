@@ -41,7 +41,6 @@ const DevolucaoPage = () => {
     observacao: '',
     imagem: '',
     imagemArquivo: null,
-    dataHora: new Date().toISOString().slice(0, 16),
   });
 
   const getApiBaseUrl = () => (process.env.REACT_APP_API_URL || 'https://devolucao-system.onrender.com/api').replace(/\/api\/?$/, '');
@@ -127,7 +126,6 @@ const DevolucaoPage = () => {
       observacao: devolucao.observacao || '',
       imagem: devolucao.imagem || '',
       imagemArquivo: null,
-      dataHora: devolucao.data || devolucao.dataHora || new Date().toISOString().slice(0, 16),
     });
     
     setEditDialogOpen(true);
@@ -156,7 +154,6 @@ const DevolucaoPage = () => {
       observacao: '',
       imagem: '',
       imagemArquivo: null,
-      dataHora: new Date().toISOString().slice(0, 16),
     });
   };
 
@@ -244,7 +241,6 @@ const DevolucaoPage = () => {
       observacao: '',
       imagem: '',
       imagemArquivo: null,
-      dataHora: new Date().toISOString().slice(0, 16),
     });
     
     // Recarrega a lista

@@ -17,7 +17,7 @@ class Devolucao {
         try {
             const sql = `
                 INSERT INTO devolucao (origem, cliente, produto, codigo, observacao, imagem, data)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
             `;
             const params = [
                 devolucaoData.origem,
@@ -25,8 +25,7 @@ class Devolucao {
                 devolucaoData.produto,
                 devolucaoData.codigo || '',
                 devolucaoData.observacao || '',
-                devolucaoData.imagem || '',
-                devolucaoData.data || new Date().toISOString().slice(0, 19).replace('T', ' ')
+                devolucaoData.imagem || ''
             ];
             
             const result = await DualDatabase.insertOnBothPools(sql, params);
@@ -122,7 +121,7 @@ class Devolucao {
                     codigo = ?,
                     observacao = ?,
                     imagem = ?,
-                    data = ?
+                    data = NOW()
                 WHERE id = ?
             `;
 
@@ -133,7 +132,6 @@ class Devolucao {
                 devolucaoData.codigo || devolucao.codigo,
                 devolucaoData.observacao || devolucao.observacao,
                 devolucaoData.imagem || devolucao.imagem,
-                devolucaoData.data || devolucao.data,
                 id
             ];
 

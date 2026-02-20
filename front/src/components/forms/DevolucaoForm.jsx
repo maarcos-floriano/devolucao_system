@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   Grid,
   TextField,
@@ -14,38 +14,12 @@ import { UploadFile } from '@mui/icons-material';
 import { ORIGENS_DEVOLUCAO } from '../../utils/constants';
 
 const DevolucaoForm = ({ formData, onChange, loading = false }) => {
-  const [localDateTime, setLocalDateTime] = useState('');
-
   const handleChange = useCallback((field, value) => {
     onChange(prev => ({
       ...prev,
       [field]: value
     }));
   }, [onChange]);
-
-  // Preencher data/hora inicial sem sobrescrever edição existente
-  useEffect(() => {
-    if (formData.dataHora) {
-      const dataNormalizada = formData.dataHora.replace(' ', 'T').slice(0, 16);
-      setLocalDateTime(dataNormalizada);
-      return;
-    }
-
-    const agora = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    
-    const ano = agora.getFullYear();
-    const mes = pad(agora.getMonth() + 1);
-    const dia = pad(agora.getDate());
-    const hora = pad(agora.getHours());
-    const minuto = pad(agora.getMinutes());
-    
-    const dateTimeValue = `${ano}-${mes}-${dia}T${hora}:${minuto}`;
-    setLocalDateTime(dateTimeValue);
-    const dataHoraIso = new Date(dateTimeValue).toISOString();
-    const dataHoraBr = dataHoraIso.split('T').join(' ').split('.')[0];
-    handleChange('dataHora', dataHoraBr);
-  }, [formData.dataHora, handleChange]);
 
   const handleSelectChange = (e) => {
     const { name, value } = e.target;
@@ -55,15 +29,6 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
   const handleTextChange = (e) => {
     const { name, value } = e.target;
     handleChange(name, value);
-  };
-
-  const handleDateTimeChange = (e) => {
-    const value = e.target.value;
-    setLocalDateTime(value);
-    // Converter para formato do backend
-    const dataHora = new Date(value).toISOString();
-    const dataHoraBr = dataHora.split('T').join(' ').split('.')[0];
-    handleChange('dataHora', dataHoraBr);
   };
 
   const handleImageChange = (e) => {
@@ -137,19 +102,6 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
           onChange={handleTextChange}
           required
           disabled={loading}
-        />
-      </Grid>
-
-      {/* Data e Hora */}
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Data e Hora da Devolução"
-          type="datetime-local"
-          value={localDateTime}
-          onChange={handleDateTimeChange}
-          disabled={loading}
-          InputLabelProps={{ shrink: true }}
         />
       </Grid>
 
