@@ -39,8 +39,35 @@ const DevolucaoPage = () => {
     produto: '',
     codigo: '',
     observacao: '',
-    dataHora: new Date().toISOString().slice(0, 16),
+    imagem: '',
+    imagemArquivo: null,
   });
+
+  const getApiBaseUrl = () => (process.env.REACT_APP_API_URL || 'https://devolucao-system.onrender.com/api').replace(/\/api\/?$/, '');
+
+  const buildImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    return `${getApiBaseUrl()}${imagePath}`;
+  };
+
+  const buildMultipartPayload = (data) => {
+    const payload = new FormData();
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (value === undefined || value === null || key === 'imagemArquivo') {
+        return;
+      }
+
+      payload.append(key, value);
+    });
+
+    if (data.imagemArquivo) {
+      payload.append('imagem', data.imagemArquivo);
+    }
+
+    return payload;
+  };
 
   // Verificar permissões
   const canEdit = () => hasRole('admin') || hasRole('tecnico') || hasRole('operador');
@@ -97,7 +124,8 @@ const DevolucaoPage = () => {
       produto: devolucao.produto || '',
       codigo: devolucao.codigo || '',
       observacao: devolucao.observacao || '',
-      dataHora: devolucao.dataHora || new Date().toISOString().slice(0, 16),
+      imagem: devolucao.imagem || '',
+      imagemArquivo: null,
     });
     
     setEditDialogOpen(true);
@@ -124,7 +152,8 @@ const DevolucaoPage = () => {
       produto: '',
       codigo: '',
       observacao: '',
-      dataHora: new Date().toISOString().slice(0, 16),
+      imagem: '',
+      imagemArquivo: null,
     });
   };
 
@@ -140,8 +169,10 @@ const DevolucaoPage = () => {
     
     setSubmitting(true);
     try {
-      const payload = { ...formData };
-      await api.put(`/devolucao/${editingDevolucao.id}`, payload);
+      const payload = buildMultipartPayload(formData);
+      await api.put(`/devolucao/${editingDevolucao.id}`, payload, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
       alert('Devolução atualizada com sucesso!');
       
@@ -189,8 +220,10 @@ const DevolucaoPage = () => {
   
   setSubmitting(true);
   try {
-    const payload = { ...formData };
-    const response = await api.post('/devolucao', payload);
+    const payload = buildMultipartPayload(formData);
+    const response = await api.post('/devolucao', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     let newDevolucao = response.data.data;
     alert('Devolução salva com sucesso!');
     
@@ -206,7 +239,8 @@ const DevolucaoPage = () => {
       produto: '',
       codigo: '',
       observacao: '',
-      dataHora: new Date().toISOString().slice(0, 16),
+      imagem: '',
+      imagemArquivo: null,
     });
     
     // Recarrega a lista
@@ -282,8 +316,22 @@ const DevolucaoPage = () => {
     { field: 'cliente', headerName: 'Cliente', width: 150 },
     { field: 'produto', headerName: 'Produto', width: 150 },
     { field: 'codigo', headerName: 'Código', width: 150 },
-    { field: 'dataHora', headerName: 'Data/Hora', width: 180, type: 'datetime' },
+    { field: 'data', headerName: 'Data/Hora', width: 180, type: 'datetime' },
     { field: 'observacao', headerName: 'Observação', width: 200 },
+    {
+      field: 'imagem',
+      headerName: 'Imagem',
+      width: 120,
+      render: (value) => value ? (
+        <Button
+          variant="text"
+          size="small"
+          onClick={() => window.open(buildImageUrl(value), '_blank')}
+        >
+          Ver imagem
+        </Button>
+      ) : 'Sem anexo',
+    },
   ];
 
   return (

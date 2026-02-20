@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   Grid,
   TextField,
@@ -6,34 +6,20 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Box,
+  Button,
+  Typography,
 } from '@mui/material';
+import { UploadFile } from '@mui/icons-material';
 import { ORIGENS_DEVOLUCAO } from '../../utils/constants';
 
 const DevolucaoForm = ({ formData, onChange, loading = false }) => {
-  const [localDateTime, setLocalDateTime] = useState('');
-
   const handleChange = useCallback((field, value) => {
     onChange(prev => ({
       ...prev,
       [field]: value
     }));
   }, [onChange]);
-
-  // Preencher data/hora atual automaticamente
-  useEffect(() => {
-    const agora = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    
-    const ano = agora.getFullYear();
-    const mes = pad(agora.getMonth() + 1);
-    const dia = pad(agora.getDate());
-    const hora = pad(agora.getHours());
-    const minuto = pad(agora.getMinutes());
-    
-    const dateTimeValue = `${ano}-${mes}-${dia}T${hora}:${minuto}`;
-    setLocalDateTime(dateTimeValue);
-    handleChange('dataHora', dateTimeValue);
-  }, [handleChange]);
 
   const handleSelectChange = (e) => {
     const { name, value } = e.target;
@@ -45,13 +31,9 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
     handleChange(name, value);
   };
 
-  const handleDateTimeChange = (e) => {
-    const value = e.target.value;
-    setLocalDateTime(value);
-    // Converter para formato do backend
-    const dataHora = new Date(value).toISOString();
-    const dataHoraBr = dataHora.split('T').join(' ').split('.')[0];
-    handleChange('dataHora', dataHoraBr);
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    handleChange('imagemArquivo', file);
   };
 
   return (
@@ -123,19 +105,6 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
         />
       </Grid>
 
-      {/* Data e Hora */}
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Data e Hora da Devolução"
-          type="datetime-local"
-          value={localDateTime}
-          onChange={handleDateTimeChange}
-          disabled={loading}
-          InputLabelProps={{ shrink: true }}
-        />
-      </Grid>
-
       {/* Observação */}
       <Grid item xs={12} sm={6}>
         <TextField
@@ -146,6 +115,34 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
           onChange={handleTextChange}
           disabled={loading}
         />
+      </Grid>
+
+      {/* Imagem */}
+      <Grid item xs={12} sm={6}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Button
+            variant="outlined"
+            component="label"
+            startIcon={<UploadFile />}
+            disabled={loading}
+          >
+            {formData.imagemArquivo ? 'Trocar imagem anexada' : 'Anexar imagem'}
+            <input hidden type="file" accept="image/*" onChange={handleImageChange} />
+          </Button>
+          <Typography variant="caption" color="text.secondary">
+            Formatos aceitos: JPG, PNG, WEBP (máx. 5MB).
+          </Typography>
+          {formData.imagemArquivo && (
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              Arquivo: {formData.imagemArquivo.name}
+            </Typography>
+          )}
+          {!formData.imagemArquivo && formData.imagem && (
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              Imagem já cadastrada para esta devolução.
+            </Typography>
+          )}
+        </Box>
       </Grid>
     </Grid>
   );

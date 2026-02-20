@@ -1,11 +1,16 @@
 // controllers/DevolucaoController.js
 const Devolucao = require('../models/Devolucao');
 
+const buildImagePath = (file) => {
+    if (!file) return '';
+    return `/uploads/devolucoes/${file.filename}`;
+};
+
 class DevolucaoController {
     // Criar nova devolução
     static async create(req, res) {
         try {
-            const { origem, cliente, produto, codigo, observacao, data } = req.body;
+            const { origem, cliente, produto, codigo, observacao } = req.body;
             
             // Validação básica
             if (!origem || !cliente || !produto) {
@@ -21,7 +26,7 @@ class DevolucaoController {
                 produto,
                 codigo: codigo || '',
                 observacao: observacao || '',
-                data: data || new Date()
+                imagem: buildImagePath(req.file)
             };
 
             const novaDevolucao = await Devolucao.create(devolucaoData);
@@ -107,7 +112,16 @@ class DevolucaoController {
     static async update(req, res) {
         try {
             const { id } = req.params;
-            const devolucaoData = req.body;
+            const devolucaoData = {
+                ...req.body,
+            };
+
+            delete devolucaoData.data;
+            delete devolucaoData.dataHora;
+
+            if (req.file) {
+                devolucaoData.imagem = buildImagePath(req.file);
+            }
 
             const devolucaoAtualizada = await Devolucao.update(parseInt(id), devolucaoData);
             

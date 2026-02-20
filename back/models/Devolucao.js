@@ -8,6 +8,7 @@ class Devolucao {
         this.produto = data.produto;
         this.codigo = data.codigo;
         this.observacao = data.observacao;
+        this.imagem = data.imagem;
         this.data = data.data;
     }
 
@@ -15,8 +16,8 @@ class Devolucao {
     static async create(devolucaoData) {
         try {
             const sql = `
-                INSERT INTO devolucao (origem, cliente, produto, codigo, observacao, data)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO devolucao (origem, cliente, produto, codigo, observacao, imagem, data)
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
             `;
             const params = [
                 devolucaoData.origem,
@@ -24,7 +25,7 @@ class Devolucao {
                 devolucaoData.produto,
                 devolucaoData.codigo || '',
                 devolucaoData.observacao || '',
-                devolucaoData.data || new Date().toISOString().slice(0, 19).replace('T', ' ')
+                devolucaoData.imagem || ''
             ];
             
             const result = await DualDatabase.insertOnBothPools(sql, params);
@@ -119,7 +120,8 @@ class Devolucao {
                     produto = ?,
                     codigo = ?,
                     observacao = ?,
-                    data = ?
+                    imagem = ?,
+                    data = NOW()
                 WHERE id = ?
             `;
 
@@ -129,7 +131,7 @@ class Devolucao {
                 devolucaoData.produto || devolucao.produto,
                 devolucaoData.codigo || devolucao.codigo,
                 devolucaoData.observacao || devolucao.observacao,
-                devolucaoData.data || devolucao.data,
+                devolucaoData.imagem || devolucao.imagem,
                 id
             ];
 
@@ -217,6 +219,7 @@ class Devolucao {
                     produto,
                     codigo,
                     observacao,
+                    imagem,
                     DATE_FORMAT(data, '%d/%m/%Y %H:%i:%s') as data_formatada
                 FROM devolucao
                 WHERE DATE(data) BETWEEN ? AND ?
@@ -238,6 +241,7 @@ class Devolucao {
             produto: this.produto,
             codigo: this.codigo,
             observacao: this.observacao,
+            imagem: this.imagem,
             data: this.data
         };
     }
