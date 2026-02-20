@@ -16,6 +16,7 @@ import {
   KeyboardReturn,
   Inventory,
   Build,
+  BuildCircle,
 } from '@mui/icons-material';
 
 const Sidebar = ({ open, onClose }) => {
@@ -25,6 +26,7 @@ const Sidebar = ({ open, onClose }) => {
     { path: '/monitores', label: 'Monitores', icon: <Monitor /> },
     { path: '/devolucao', label: 'Devolução', icon: <KeyboardReturn /> },
     { path: '/kit', label: 'Kit', icon: <Build /> },
+    { path: '/rma', label: 'RMA', icon: <BuildCircle /> },
   ];
 
   return (

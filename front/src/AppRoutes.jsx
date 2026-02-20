@@ -7,6 +7,7 @@ import MaquinaPage from './pages/MaquinaPage';
 import MonitorPage from './pages/MonitorPage';
 import DevolucaoPage from './pages/DevolucaoPage';
 import KitPage from './pages/KitPage';
+import RmaPage from './pages/RmaPage';
 import ChamadosPage from './pages/ChamadosPage';
 import { useAuth } from './contexts/AuthContext';
 
@@ -99,7 +100,12 @@ const AppRoutes = () => {
             <KitPage />
           </ProtectedRoute>
         } />
-
+        <Route path="rma" element={
+          <ProtectedRoute requiredPermission="rma">
+            <RmaPage />
+          </ProtectedRoute>
+        } />
+          
         <Route path="chamados" element={
           <ProtectedRoute requiredPermission="chamados">
             <ChamadosPage />

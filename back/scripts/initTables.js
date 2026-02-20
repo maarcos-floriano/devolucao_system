@@ -60,6 +60,18 @@ async function createTables() {
         data_saida_venda DATETIME,
         fkDevolucao INT
       )`,
+      `CREATE TABLE IF NOT EXISTS rma (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tipo_item TEXT,
+        descricao_item TEXT,
+        problema TEXT,
+        destino TEXT,
+        status TEXT,
+        observacao TEXT,
+        responsavel TEXT,
+        fkDevolucao INT,
+        data DATETIME
+        )`,
       `CREATE TABLE IF NOT EXISTS chamados (
         id INT AUTO_INCREMENT PRIMARY KEY,
         devolucao_id INT NOT NULL,
