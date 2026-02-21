@@ -185,7 +185,7 @@ const ChamadosPage = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 3, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
         Chamados de Divergência
       </Typography>
 
@@ -284,8 +284,8 @@ const ChamadosPage = () => {
         </Alert>
       </Paper>
 
-      <Paper elevation={2} sx={{ p: 3, border: '2px solid', borderColor: 'primary.main', borderRadius: 3, height: '70vh' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2 }}>
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, border: '2px solid', borderColor: 'primary.main', borderRadius: 3, height: { xs: 'auto', md: '70vh' } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2, flexWrap: 'wrap' }}>
           <Typography variant="h6">Chamados em acompanhamento</Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <TextField
@@ -297,7 +297,7 @@ const ChamadosPage = () => {
                 setStatusFilter(e.target.value);
                 setPage(0);
               }}
-              sx={{ minWidth: 140 }}
+              sx={{ minWidth: { xs: '100%', sm: 140 } }}
             >
               <MenuItem value="">Todos</MenuItem>
               <MenuItem value="aberto">Aberto</MenuItem>

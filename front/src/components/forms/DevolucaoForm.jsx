@@ -9,11 +9,18 @@ import {
   Box,
   Button,
   Typography,
+  Stack,
 } from '@mui/material';
-import { UploadFile } from '@mui/icons-material';
+import { CameraAlt, UploadFile } from '@mui/icons-material';
 import { ORIGENS_DEVOLUCAO } from '../../utils/constants';
 
-const DevolucaoForm = ({ formData, onChange, loading = false }) => {
+const DevolucaoForm = ({
+  formData,
+  onChange,
+  loading = false,
+  onScanRequest,
+  scanLoading = false,
+}) => {
   const handleChange = useCallback((field, value) => {
     onChange(prev => ({
       ...prev,
@@ -34,6 +41,13 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
   const handleImageChange = (e) => {
     const file = e.target.files?.[0] || null;
     handleChange('imagemArquivo', file);
+  };
+
+  const handleScanChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    if (!file || !onScanRequest) return;
+    onScanRequest(file);
+    e.target.value = '';
   };
 
   return (
@@ -120,15 +134,40 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
       {/* Imagem */}
       <Grid item xs={12} sm={6}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Button
-            variant="outlined"
-            component="label"
-            startIcon={<UploadFile />}
-            disabled={loading}
-          >
-            {formData.imagemArquivo ? 'Trocar imagem anexada' : 'Anexar imagem'}
-            <input hidden type="file" accept="image/*" onChange={handleImageChange} />
-          </Button>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <Button
+              variant="contained"
+              component="label"
+              startIcon={<CameraAlt />}
+              disabled={loading || scanLoading}
+              sx={{ flex: 1 }}
+            >
+              {scanLoading ? 'Analisando etiqueta...' : 'Escanear etiqueta'}
+              <input
+                hidden
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleScanChange}
+              />
+            </Button>
+
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<UploadFile />}
+              disabled={loading || scanLoading}
+              sx={{ flex: 1 }}
+            >
+              {formData.imagemArquivo ? 'Trocar imagem anexada' : 'Anexar imagem'}
+              <input hidden type="file" accept="image/*" onChange={handleImageChange} />
+            </Button>
+          </Stack>
+
+          <Typography variant="body2" color="text.secondary">
+            Dica: no celular, o botão “Escanear etiqueta” abre a câmera.
+          </Typography>
+
           <Typography variant="caption" color="text.secondary">
             Formatos aceitos: JPG, PNG, WEBP (máx. 5MB).
           </Typography>
