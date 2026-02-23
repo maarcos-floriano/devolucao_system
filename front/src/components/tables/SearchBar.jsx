@@ -24,6 +24,7 @@ const SearchBar = ({ value, onChange, placeholder = "Pesquisar...", sx = {} }) =
         },
         ...sx,
       }}
+      size="small"
       InputProps={{
         startAdornment: (
           <InputAdornment position="start">
