@@ -52,16 +52,16 @@ const DevolucaoForm = ({
 
   return (
     <Grid container
-      spacing={2}
+      spacing={{ xs: 1.25, sm: 2 }}
       sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-        gap: 2,
+        gap: { xs: 1.25, sm: 2 },
       }}
     >
       {/* Origem */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Origem</InputLabel>
           <Select
             name="origem"
@@ -84,6 +84,7 @@ const DevolucaoForm = ({
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
+          size="small"
           label="Cliente"
           name="cliente"
           value={formData.cliente}
@@ -97,6 +98,7 @@ const DevolucaoForm = ({
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
+          size="small"
           label="Produto"
           name="produto"
           value={formData.produto}
@@ -110,6 +112,7 @@ const DevolucaoForm = ({
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
+          size="small"
           label="Código de Rastreamento"
           name="codigo"
           value={formData.codigo}
@@ -123,6 +126,7 @@ const DevolucaoForm = ({
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
+          size="small"
           label="Observação (opcional)"
           name="observacao"
           value={formData.observacao}
