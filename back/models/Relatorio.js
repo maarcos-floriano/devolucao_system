@@ -288,15 +288,25 @@ class Relatorio {
     });
   }
 
-  static async gerarRelatorioSimples(tabela, dataFim) {
+  static async gerarRelatorioSimples(tabela, dataFim, dataInicioCustom) {
     try {
       const fim = dataFim ? new Date(dataFim) : new Date();
       if (Number.isNaN(fim.getTime())) {
         throw new Error('Data inválida para o relatório');
       }
 
-      const inicio = new Date(fim);
-      inicio.setDate(fim.getDate() - 6);
+      const inicio = dataInicioCustom ? new Date(dataInicioCustom) : new Date(fim);
+      if (Number.isNaN(inicio.getTime())) {
+        throw new Error('Data inicial inválida para o relatório');
+      }
+
+      if (!dataInicioCustom) {
+        inicio.setDate(fim.getDate() - 6);
+      }
+
+      if (inicio > fim) {
+        throw new Error('A data inicial não pode ser maior que a data final');
+      }
 
       const dataInicio = inicio.toISOString().slice(0, 10);
       const dataFinal = fim.toISOString().slice(0, 10);
