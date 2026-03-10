@@ -40,12 +40,10 @@ export const MEMORIAS = {
 
 export const ARMAZENAMENTOS = {
   ssd: [
-    '120GB SSD', '240GB SSD', '256GB SSD', '480GB SSD',
-    '512GB SSD', '1TB SSD', '2TB SSD', '4TB SSD'
+    '120GB SSD', '240GB SSD', '480GB SSD', '1TB SSD', '2TB SSD', '4TB SSD'
   ],
   nvme: [
-    '120GB NVMe', '240GB NVMe', '256GB NVMe', '480GB NVMe',
-    '512GB NVMe', '1TB NVMe', '2TB NVMe', '4TB NVMe', '8TB NVMe'
+    '120GB NVMe', '240GB NVMe', '480GB NVMe', '1TB NVMe', '2TB NVMe', '4TB NVMe', '8TB NVMe'
   ],
   hd: [
     '500GB HD', '1TB HD', '2TB HD', '4TB HD', '6TB HD', '8TB HD'
