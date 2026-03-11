@@ -6,14 +6,15 @@ class RelatorioController {
   static async relatorioExcel(req, res) {
     try {
       const { tabela } = req.params;
-      const { data } = req.query; // usado como data final opcional
+      const { data, dataInicio, dataFim } = req.query;
 
       const tabelasPermitidas = ["devolucao", "maquinas", "monitores", "kit"];
       if (!tabelasPermitidas.includes(tabela)) {
         return res.status(400).json({ error: "Tabela inválida" });
       }
 
-      const rows = await Relatorio.gerarRelatorioSimples(tabela, data);
+      const dataFinalRelatorio = dataFim || data;
+      const rows = await Relatorio.gerarRelatorioSimples(tabela, dataFinalRelatorio, dataInicio);
 
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet(`Relatório ${tabela}`);
@@ -36,7 +37,7 @@ class RelatorioController {
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       );
-      const dataReferencia = data || new Date().toISOString().slice(0, 10);
+      const dataReferencia = dataFinalRelatorio || new Date().toISOString().slice(0, 10);
       res.setHeader(
         "Content-Disposition",
         `attachment; filename=relatorio_${tabela}_semanal_${dataReferencia}.xlsx`
@@ -174,27 +175,37 @@ class RelatorioController {
   static async relatorioSACSemanal(req, res) {
     try {
 
+      const { dataInicio: dataInicioQuery, dataFim: dataFimQuery } = req.query;
+
       const hoje = new Date();
-      const dataFim = new Date(hoje);
-      const dataInicio = new Date(hoje);
+      const dataFim = dataFimQuery ? new Date(dataFimQuery) : new Date(hoje);
+      const dataInicio = dataInicioQuery ? new Date(dataInicioQuery) : new Date(hoje);
 
-      // Data fim é hoje
-      dataFim.setHours(23, 59, 59, 999);
+      if (!dataFimQuery) {
+        dataFim.setHours(23, 59, 59, 999);
+      }
 
-      // Data início é 7 dias atrás (00:00:00)
-      dataInicio.setDate(hoje.getDate() - 6); // -6 para incluir hoje
+      if (!dataInicioQuery) {
+        dataInicio.setDate(hoje.getDate() - 6);
+      }
       dataInicio.setHours(0, 0, 0, 0);
 
-      
-
-      // Validação de datas
-      if (!dataInicio || !dataFim) {
+      if (Number.isNaN(dataInicio.getTime()) || Number.isNaN(dataFim.getTime())) {
         return res.status(400).json({
           error: "As datas de início e fim são obrigatórias"
         });
       }
 
-      const resultado = await Relatorio.relatorioSACSemanal(dataInicio, dataFim);
+      if (dataInicio > dataFim) {
+        return res.status(400).json({
+          error: "A data inicial não pode ser maior que a data final"
+        });
+      }
+
+      const inicioFormatado = dataInicio.toISOString().slice(0, 10);
+      const fimFormatado = dataFim.toISOString().slice(0, 10);
+
+      const resultado = await Relatorio.relatorioSACSemanal(inicioFormatado, fimFormatado);
 
       // Verificar se resultado existe e tem a estrutura esperada
       if (!resultado) {

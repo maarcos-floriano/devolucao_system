@@ -10,6 +10,8 @@ import {
   Button,
   CircularProgress,
   Container,
+  TextField,
+  Stack,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -54,6 +56,19 @@ const DashboardPage = () => {
     maquinasHojePorResponsavel: { labels: [], datasets: [] },
     kitsPorConfiguracao: { labels: [], datasets: [] },
     maquinasPorConfiguracao: { labels: [], datasets: [] },
+  });
+
+  const formatDateToInput = (date) => date.toISOString().slice(0, 10);
+
+  const [periodoRelatorio, setPeriodoRelatorio] = useState(() => {
+    const hoje = new Date();
+    const seteDiasAtras = new Date(hoje);
+    seteDiasAtras.setDate(hoje.getDate() - 6);
+
+    return {
+      inicio: formatDateToInput(seteDiasAtras),
+      fim: formatDateToInput(hoje),
+    };
   });
 
   // Carregar dados da dashboard
@@ -236,8 +251,37 @@ const DashboardPage = () => {
   };
 
   // ✅ CORRIGIDO: Funções de exportação com endpoints corretos
+  const getPeriodoQueryString = () => {
+    const query = new URLSearchParams();
+
+    if (periodoRelatorio.inicio) query.append('dataInicio', periodoRelatorio.inicio);
+    if (periodoRelatorio.fim) query.append('dataFim', periodoRelatorio.fim);
+
+    return query.toString();
+  };
+
+  const handlePeriodoChange = (campo) => (event) => {
+    const valor = event.target.value;
+    setPeriodoRelatorio((prev) => ({ ...prev, [campo]: valor }));
+  };
+
+  const definirUltimosSeteDias = () => {
+    const hoje = new Date();
+    const seteDiasAtras = new Date(hoje);
+    seteDiasAtras.setDate(hoje.getDate() - 6);
+
+    setPeriodoRelatorio({
+      inicio: formatDateToInput(seteDiasAtras),
+      fim: formatDateToInput(hoje),
+    });
+  };
+
   const handleExportReport = (tipo) => {
-    window.open(`http://192.168.15.100:3001/api/relatorios/excel/${tipo}`, '_blank');
+    const periodo = getPeriodoQueryString();
+    const urlBase = `http://192.168.15.100:3001/api/relatorios/excel/${tipo}`;
+    const urlFinal = periodo ? `${urlBase}?${periodo}` : urlBase;
+
+    window.open(urlFinal, '_blank');
   };
 
   const handleExportSkuReport = (tipo) => {
@@ -250,7 +294,11 @@ const DashboardPage = () => {
   };
 
   const handleSacReport = () => {
-    window.open('http://192.168.15.100:3001/api/relatorios/sac/semanal', '_blank');
+    const periodo = getPeriodoQueryString();
+    const urlBase = 'http://192.168.15.100:3001/api/relatorios/sac/semanal';
+    const urlFinal = periodo ? `${urlBase}?${periodo}` : urlBase;
+
+    window.open(urlFinal, '_blank');
   };
 
   useEffect(() => {
@@ -416,8 +464,38 @@ const DashboardPage = () => {
       {/* Relatórios */}
       <Paper elevation={2} sx={{ p: 3, borderRadius: 3 }}>
         <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
-          📄 Relatórios da Semana
+          📄 Relatórios por Período
         </Typography>
+
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={2}
+          mb={3}
+          alignItems={{ xs: 'stretch', md: 'center' }}
+        >
+          <TextField
+            label="Data inicial"
+            type="date"
+            value={periodoRelatorio.inicio}
+            onChange={handlePeriodoChange('inicio')}
+            InputLabelProps={{ shrink: true }}
+            size="small"
+            sx={{ minWidth: 180 }}
+          />
+          <TextField
+            label="Data final"
+            type="date"
+            value={periodoRelatorio.fim}
+            onChange={handlePeriodoChange('fim')}
+            InputLabelProps={{ shrink: true }}
+            size="small"
+            sx={{ minWidth: 180 }}
+          />
+          <Button variant="outlined" onClick={definirUltimosSeteDias}>
+            Últimos 7 dias
+          </Button>
+        </Stack>
+
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={3}>
             <Button
@@ -427,7 +505,7 @@ const DashboardPage = () => {
               onClick={() => handleExportReport('devolucao')}
               sx={{ bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}
             >
-              Devoluções da Semana
+              Devoluções no Período
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -438,7 +516,7 @@ const DashboardPage = () => {
               onClick={() => handleExportReport('maquinas')}
               sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' } }}
             >
-              Máquinas da Semana
+              Máquinas no Período
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -449,7 +527,7 @@ const DashboardPage = () => {
               onClick={() => handleExportReport('kit')}
               sx={{ bgcolor: '#8b5cf6', '&:hover': { bgcolor: '#7c3aed' } }}
             >
-              Kit da Semana
+              Kit no Período
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -460,7 +538,7 @@ const DashboardPage = () => {
               onClick={() => handleExportReport('monitores')}
               sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
             >
-              Monitores da Semana
+              Monitores no Período
             </Button>
           </Grid>
 
@@ -505,7 +583,7 @@ const DashboardPage = () => {
               onClick={handleSacReport}
               sx={{ borderColor: '#ec4899', color: '#ec4899' }}
             >
-              SAC (Semanal)
+              SAC no Período
             </Button>
           </Grid>
         </Grid>
