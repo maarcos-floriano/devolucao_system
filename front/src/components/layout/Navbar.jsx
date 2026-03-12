@@ -19,6 +19,7 @@ import {
   KeyboardReturn,
   Inventory,
   Build,
+  BuildCircle,
   Logout,
   Menu as MenuIcon,
 } from '@mui/icons-material';
@@ -49,6 +50,7 @@ const Navbar = ({ onMenuClick }) => {
     { path: '/monitores', label: 'Monitores', icon: <Monitor /> },
     { path: '/devolucao', label: 'Devolução', icon: <KeyboardReturn /> },
     { path: '/kit', label: 'Kit', icon: <Build /> },
+    { path: '/rma', label: 'RMA', icon: <BuildCircle /> },
   ];
 
   return (
