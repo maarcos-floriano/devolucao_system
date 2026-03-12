@@ -185,16 +185,16 @@ const ChamadosPage = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 3, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
         Chamados de Divergência
       </Typography>
 
-      <Paper elevation={2} sx={{ p: 3, mb: 3, border: '2px solid', borderColor: 'primary.main', borderRadius: 3 }}>
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 3, border: '2px solid', borderColor: 'primary.main', borderRadius: 3 }}>
         <Typography variant="h6" gutterBottom>
           Abrir Chamado de Acompanhamento
         </Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px 320px 1fr' }, gap: 2 }}>
-          <FormControl fullWidth>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px 320px 1fr' }, gap: { xs: 1.25, sm: 2 } }}>
+          <FormControl fullWidth size="small">
             <InputLabel>Origem</InputLabel>
             <Select
               value={formData.origem}
@@ -214,7 +214,7 @@ const ChamadosPage = () => {
             </Select>
           </FormControl>
 
-          <FormControl fullWidth disabled={!formData.origem}>
+          <FormControl fullWidth size="small" disabled={!formData.origem}>
             <InputLabel>Vincular a Devolução</InputLabel>
             <Select
               value={formData.devolucao_id}
@@ -260,6 +260,7 @@ const ChamadosPage = () => {
             </FormHelperText>
           </FormControl>
           <TextField
+            size="small"
             label="Qual é o problema?"
             value={formData.problema}
             onChange={(e) => setFormData((prev) => ({ ...prev, problema: e.target.value }))}
@@ -270,7 +271,7 @@ const ChamadosPage = () => {
         </Box>
 
         <Button
-          sx={{ mt: 2 }}
+          sx={{ mt: 2, width: { xs: '100%', sm: 'auto' } }}
           variant="contained"
           startIcon={<Save />}
           onClick={handleSubmit}
@@ -284,8 +285,8 @@ const ChamadosPage = () => {
         </Alert>
       </Paper>
 
-      <Paper elevation={2} sx={{ p: 3, border: '2px solid', borderColor: 'primary.main', borderRadius: 3, height: '70vh' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2 }}>
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, border: '2px solid', borderColor: 'primary.main', borderRadius: 3, height: { xs: 'auto', md: '70vh' } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2, flexWrap: 'wrap' }}>
           <Typography variant="h6">Chamados em acompanhamento</Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <TextField
@@ -297,7 +298,7 @@ const ChamadosPage = () => {
                 setStatusFilter(e.target.value);
                 setPage(0);
               }}
-              sx={{ minWidth: 140 }}
+              sx={{ minWidth: { xs: '100%', sm: 140 } }}
             >
               <MenuItem value="">Todos</MenuItem>
               <MenuItem value="aberto">Aberto</MenuItem>
@@ -340,6 +341,7 @@ const ChamadosPage = () => {
         </DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2, pt: 2 }}>
           <TextField
+            size="small"
             label="Problema"
             value={formData.problema}
             onChange={(e) => setFormData((prev) => ({ ...prev, problema: e.target.value }))}
@@ -349,6 +351,7 @@ const ChamadosPage = () => {
           />
           <TextField
             select
+            size="small"
             label="Status"
             value={formData.status}
             onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
@@ -358,6 +361,7 @@ const ChamadosPage = () => {
             <MenuItem value="resolvido">Resolvido</MenuItem>
           </TextField>
           <TextField
+            size="small"
             label="Ação tomada"
             value={formData.acao_tomada}
             onChange={(e) => setFormData((prev) => ({ ...prev, acao_tomada: e.target.value }))}

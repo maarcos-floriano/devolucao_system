@@ -58,16 +58,16 @@ const MonitorForm = ({
 
   return (
     <Grid container
-      spacing={2}
+      spacing={{ xs: 1.25, sm: 2 }}
       sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-        gap: 2,
+        gap: { xs: 1.25, sm: 2 },
       }}
     >
       {/* Marca */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Marca</InputLabel>
           <Select
             name="marca"
@@ -90,6 +90,7 @@ const MonitorForm = ({
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
+          size="small"
           label="Tamanho (polegadas)"
           name="tamanho"
           value={formData.tamanho}
@@ -103,7 +104,7 @@ const MonitorForm = ({
 
       {/* Origem */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Origem</InputLabel>
           <Select
             name="origem"
@@ -124,7 +125,7 @@ const MonitorForm = ({
 
       {/* Responsável */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Responsável</InputLabel>
           <Select
             name="responsavel"
@@ -147,6 +148,7 @@ const MonitorForm = ({
       <Grid item xs={12} sm={6}>
         <FormControl 
           fullWidth 
+          size="small"
           disabled={!isDevolucaoEnabled() || loading}
         >
           <InputLabel>Vincular a Devolução (opcional)</InputLabel>
@@ -193,7 +195,7 @@ const MonitorForm = ({
           </Select>
           
           {formData.origem && (
-            <FormHelperText>
+            <FormHelperText sx={{ fontSize: { xs: '0.72rem', sm: '0.75rem' } }}>
               {loadingDevolucoes 
                 ? 'Buscando devoluções...' 
                 : isDevolucaoEnabled() && devolucoes.length > 0
@@ -211,6 +213,7 @@ const MonitorForm = ({
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
+          size="small"
           label="Observação (opcional)"
           name="observacao"
           value={formData.observacao}

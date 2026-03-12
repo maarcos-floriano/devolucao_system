@@ -202,8 +202,12 @@ const Layout = () => {
             <MenuIcon />
           </IconButton>
 
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6" noWrap sx={{ color: '#166534', fontWeight: 600 }}>
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Typography
+              variant="h6"
+              noWrap
+              sx={{ color: '#166534', fontWeight: 600, fontSize: { xs: '1rem', sm: '1.25rem' } }}
+            >
               Sistema de Gerenciamento RMA
             </Typography>
           </Box>
@@ -221,7 +225,7 @@ const Layout = () => {
             PaperProps={{
               sx: {
                 mt: 1.5,
-                minWidth: 200,
+                minWidth: { xs: 170, sm: 200 },
                 borderRadius: 2,
                 boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
               },
@@ -257,7 +261,7 @@ const Layout = () => {
             display: { xs: 'block', sm: 'none' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: drawerWidth,
+              width: { xs: '85vw', sm: drawerWidth },
               borderRight: '1px solid #e5e7eb',
             },
           }}
@@ -270,7 +274,7 @@ const Layout = () => {
             display: { xs: 'none', sm: 'block' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: drawerWidth,
+              width: { xs: '85vw', sm: drawerWidth },
               borderRight: '1px solid #e5e7eb',
             },
           }}
@@ -284,7 +288,7 @@ const Layout = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 1.5, sm: 3 },
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
           backgroundColor: '#f9fafb',

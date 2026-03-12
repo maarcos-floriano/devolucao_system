@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Grid,
   TextField,
@@ -47,17 +47,17 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
   return (
     <Grid
       container
-      spacing={2}
+      spacing={{ xs: 1.25, sm: 2 }}
       sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-        gap: 2,
+        gap: { xs: 1.25, sm: 2 },
       }}
     >
 
       {/* Responsável e Lacre */}
         <Grid item xs={12} sm={6}>
-          <FormControl fullWidth required>
+          <FormControl fullWidth required size="small">
             <InputLabel>Responsável</InputLabel>
             <Select
               name="responsavel"
@@ -76,7 +76,7 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <FormControl fullWidth>
+          <FormControl fullWidth size="small">
             <InputLabel>Situação do Lacre</InputLabel>
             <Select
               name="lacre"
@@ -94,7 +94,7 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
 
       {/* Processador e Memória */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Processador</InputLabel>
           <Select
             name="processador"
@@ -125,7 +125,7 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
       </Grid>
 
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Memória RAM</InputLabel>
           <Select
             name="memoria"
@@ -152,7 +152,7 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
 
       {/* Armazenamento e Fonte */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
+        <FormControl fullWidth size="small">
           <InputLabel>Armazenamento</InputLabel>
           <Select
             name="armazenamento"
@@ -184,7 +184,7 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
       </Grid>
 
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
+        <FormControl fullWidth size="small">
           <InputLabel>Fonte</InputLabel>
           <Select
             name="fonte"
@@ -217,7 +217,7 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
 
       {/* Origem */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Origem</InputLabel>
           <Select
             name="origem"
@@ -286,13 +286,13 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
           </Select>
           
           {!isDevolucaoEnabled() && formData.origem && (
-            <FormHelperText>
+            <FormHelperText sx={{ fontSize: { xs: '0.72rem', sm: '0.75rem' } }}>
               Opção disponível apenas para Mercado Livre, Shopee, Amazon e Magalu
             </FormHelperText>
           )}
           
           {isDevolucaoEnabled() && devolucoes.length > 0 && (
-            <FormHelperText>
+            <FormHelperText sx={{ fontSize: { xs: '0.72rem', sm: '0.75rem' } }}>
               {devolucoes.length} devoluções encontradas
             </FormHelperText>
           )}
@@ -303,6 +303,7 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
+          size="small"
           label="Placa de Vídeo (opcional)"
           name="placaVideo"
           value={formData.placaVideo}
@@ -315,6 +316,7 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
+          size="small"
           label="Gabinete (opcional)"
           name="gabinete"
           value={formData.gabinete}
@@ -327,6 +329,7 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
       <Grid item xs={12}>
         <TextField
           fullWidth
+          size="small"
           label="Observação (opcional)"
           name="observacao"
           value={formData.observacao}
@@ -342,6 +345,7 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
         <TextField
           fullWidth
           label="Defeito"
+          size="small"
           name="defeito"
           value={formData.defeito}
           onChange={handleTextChange}

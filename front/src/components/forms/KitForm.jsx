@@ -40,16 +40,16 @@ const KitForm = ({ formData, onChange, loading = false, origem, onOrigemChange }
 
   return (
     <Grid container
-      spacing={2}
+      spacing={{ xs: 1.25, sm: 2 }}
       sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-        gap: 2,
+        gap: { xs: 1.25, sm: 2 },
       }}
     >
       {/* Responsável e Lacre */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Responsável</InputLabel>
           <Select
             name="responsavel"
@@ -69,7 +69,7 @@ const KitForm = ({ formData, onChange, loading = false, origem, onOrigemChange }
       </Grid>
 
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
+        <FormControl fullWidth size="small">
           <InputLabel>Situação do Lacre</InputLabel>
           <Select
             name="lacre"
@@ -87,7 +87,7 @@ const KitForm = ({ formData, onChange, loading = false, origem, onOrigemChange }
 
       {/* Processador e Memória */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Processador</InputLabel>
           <Select
             name="processador"
@@ -119,7 +119,7 @@ const KitForm = ({ formData, onChange, loading = false, origem, onOrigemChange }
       </Grid>
 
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Memória RAM</InputLabel>
           <Select
             name="memoria"
@@ -146,7 +146,7 @@ const KitForm = ({ formData, onChange, loading = false, origem, onOrigemChange }
 
       {/* Placa Mãe */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Placa Mãe</InputLabel>
           <Select
             name="placaMae"
@@ -165,7 +165,7 @@ const KitForm = ({ formData, onChange, loading = false, origem, onOrigemChange }
 
       {/* Origem */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required size="small">
           <InputLabel>Origem</InputLabel>
           <Select
             name="origem"
@@ -186,7 +186,7 @@ const KitForm = ({ formData, onChange, loading = false, origem, onOrigemChange }
 
       {/* Devolução */}
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth disabled={origem === 'Outro' || !origem}>
+        <FormControl fullWidth size="small" disabled={origem === 'Outro' || !origem}>
           <InputLabel>Devolução</InputLabel>
           <Select
             name="fkDevolucao"
@@ -203,6 +203,7 @@ const KitForm = ({ formData, onChange, loading = false, origem, onOrigemChange }
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
+          size="small"
           label="Observação (opcional)"
           name="observacao"
           value={formData.observacao}
@@ -215,6 +216,7 @@ const KitForm = ({ formData, onChange, loading = false, origem, onOrigemChange }
       <Grid item xs={12}>
         <TextField
           fullWidth
+          size="small"
           label="Defeito"
           name="defeito"
           value={formData.defeito}

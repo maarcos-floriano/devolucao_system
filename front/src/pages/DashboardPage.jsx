@@ -359,10 +359,10 @@ const DashboardPage = () => {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 1, sm: 3 } }}>
       {/* Header com título e botão de atualizar */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" fontWeight="bold" color="#0f172a">
+      <Box display="flex" justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} flexDirection={{ xs: 'column', sm: 'row' }} gap={2} mb={4}>
+        <Typography variant="h4" fontWeight="bold" color="#0f172a" sx={{ fontSize: { xs: '1.4rem', sm: '2rem' } }}>
           📊 Dashboard de Controle Técnico
         </Typography>
         <Button
@@ -421,7 +421,7 @@ const DashboardPage = () => {
             <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
               Máquinas por Responsável
             </Typography>
-            <Box height={300}>
+            <Box height={{ xs: 220, sm: 300 }}>
               <Bar data={chartsData.maquinasPorResponsavel} options={chartOptions} />
             </Box>
           </Paper>
@@ -432,7 +432,7 @@ const DashboardPage = () => {
             <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
               Máquinas Registradas Hoje por Responsável
             </Typography>
-            <Box height={300}>
+            <Box height={{ xs: 220, sm: 300 }}>
               <Bar data={chartsData.maquinasHojePorResponsavel} options={chartOptions} />
             </Box>
           </Paper>
@@ -443,7 +443,7 @@ const DashboardPage = () => {
             <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
               Kits por Configuração
             </Typography>
-            <Box height={300}>
+            <Box height={{ xs: 220, sm: 300 }}>
               <Bar data={chartsData.kitsPorConfiguracao} options={chartOptions} />
             </Box>
           </Paper>
@@ -454,7 +454,7 @@ const DashboardPage = () => {
             <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
               Máquinas por Configuração
             </Typography>
-            <Box height={300}>
+            <Box height={{ xs: 220, sm: 300 }}>
               <Bar data={chartsData.maquinasPorConfiguracao} options={chartOptions} />
             </Box>
           </Paper>
