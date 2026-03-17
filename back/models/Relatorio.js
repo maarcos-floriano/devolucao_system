@@ -20,7 +20,7 @@ class Relatorio {
           GROUP_CONCAT(id ORDER BY id SEPARATOR '-') AS ids,
           COUNT(*) AS quantidade
         FROM maquinas
-        WHERE DATE(data) BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE()
+        WHERE DATE(data) = curdate()
           AND saiu_venda = 0
         GROUP BY processador, memoria, armazenamento, fonte, placaVideo
         ORDER BY quantidade DESC;

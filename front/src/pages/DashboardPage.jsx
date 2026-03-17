@@ -278,7 +278,7 @@ const DashboardPage = () => {
 
   const handleExportReport = (tipo) => {
     const periodo = getPeriodoQueryString();
-    const urlBase = `http://192.168.15.100:3001/api/relatorios/excel/${tipo}`;
+    const urlBase = `http://192.168.15.31:3001/api/relatorios/excel/${tipo}`;
     const urlFinal = periodo ? `${urlBase}?${periodo}` : urlBase;
 
     window.open(urlFinal, '_blank');
@@ -286,16 +286,16 @@ const DashboardPage = () => {
 
   const handleExportSkuReport = (tipo) => {
     const endpoints = {
-      maquinas: 'http://192.168.15.100:3001/api/relatorios/paulinho/maquinas',
-      monitores: 'http://192.168.15.100:3001/api/relatorios/paulinho/monitores',
-      kit: 'http://192.168.15.100:3001/api/relatorios/paulinho/kit',
+      maquinas: 'http://192.168.15.31:3001/api/relatorios/paulinho/maquinas',
+      monitores: 'http://192.168.15.31:3001/api/relatorios/paulinho/monitores',
+      kit: 'http://192.168.15.31:3001/api/relatorios/paulinho/kit',
     };
     window.open(endpoints[tipo], '_blank');
   };
 
   const handleSacReport = () => {
     const periodo = getPeriodoQueryString();
-    const urlBase = 'http://192.168.15.100:3001/api/relatorios/sac/semanal';
+    const urlBase = 'http://192.168.15.31:3001/api/relatorios/sac/semanal';
     const urlFinal = periodo ? `${urlBase}?${periodo}` : urlBase;
 
     window.open(urlFinal, '_blank');
@@ -550,7 +550,7 @@ const DashboardPage = () => {
               onClick={() => handleExportSkuReport('maquinas')}
               sx={{ borderColor: '#3b82f6', color: '#3b82f6' }}
             >
-              SKU Máquinas
+              SKU Máquinas do Dia
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
