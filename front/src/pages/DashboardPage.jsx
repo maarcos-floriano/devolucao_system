@@ -1,5 +1,5 @@
 // src/pages/DashboardPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Grid,
   Paper,
@@ -43,7 +43,63 @@ ChartJS.register(
   Legend
 );
 
+const MAX_CHART_ITEMS = 12;
+
+const CHART_COLORS = [
+  '#22c55e', '#3b82f6', '#f59e0b', '#ef4444',
+  '#8b5cf6', '#ec4899', '#10b981', '#f97316',
+  '#2563eb', '#16a34a', '#06b6d4', '#84cc16',
+];
+
+const formatDateToInput = (date) => date.toISOString().slice(0, 10);
+
+const incrementCounter = (counter, key) => {
+  const normalizedKey = key || 'Sem informação';
+  counter[normalizedKey] = (counter[normalizedKey] || 0) + 1;
+};
+
+const buildChartDataFromCounter = (counter, label) => {
+  const entries = Object.entries(counter)
+    .sort(([, totalA], [, totalB]) => totalB - totalA);
+
+  if (entries.length > MAX_CHART_ITEMS) {
+    const topEntries = entries.slice(0, MAX_CHART_ITEMS - 1);
+    const outrosTotal = entries
+      .slice(MAX_CHART_ITEMS - 1)
+      .reduce((accumulator, [, total]) => accumulator + total, 0);
+
+    entries.length = 0;
+    entries.push(...topEntries, ['Outros', outrosTotal]);
+  }
+
+  return {
+    labels: entries.map(([entryLabel]) => entryLabel),
+    datasets: [{
+      label,
+      data: entries.map(([, total]) => total),
+      backgroundColor: entries.map((_, index) => CHART_COLORS[index % CHART_COLORS.length]),
+      borderColor: '#ffffff',
+      borderWidth: 2,
+      borderRadius: 8,
+    }],
+  };
+};
+
+const isSameDate = (value, referenceDate) => {
+  if (!value) return false;
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return false;
+
+  return (
+    parsedDate.getDate() === referenceDate.getDate()
+    && parsedDate.getMonth() === referenceDate.getMonth()
+    && parsedDate.getFullYear() === referenceDate.getFullYear()
+  );
+};
+
 const DashboardPage = () => {
+  const didInitialLoadRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState({
     maquinas: 0,
@@ -58,8 +114,6 @@ const DashboardPage = () => {
     maquinasPorConfiguracao: { labels: [], datasets: [] },
   });
 
-  const formatDateToInput = (date) => date.toISOString().slice(0, 10);
-
   const [periodoRelatorio, setPeriodoRelatorio] = useState(() => {
     const hoje = new Date();
     const seteDiasAtras = new Date(hoje);
@@ -71,11 +125,25 @@ const DashboardPage = () => {
     };
   });
 
+  const fetchPaginatedCounters = useCallback(async (url, onItem) => {
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const response = await api.get(`${url}?page=${page}&limit=200`);
+      const data = response.data;
+      const items = data.dados || [];
+
+      items.forEach(onItem);
+      totalPages = data.totalPaginas || 1;
+      page += 1;
+    } while (page <= totalPages);
+  }, []);
+
   // Carregar dados da dashboard
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      // ✅ CORRIGIDO: Usar endpoints corretos com /api/
       const [maquinasRes, monitoresRes, devolucoesRes, kitsRes] = await Promise.all([
         api.get('/maquinas?page=1&limit=1'),
         api.get('/monitores?page=1&limit=1'),
@@ -90,165 +158,47 @@ const DashboardPage = () => {
         kits: kitsRes.data.total || 0,
       });
 
-      // ✅ CORRIGIDO: Usar prefixo correto
-      const [todasMaquinas, todasKits] = await Promise.all([
-        fetchAllPaginated('/maquinas'),
-        fetchAllPaginated('/kits'),
+      const hoje = new Date();
+      const maquinasPorResponsavelCounter = {};
+      const maquinasHojePorResponsavelCounter = {};
+      const maquinasPorConfiguracaoCounter = {};
+      const kitsPorConfiguracaoCounter = {};
+
+      await Promise.all([
+        fetchPaginatedCounters('/maquinas', (maquina) => {
+          incrementCounter(maquinasPorResponsavelCounter, maquina.responsavel || 'Sem responsável');
+          incrementCounter(maquinasPorConfiguracaoCounter, maquina.processador || 'Sem configuração');
+
+          if (isSameDate(maquina.data, hoje)) {
+            incrementCounter(
+              maquinasHojePorResponsavelCounter,
+              maquina.responsavel || 'Sem responsável'
+            );
+          }
+        }),
+        fetchPaginatedCounters('/kits', (kit) => {
+          incrementCounter(kitsPorConfiguracaoCounter, kit.processador || 'Sem configuração');
+        }),
       ]);
 
-      // Preparar dados dos gráficos
-      const maquinasPorResponsavel = processMaquinasPorResponsavel(todasMaquinas);
-      const maquinasHojePorResponsavel = processMaquinasHojePorResponsavel(todasMaquinas);
-      const kitsPorConfiguracao = processKitsPorConfiguracao(todasKits);
-      const maquinasPorConfiguracao = processMaquinasPorConfiguracao(todasMaquinas);
-
       setChartsData({
-        maquinasPorResponsavel,
-        maquinasHojePorResponsavel,
-        kitsPorConfiguracao,
-        maquinasPorConfiguracao,
+        maquinasPorResponsavel: buildChartDataFromCounter(maquinasPorResponsavelCounter, 'Máquinas'),
+        maquinasHojePorResponsavel: buildChartDataFromCounter(
+          maquinasHojePorResponsavelCounter,
+          'Máquinas registradas hoje'
+        ),
+        kitsPorConfiguracao: buildChartDataFromCounter(kitsPorConfiguracaoCounter, 'Kits'),
+        maquinasPorConfiguracao: buildChartDataFromCounter(
+          maquinasPorConfiguracaoCounter,
+          'Máquinas'
+        ),
       });
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchAllPaginated = async (url) => {
-    let allData = [];
-    let page = 1;
-    let totalPages = 1;
-
-    try {
-      do {
-        const response = await api.get(`${url}?page=${page}&limit=50`);
-        const data = response.data;
-        allData = [...allData, ...(data.dados || [])];
-        totalPages = data.totalPaginas || 1;
-        page++;
-      } while (page <= totalPages);
-    } catch (error) {
-      console.error(`Erro ao buscar ${url}:`, error);
-    }
-
-    return allData;
-  };
-
-  const processMaquinasPorResponsavel = (maquinas) => {
-    const responsaveis = {};
-    maquinas.forEach(m => {
-      const responsavel = m.responsavel || 'Sem responsável';
-      responsaveis[responsavel] = (responsaveis[responsavel] || 0) + 1;
-    });
-
-    const labels = Object.keys(responsaveis);
-    const data = Object.values(responsaveis);
-
-    return {
-      labels,
-      datasets: [{
-        label: 'Máquinas',
-        data,
-        backgroundColor: [
-          '#22c55e', '#3b82f6', '#f59e0b', '#ef4444',
-          '#8b5cf6', '#ec4899', '#10b981', '#f97316'
-        ],
-        borderColor: '#ffffff',
-        borderWidth: 2,
-        borderRadius: 8,
-      }]
-    };
-  };
-
-  const processMaquinasHojePorResponsavel = (maquinas) => {
-    const hoje = new Date();
-    const maquinasDoDia = maquinas.filter((m) => {
-      if (!m.data) return false;
-      const dataMaquina = new Date(m.data);
-      if (Number.isNaN(dataMaquina.getTime())) return false;
-
-      return (
-        dataMaquina.getDate() === hoje.getDate()
-        && dataMaquina.getMonth() === hoje.getMonth()
-        && dataMaquina.getFullYear() === hoje.getFullYear()
-      );
-    });
-
-    const responsaveis = {};
-    maquinasDoDia.forEach((m) => {
-      const responsavel = m.responsavel || 'Sem responsável';
-      responsaveis[responsavel] = (responsaveis[responsavel] || 0) + 1;
-    });
-
-    return {
-      labels: Object.keys(responsaveis),
-      datasets: [{
-        label: 'Máquinas registradas hoje',
-        data: Object.values(responsaveis),
-        backgroundColor: [
-          '#2563eb', '#16a34a', '#f59e0b', '#ef4444',
-          '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16',
-        ],
-        borderColor: '#ffffff',
-        borderWidth: 2,
-        borderRadius: 8,
-      }],
-    };
-  };
-
-  const processKitsPorConfiguracao = (kits) => {
-    const configs = {};
-    kits.forEach(k => {
-      const config = k.processador || 'Sem configuração';
-      configs[config] = (configs[config] || 0) + 1;
-    });
-
-    const labels = Object.keys(configs);
-    const data = Object.values(configs);
-
-    return {
-      labels,
-      datasets: [{
-        label: 'Kits',
-        data,
-        backgroundColor: [
-          '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b',
-          '#10b981', '#ef4444', '#f97316', '#6366f1'
-        ],
-        borderColor: '#ffffff',
-        borderWidth: 2,
-        borderRadius: 8,
-      }]
-    };
-  };
-
-  const processMaquinasPorConfiguracao = (maquinas) => {
-    const configs = {};
-    
-    maquinas.forEach(m => {
-      const config = m.processador || 'Sem configuração';
-      configs[config] = (configs[config] || 0) + 1;
-    });
-
-    const labels = Object.keys(configs);
-    const data = Object.values(configs);
-
-    return {
-      labels,
-      datasets: [{
-        label: 'Máquinas',
-        data,
-        backgroundColor: [
-          '#10b981', '#f59e0b', '#3b82f6', '#ef4444',
-          '#8b5cf6', '#ec4899', '#f97316', '#22c55e'
-        ],
-        borderColor: '#ffffff',
-        borderWidth: 2,
-        borderRadius: 8,
-      }]
-    };
-  };
+  }, [fetchPaginatedCounters]);
 
   // ✅ CORRIGIDO: Funções de exportação com endpoints corretos
   const getPeriodoQueryString = () => {
@@ -302,12 +252,16 @@ const DashboardPage = () => {
   };
 
   useEffect(() => {
+    if (didInitialLoadRef.current) return;
+
+    didInitialLoadRef.current = true;
     loadDashboardData();
-  }, []);
+  }, [loadDashboardData]);
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: false,
     plugins: {
       legend: {
         position: 'top',
@@ -342,6 +296,9 @@ const DashboardPage = () => {
           color: 'rgba(0, 0, 0, 0.05)',
         },
         ticks: {
+          autoSkip: false,
+          maxRotation: 45,
+          minRotation: 0,
           font: {
             family: "'Montserrat', sans-serif",
           },
