@@ -433,7 +433,7 @@ const MaquinaPage = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 3, color: '#15803d' }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 3, color: '#15803d', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
         Máquinas
       </Typography>
 
@@ -441,7 +441,7 @@ const MaquinaPage = () => {
       <Paper
         elevation={2}
         sx={{
-          p: 3,
+          p: { xs: 2, sm: 3 },
           mb: 3,
           border: '2px solid',
           borderColor: 'primary.main',
@@ -460,7 +460,7 @@ const MaquinaPage = () => {
           loading={submitting}
         />
 
-        <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+        <Box sx={{ mt: 3, display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
           <Button
             variant="contained"
             startIcon={<Save />}
@@ -494,22 +494,22 @@ const MaquinaPage = () => {
       <Paper
         elevation={2}
         sx={{
-          p: 3,
+          p: { xs: 2, sm: 3 },
           border: '2px solid',
           borderColor: 'primary.main',
           borderRadius: 3,
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          height: '90vh',
+          height: { xs: 'auto', md: '90vh' },
           overflow: 'auto',
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="h6">
             Histórico do Dia
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
               startIcon={<Refresh />}
