@@ -18,6 +18,7 @@ import SearchBar from '../components/tables/SearchBar';
 import maquinaService from '../services/maquinaService';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { isMachineConfigAllowed, sanitizeMachineConfig } from '../utils/machineConfigRules';
 
 const MaquinaPage = () => {
   const { user, hasRole } = useAuth();
@@ -113,18 +114,15 @@ const MaquinaPage = () => {
   const handleFormDataChange = (newFormData) => {
     const origemAnterior = formData.origem;
     const novaOrigem = newFormData.origem;
+    const sanitizedFormData = sanitizeMachineConfig({
+      ...newFormData,
+      fkDevolucao: origemAnterior !== novaOrigem ? null : newFormData.fkDevolucao,
+    });
 
-    setFormData(newFormData);
+    setFormData(sanitizedFormData);
 
     if (origemAnterior !== novaOrigem) {
       loadDevolucoesByOrigem(novaOrigem);
-
-      if (origemAnterior !== novaOrigem) {
-        setFormData(prev => ({
-          ...prev,
-          fkDevolucao: null
-        }));
-      }
     }
   };
 
@@ -156,7 +154,7 @@ const MaquinaPage = () => {
     
     setEditingMaquina(maquina);
     console.log(maquina);
-    setFormData({
+    setFormData(sanitizeMachineConfig({
       processador: maquina.processador || '',
       memoria: maquina.memoria || '',
       armazenamento: maquina.armazenamento || '',
@@ -169,7 +167,7 @@ const MaquinaPage = () => {
       defeito: maquina.defeito || '',
       observacao: maquina.observacao || '',
       fkDevolucao: maquina.fkDevolucao || null,
-    });
+    }));
     
     if (maquina.origem) {
       loadDevolucoesByOrigem(maquina.origem);
@@ -222,6 +220,11 @@ const MaquinaPage = () => {
     setSubmitting(true);
 
     try {
+      if (!isMachineConfigAllowed(formData)) {
+        alert('Selecione uma combinação válida de processador, memória, armazenamento e fonte.');
+        return;
+      }
+
       const payload = { ...formData };
       const res = await api.put(`/maquinas/${editingMaquina.id}`, payload);
 
@@ -286,6 +289,11 @@ const MaquinaPage = () => {
     setSubmitting(true);
 
     try {
+      if (!isMachineConfigAllowed(formData)) {
+        alert('Selecione uma combinação válida de processador, memória, armazenamento e fonte.');
+        return;
+      }
+
       const payload = { ...formData };
       const res = await maquinaService.create(payload);
 
