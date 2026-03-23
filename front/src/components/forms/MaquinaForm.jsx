@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import {
   Grid,
   TextField,
@@ -9,17 +9,17 @@ import {
   FormHelperText,
   CircularProgress,
   Box,
+  Alert,
 } from '@mui/material';
 import {
   RESPONSAVEIS,
   ORIGENS,
-  PROCESSADORES,
-  MEMORIAS,
-  ARMAZENAMENTOS,
-  FONTES,
 } from '../../utils/constants';
+import { getAllowedOptions } from '../../utils/machineConfigRules';
 
 const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = false, loading = false }) => {
+  const allowedOptions = useMemo(() => getAllowedOptions(formData), [formData]);
+
 
   const handleChange = (field, value) => {
     onChange({
@@ -92,6 +92,12 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
           </FormControl>
         </Grid>
 
+      <Grid item xs={12}>
+        <Alert severity="info">
+          As opções de processador, memória, armazenamento e fonte foram limitadas às combinações válidas para cadastro.
+        </Alert>
+      </Grid>
+
       {/* Processador e Memória */}
       <Grid item xs={12} sm={6}>
         <FormControl fullWidth required>
@@ -103,24 +109,14 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
             label="Processador"
             disabled={loading}
           >
-            {/* i5 */}
-            <MenuItem disabled>Intel Core i5</MenuItem>
-            {PROCESSADORES.i5.map((proc) => (
-              <MenuItem key={proc} value={proc}>{proc}</MenuItem>
-            ))}
-            
-            {/* i7 */}
-            <MenuItem disabled>Intel Core i7</MenuItem>
-            {PROCESSADORES.i7.map((proc) => (
-              <MenuItem key={proc} value={proc}>{proc}</MenuItem>
-            ))}
-            
-            {/* Ryzen */}
-            <MenuItem disabled>AMD Ryzen</MenuItem>
-            {PROCESSADORES.ryzen.map((proc) => (
+            <MenuItem value=""><em>Selecione...</em></MenuItem>
+            {allowedOptions.processadores.map((proc) => (
               <MenuItem key={proc} value={proc}>{proc}</MenuItem>
             ))}
           </Select>
+          <FormHelperText>
+            {allowedOptions.processadores.length} processadores válidos disponíveis
+          </FormHelperText>
         </FormControl>
       </Grid>
 
@@ -135,18 +131,13 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
             disabled={loading}
           >
             <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {/* DDR3 */}
-            <MenuItem disabled>DDR3</MenuItem>
-            {MEMORIAS.ddr3.map((mem) => (
-              <MenuItem key={mem} value={mem}>{mem}</MenuItem>
-            ))}
-            
-            {/* DDR4 */}
-            <MenuItem disabled>DDR4</MenuItem>
-            {MEMORIAS.ddr4.map((mem) => (
+            {allowedOptions.memorias.map((mem) => (
               <MenuItem key={mem} value={mem}>{mem}</MenuItem>
             ))}
           </Select>
+          <FormHelperText>
+            {formData.processador ? 'Memórias válidas para o processador selecionado' : 'Selecione o processador para filtrar as memórias'}
+          </FormHelperText>
         </FormControl>
       </Grid>
 
@@ -162,24 +153,13 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
             disabled={loading}
           >
             <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {/* SSD SATA */}
-            <MenuItem disabled>SSD SATA</MenuItem>
-            {ARMAZENAMENTOS.ssd.map((arm) => (
-              <MenuItem key={arm} value={arm}>{arm}</MenuItem>
-            ))}
-            
-            {/* SSD NVMe */}
-            <MenuItem disabled>SSD NVMe (M.2)</MenuItem>
-            {ARMAZENAMENTOS.nvme.map((arm) => (
-              <MenuItem key={arm} value={arm}>{arm}</MenuItem>
-            ))}
-            
-            {/* HD */}
-            <MenuItem disabled>HD (Disco Rígido)</MenuItem>
-            {ARMAZENAMENTOS.hd.map((arm) => (
+            {allowedOptions.armazenamentos.map((arm) => (
               <MenuItem key={arm} value={arm}>{arm}</MenuItem>
             ))}
           </Select>
+          <FormHelperText>
+            {formData.memoria ? 'Armazenamentos válidos para a configuração selecionada' : 'Selecione processador e memória para filtrar o armazenamento'}
+          </FormHelperText>
         </FormControl>
       </Grid>
 
@@ -194,24 +174,13 @@ const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = 
             disabled={loading}
           >
             <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {/* Até 350W */}
-            <MenuItem disabled>Até 350W</MenuItem>
-            {FONTES.baixa.map((fonte) => (
-              <MenuItem key={fonte} value={fonte}>{fonte}</MenuItem>
-            ))}
-            
-            {/* 400W a 600W */}
-            <MenuItem disabled>400W a 600W</MenuItem>
-            {FONTES.media.map((fonte) => (
-              <MenuItem key={fonte} value={fonte}>{fonte}</MenuItem>
-            ))}
-            
-            {/* Acima de 600W */}
-            <MenuItem disabled>Acima de 600W</MenuItem>
-            {FONTES.alta.map((fonte) => (
+            {allowedOptions.fontes.map((fonte) => (
               <MenuItem key={fonte} value={fonte}>{fonte}</MenuItem>
             ))}
           </Select>
+          <FormHelperText>
+            {formData.armazenamento ? 'Fontes válidas para a configuração selecionada' : 'Selecione processador, memória e armazenamento para filtrar a fonte'}
+          </FormHelperText>
         </FormControl>
       </Grid>
 
