@@ -33,6 +33,8 @@ import {
   Legend,
 } from 'chart.js';
 import api from '../services/api';
+import exportService from '../services/exportService';
+import { getMachineSkuCode } from '../utils/machineSkuUtils';
 
 ChartJS.register(
   CategoryScale,
@@ -140,6 +142,56 @@ const DashboardPage = () => {
     } while (page <= totalPages);
   }, []);
 
+
+  const fetchPaginatedItems = useCallback(async (url) => {
+    const items = [];
+    await fetchPaginatedCounters(url, (item) => items.push(item));
+    return items;
+  }, [fetchPaginatedCounters]);
+
+  const exportMachineSkuReport = useCallback(async () => {
+    const maquinas = await fetchPaginatedItems('/maquinas');
+    const hoje = new Date();
+    const grouped = new Map();
+
+    maquinas
+      .filter((maquina) => isSameDate(maquina.data, hoje))
+      .forEach((maquina) => {
+        const sku = getMachineSkuCode(maquina) || 'SEM SKU';
+        const configuracao = [
+          maquina.processador || 'Sem CPU',
+          maquina.memoria || 'Sem memória',
+          maquina.armazenamento || 'Sem armazenamento',
+          maquina.fonte || 'Sem fonte',
+          maquina.placaVideo || 'S/ vídeo',
+          maquina.gabinete || 'Produção',
+        ].join(' / ');
+        const key = `${sku}::${configuracao}`;
+
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            SKU: sku,
+            CONFIGURAÇÃO: configuracao,
+            IDS: [],
+            QTD: 0,
+          });
+        }
+
+        const current = grouped.get(key);
+        current.IDS.push(maquina.id);
+        current.QTD += 1;
+      });
+
+    const reportData = Array.from(grouped.values())
+      .map((item) => ({
+        ...item,
+        IDS: item.IDS.sort((a, b) => a - b).join('-'),
+      }))
+      .sort((a, b) => a.SKU.localeCompare(b.SKU, 'pt-BR', { numeric: true }));
+
+    exportService.exportMachineSkuReport(reportData);
+  }, [fetchPaginatedItems]);
+
   // Carregar dados da dashboard
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
@@ -234,9 +286,13 @@ const DashboardPage = () => {
     window.open(urlFinal, '_blank');
   };
 
-  const handleExportSkuReport = (tipo) => {
+  const handleExportSkuReport = async (tipo) => {
+    if (tipo === 'maquinas') {
+      await exportMachineSkuReport();
+      return;
+    }
+
     const endpoints = {
-      maquinas: 'http://192.168.15.100:3001/api/relatorios/paulinho/maquinas',
       monitores: 'http://192.168.15.100:3001/api/relatorios/paulinho/monitores',
       kit: 'http://192.168.15.100:3001/api/relatorios/paulinho/kit',
     };
