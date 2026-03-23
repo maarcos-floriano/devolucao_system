@@ -8,6 +8,7 @@ const RAW_ALLOWED_MACHINE_CONFIGS = [
   ['i5 2ª Geração', '16GB', '1TB SSD', '250W'],
   ['i5 2ª Geração', '16GB', '1TB SSD', '300W'],
   ['i5 2ª Geração', '16GB', '240GB SSD', '230W'],
+  ['i5 2ª Geração', '16GB', '480GB SSD', '230W'],
   ['i5 2ª Geração', '16GB', '480GB SSD', '300W'],
   ['i5 2ª Geração', '16GB', '480GB SSD', '350W'],
   ['i5 2ª Geração', '16GB', '512GB SSD', '300W'],
