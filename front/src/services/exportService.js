@@ -24,6 +24,10 @@ const exportService = {
 
   exportKitsToExcel(data) {
     this.exportToExcel(data, 'resumo_kits', 'Resumo do Dia');
+  },
+
+  exportMachineSkuReport(data) {
+    this.exportToExcel(data, 'sku_maquinas', 'SKU Máquinas');
   }
 };
 

@@ -18,9 +18,11 @@ import SearchBar from '../components/tables/SearchBar';
 import maquinaService from '../services/maquinaService';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { isMachineConfigAllowed, sanitizeMachineConfig } from '../utils/machineConfigRules';
+import { getMachineSkuCode } from '../utils/machineSkuUtils';
 
 const MaquinaPage = () => {
-  const { user, hasRole } = useAuth();
+  const { hasRole } = useAuth();
   
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -44,6 +46,7 @@ const MaquinaPage = () => {
     fonte: '',
     placaVideo: '',
     gabinete: '',
+    sku: '',
     origem: '',
     responsavel: '',
     lacre: '',
@@ -113,18 +116,18 @@ const MaquinaPage = () => {
   const handleFormDataChange = (newFormData) => {
     const origemAnterior = formData.origem;
     const novaOrigem = newFormData.origem;
+    const sanitizedFormData = sanitizeMachineConfig({
+      ...newFormData,
+      fkDevolucao: origemAnterior !== novaOrigem ? null : newFormData.fkDevolucao,
+    });
 
-    setFormData(newFormData);
+    setFormData({
+      ...sanitizedFormData,
+      sku: getMachineSkuCode(sanitizedFormData),
+    });
 
     if (origemAnterior !== novaOrigem) {
       loadDevolucoesByOrigem(novaOrigem);
-
-      if (origemAnterior !== novaOrigem) {
-        setFormData(prev => ({
-          ...prev,
-          fkDevolucao: null
-        }));
-      }
     }
   };
 
@@ -133,7 +136,10 @@ const MaquinaPage = () => {
     setLoading(true);
     try {
       const resp = await maquinaService.getAll(page + 1, rowsPerPage, searchTerm);
-      setMaquinas(resp.dados || []);
+      setMaquinas((resp.dados || []).map((maquina) => ({
+        ...maquina,
+        sku: getMachineSkuCode(maquina),
+      })));
       setTotalRows(resp.total || resp.totalRegistros || 0);
     } catch (error) {
       console.error('Erro ao carregar máquinas:', error);
@@ -156,7 +162,7 @@ const MaquinaPage = () => {
     
     setEditingMaquina(maquina);
     console.log(maquina);
-    setFormData({
+    const nextFormData = sanitizeMachineConfig({
       processador: maquina.processador || '',
       memoria: maquina.memoria || '',
       armazenamento: maquina.armazenamento || '',
@@ -169,6 +175,11 @@ const MaquinaPage = () => {
       defeito: maquina.defeito || '',
       observacao: maquina.observacao || '',
       fkDevolucao: maquina.fkDevolucao || null,
+    });
+
+    setFormData({
+      ...nextFormData,
+      sku: getMachineSkuCode(nextFormData),
     });
     
     if (maquina.origem) {
@@ -222,8 +233,13 @@ const MaquinaPage = () => {
     setSubmitting(true);
 
     try {
-      const payload = { ...formData };
-      const res = await api.put(`/maquinas/${editingMaquina.id}`, payload);
+      if (!isMachineConfigAllowed(formData)) {
+        alert('Selecione uma combinação válida de processador, memória, armazenamento e fonte.');
+        return;
+      }
+
+      const { sku, ...payload } = formData;
+      await api.put(`/maquinas/${editingMaquina.id}`, payload);
 
       alert('Máquina atualizada com sucesso!');
       
@@ -286,7 +302,12 @@ const MaquinaPage = () => {
     setSubmitting(true);
 
     try {
-      const payload = { ...formData };
+      if (!isMachineConfigAllowed(formData)) {
+        alert('Selecione uma combinação válida de processador, memória, armazenamento e fonte.');
+        return;
+      }
+
+      const { sku, ...payload } = formData;
       const res = await maquinaService.create(payload);
 
       alert('Máquina cadastrada!');
@@ -313,8 +334,7 @@ const MaquinaPage = () => {
     try {
       const data = maquina.id === 'new' ? formData : maquina;
       const janela = window.open('', '_blank');
-      let id, processador, memoria, armazenamento, fonte, placaVideo, gabinete;
-      id = data.id ? data.id : '';
+      let processador, memoria, armazenamento, fonte, placaVideo, gabinete;
       processador = data.processador;
       memoria = data.memoria;
       armazenamento = data.armazenamento;
@@ -424,6 +444,7 @@ const MaquinaPage = () => {
     { field: 'fonte', headerName: 'Fonte', width: 120 },
     { field: 'placaVideo', headerName: 'Placa de Vídeo', width: 150 },
     { field: 'gabinete', headerName: 'Gabinete', width: 120 },
+    { field: 'sku', headerName: 'SKU', width: 120 },
     { field: 'origem', headerName: 'Origem', width: 130 },
     { field: 'defeito', headerName: 'Defeito', width: 150 },
     { field: 'observacao', headerName: 'Observação', width: 200 },
