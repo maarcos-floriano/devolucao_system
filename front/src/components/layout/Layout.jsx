@@ -24,6 +24,8 @@ import {
   Computer,
   Dashboard,
   KeyboardReturn,
+  SettingsInputComponent,
+  BuildCircle,
   Logout,
   Menu as MenuIcon,
   Monitor,
@@ -34,6 +36,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import chamadoService from '../../services/chamadoService';
 
 const drawerWidth = 260;
+
+const menuItems = [
+  { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard', permission: 'dashboard' },
+  { text: 'Máquinas', icon: <Computer />, path: '/maquinas', permission: 'maquinas' },
+  { text: 'Monitores', icon: <Monitor />, path: '/monitores', permission: 'monitores' },
+  { text: 'Devolução', icon: <KeyboardReturn />, path: '/devolucao', permission: 'devolucao' },
+  { text: 'Kits', icon: <SettingsInputComponent />, path: '/kit', permission: 'kit' },
+  { text: 'RMA', icon: <BuildCircle />, path: '/rma', permission: 'rma' },
+];
 
 const Layout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
