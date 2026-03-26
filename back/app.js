@@ -11,6 +11,7 @@ const devolucaoRoutes = require('./routes/devolucaoRoutes');
 const kitRoutes = require('./routes/kitRoutes');
 const relatorioRoutes = require('./routes/relatorioRoutes');
 const chamadoRoutes = require('./routes/chamadoRoutes');
+const skuRoutes = require('./routes/skuRoutes');
 
 
 class App {
@@ -68,6 +69,7 @@ class App {
     this.app.use('/api/devolucao', devolucaoRoutes);
     this.app.use('/api/relatorios', relatorioRoutes);
     this.app.use('/api/chamados', chamadoRoutes);
+    this.app.use('/api/skus', skuRoutes);
     
     // Rota de saúde
     this.app.get('/health', (req, res) => {
