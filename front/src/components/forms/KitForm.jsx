@@ -1,226 +1,64 @@
 import React from 'react';
-import {
-  Grid,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-} from '@mui/material';
-import {
-  RESPONSAVEIS,
-  ORIGENS,
-  PROCESSADORES,
-  MEMORIAS,
-  PLACAS_MAE,
-} from '../../utils/constants';
+import { Grid, TextField, FormControl, InputLabel, Select, MenuItem, Alert } from '@mui/material';
+import { RESPONSAVEIS, ORIGENS } from '../../utils/constants';
 
-const KitForm = ({ formData, onChange, loading = false, origem, onOrigemChange }) => {
-  const handleChange = (field, value) => {
-    onChange(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+const KitForm = ({ formData, onChange, loading = false, skus = [] }) => {
+  const handleChange = (field, value) => onChange({ ...formData, [field]: value });
 
-  const handleSelectChange = (e) => {
-    const { name, value } = e.target;
-    
-    if (name === 'origem') {
-      onOrigemChange(value);
-    }
-    
-    handleChange(name, value);
-  };
-
-  const handleTextChange = (e) => {
-    const { name, value } = e.target;
-    handleChange(name, value);
+  const handleSkuChange = (value) => {
+    const skuSelecionado = skus.find((item) => String(item.id) === String(value));
+    onChange({
+      ...formData,
+      skuId: value,
+      sku: skuSelecionado?.sku || '',
+      codigo: skuSelecionado?.codigo || '',
+    });
   };
 
   return (
-    <Grid container
-      spacing={2}
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-        gap: 2,
-      }}
-    >
-      {/* Responsável e Lacre */}
+    <Grid container spacing={2} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+      <Grid item xs={12}>
+        <Alert severity="info">Cadastro de KIT por SKU + quantidade.</Alert>
+      </Grid>
+
+      <Grid item xs={12} sm={6}>
+        <FormControl fullWidth required>
+          <InputLabel>SKU do Kit</InputLabel>
+          <Select value={formData.skuId || ''} label="SKU do Kit" onChange={(e) => handleSkuChange(e.target.value)} disabled={loading}>
+            <MenuItem value=""><em>Selecione...</em></MenuItem>
+            {skus.map((item) => (
+              <MenuItem key={item.id} value={item.id}>{item.sku} | {item.codigo}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Grid>
+
+      <Grid item xs={12} sm={6}>
+        <TextField fullWidth label="Quantidade" type="number" inputProps={{ min: 1 }} value={formData.quantidade || 1} onChange={(e) => handleChange('quantidade', Number(e.target.value || 1))} />
+      </Grid>
+
       <Grid item xs={12} sm={6}>
         <FormControl fullWidth required>
           <InputLabel>Responsável</InputLabel>
-          <Select
-            name="responsavel"
-            value={formData.responsavel}
-            onChange={handleSelectChange}
-            label="Responsável"
-            disabled={loading}
-          >
-            <MenuItem value=""><em>Selecione o responsável</em></MenuItem>
-            {RESPONSAVEIS.map((resp) => (
-              <MenuItem key={resp.value} value={resp.value}>
-                {resp.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Situação do Lacre</InputLabel>
-          <Select
-            name="lacre"
-            value={formData.lacre}
-            onChange={handleSelectChange}
-            label="Situação do Lacre"
-            disabled={loading}
-          >
+          <Select value={formData.responsavel} label="Responsável" onChange={(e) => handleChange('responsavel', e.target.value)} disabled={loading}>
             <MenuItem value=""><em>Selecione...</em></MenuItem>
-            <MenuItem value="ok">Ok</MenuItem>
-            <MenuItem value="violado">Violado</MenuItem>
+            {RESPONSAVEIS.map((resp) => <MenuItem key={resp.value} value={resp.value}>{resp.label}</MenuItem>)}
           </Select>
         </FormControl>
       </Grid>
 
-      {/* Processador e Memória */}
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
-          <InputLabel>Processador</InputLabel>
-          <Select
-            name="processador"
-            value={formData.processador}
-            onChange={handleSelectChange}
-            label="Processador"
-            disabled={loading}
-          >
-            <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {/* i5 */}
-            <MenuItem disabled>Intel Core i5</MenuItem>
-            {PROCESSADORES.i5.slice(0, 10).map((proc) => (
-              <MenuItem key={proc} value={proc}>{proc}</MenuItem>
-            ))}
-            
-            {/* i7 */}
-            <MenuItem disabled>Intel Core i7</MenuItem>
-            {PROCESSADORES.i7.slice(0, 10).map((proc) => (
-              <MenuItem key={proc} value={proc}>{proc}</MenuItem>
-            ))}
-            
-            {/* Ryzen */}
-            <MenuItem disabled>AMD Ryzen</MenuItem>
-            {PROCESSADORES.ryzen.map((proc) => (
-              <MenuItem key={proc} value={proc}>{proc}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
-          <InputLabel>Memória RAM</InputLabel>
-          <Select
-            name="memoria"
-            value={formData.memoria}
-            onChange={handleSelectChange}
-            label="Memória RAM"
-            disabled={loading}
-          >
-            <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {/* DDR3 */}
-            <MenuItem disabled>DDR3</MenuItem>
-            {MEMORIAS.ddr3.map((mem) => (
-              <MenuItem key={mem} value={mem}>{mem}</MenuItem>
-            ))}
-            
-            {/* DDR4 */}
-            <MenuItem disabled>DDR4</MenuItem>
-            {MEMORIAS.ddr4.map((mem) => (
-              <MenuItem key={mem} value={mem}>{mem}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-
-      {/* Placa Mãe */}
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
-          <InputLabel>Placa Mãe</InputLabel>
-          <Select
-            name="placaMae"
-            value={formData.placaMae}
-            onChange={handleSelectChange}
-            label="Placa Mãe"
-            disabled={loading}
-          >
-            <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {PLACAS_MAE.map((placa) => (
-              <MenuItem key={placa} value={placa}>{placa}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-
-      {/* Origem */}
       <Grid item xs={12} sm={6}>
         <FormControl fullWidth required>
           <InputLabel>Origem</InputLabel>
-          <Select
-            name="origem"
-            value={formData.origem}
-            onChange={handleSelectChange}
-            label="Origem"
-            disabled={loading}
-          >
+          <Select value={formData.origem} label="Origem" onChange={(e) => handleChange('origem', e.target.value)} disabled={loading}>
             <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {ORIGENS.map((origem) => (
-              <MenuItem key={origem.value} value={origem.value}>
-                {origem.label}
-              </MenuItem>
-            ))}
+            {ORIGENS.map((origem) => <MenuItem key={origem.value} value={origem.value}>{origem.label}</MenuItem>)}
           </Select>
         </FormControl>
       </Grid>
 
-      {/* Devolução */}
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth disabled={origem === 'Outro' || !origem}>
-          <InputLabel>Devolução</InputLabel>
-          <Select
-            name="fkDevolucao"
-            value={formData.fkDevolucao || ''}
-            onChange={handleSelectChange}
-            label="Devolução"
-          >
-            <MenuItem value=""><em>Selecione a devolução</em></MenuItem>
-          </Select>
-        </FormControl>
-      </Grid>
-
-      {/* Observação */}
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Observação (opcional)"
-          name="observacao"
-          value={formData.observacao}
-          onChange={handleTextChange}
-          disabled={loading}
-        />
-      </Grid>
-
-      {/* Defeito */}
       <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="Defeito"
-          name="defeito"
-          value={formData.defeito}
-          onChange={handleTextChange}
-          disabled={loading}
-        />
+        <TextField fullWidth label="Defeito" value={formData.defeito} onChange={(e) => handleChange('defeito', e.target.value)} disabled={loading} />
       </Grid>
     </Grid>
   );

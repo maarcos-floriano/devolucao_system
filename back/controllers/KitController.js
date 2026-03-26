@@ -7,10 +7,10 @@ class KitController {
         try {
             const kitData = req.body;
             
-            if (!kitData.processador || !kitData.responsavel) {
+            if (!kitData.sku || !kitData.codigo || !kitData.responsavel) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Processador e responsável são obrigatórios'
+                    error: 'SKU, código e responsável são obrigatórios'
                 });
             }
 

@@ -4,12 +4,12 @@ const MaquinaController = require('../controllers/MaquinaController');
 
 // Middleware de validação (simples)
 const validateMaquina = (req, res, next) => {
-  const { processador, memoria, origem, responsavel } = req.body;
+  const { sku, codigo, responsavel } = req.body;
   
-  if (!processador || !memoria || !origem || !responsavel) {
+  if (!sku || !codigo || !responsavel) {
     return res.status(400).json({
       success: false,
-      error: 'Campos obrigatórios: processador, memoria, origem e responsavel'
+      error: 'Campos obrigatórios: sku, codigo e responsavel'
     });
   }
   
@@ -20,7 +20,6 @@ const validateMaquina = (req, res, next) => {
 router.post('/', validateMaquina, MaquinaController.create);
 router.get('/', MaquinaController.findAll);
 router.get('/dia', MaquinaController.findToday);
-router.get('/devolucoes', MaquinaController.getDevolucoesForSelect);
 router.get('/:id', MaquinaController.findById);
 router.put('/:id', validateMaquina, MaquinaController.update);
 router.delete('/:id', MaquinaController.delete);
