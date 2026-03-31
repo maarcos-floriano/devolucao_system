@@ -1,7 +1,7 @@
 import React from 'react';
 import { Grid, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
 
-const MaquinaForm = ({ formData, onChange, configuracoes = [], loading = false }) => {
+const MaquinaForm = ({ formData, onChange, configuracoes = [], loading = false, isAdmin = false }) => {
   const handleTextChange = (e) => {
     const { name, value } = e.target;
     onChange({ ...formData, [name]: value });
@@ -51,7 +51,7 @@ const MaquinaForm = ({ formData, onChange, configuracoes = [], loading = false }
           name="codigo"
           value={formData.codigo}
           onChange={handleTextChange}
-          disabled={loading}
+          disabled={loading || (!isAdmin && Boolean(formData.configId))}
         />
       </Grid>
 
@@ -63,7 +63,7 @@ const MaquinaForm = ({ formData, onChange, configuracoes = [], loading = false }
           name="config"
           value={formData.config}
           onChange={handleTextChange}
-          disabled={loading}
+          disabled={loading || (!isAdmin && Boolean(formData.configId))}
         />
       </Grid>
     </Grid>

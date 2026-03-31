@@ -177,7 +177,7 @@ const MaquinaPage = () => {
       <Paper elevation={2} sx={{ p: 3, mb: 3, border: '2px solid', borderColor: 'primary.main', borderRadius: 3 }}>
         <Typography variant="h5" gutterBottom sx={{ mb: 2, color: 'primary.dark' }}>Cadastro de Máquina</Typography>
 
-        <MaquinaForm formData={formData} onChange={setFormData} configuracoes={configuracoes} loading={submitting} />
+        <MaquinaForm formData={formData} onChange={setFormData} configuracoes={configuracoes} loading={submitting} isAdmin={hasRole('admin')} />
 
         <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
           <Button variant="contained" startIcon={<Save />} onClick={handleSubmit} disabled={submitting} sx={{ flex: 1, py: 1.5 }}>
@@ -230,7 +230,7 @@ const MaquinaPage = () => {
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle><EditIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Editar Máquina #{editingMaquina?.id}</DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
-          <MaquinaForm formData={formData} onChange={setFormData} configuracoes={configuracoes} loading={submitting} />
+          <MaquinaForm formData={formData} onChange={setFormData} configuracoes={configuracoes} loading={submitting} isAdmin={hasRole('admin')} />
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 2 }}>
           <Button onClick={() => setEditDialogOpen(false)} variant="outlined" disabled={submitting}>Cancelar</Button>
