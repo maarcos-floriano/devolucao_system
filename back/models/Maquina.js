@@ -3,43 +3,13 @@ const DualDatabase = require('../middleware/dualDatabase');
 class Maquina {
   constructor(data) {
     this.id = data.id;
-    this.processador = data.processador;
-    this.memoria = data.memoria;
-    this.armazenamento = data.armazenamento;
-    this.fonte = data.fonte;
-    this.origem = data.origem;
-    this.observacao = data.observacao;
-    this.defeito = data.defeito;
-    this.lacre = data.lacre;
-    this.data = data.data;
-    this.responsavel = data.responsavel;
-    this.placaVideo = data.placaVideo;
-    this.gabinete = data.gabinete;
-    this.fkDevolucao = data.fkDevolucao;
+    this.codigo = data.codigo;
+    this.config = data.config;
   }
 
-  // Criar nova máquina
   static async create(maquinaData) {
-    const sql = `
-      INSERT INTO maquinas 
-      (processador, memoria, armazenamento, fonte, origem, observacao, defeito, lacre, data, responsavel, placaVideo, gabinete, fkDevolucao)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)
-    `;
-
-    const params = [
-      maquinaData.processador,
-      maquinaData.memoria,
-      maquinaData.armazenamento,
-      maquinaData.fonte,
-      maquinaData.origem,
-      maquinaData.observacao,
-      maquinaData.defeito,
-      maquinaData.lacre,
-      maquinaData.responsavel,
-      maquinaData.placaVideo || null,
-      maquinaData.gabinete || null,
-      maquinaData.fkDevolucao || null
-    ];
+    const sql = `INSERT INTO maquinas (codigo, config) VALUES (?, ?)`;
+    const params = [maquinaData.codigo, maquinaData.config];
 
     try {
       const result = await DualDatabase.executeOnBothPools(sql, params);
@@ -49,7 +19,6 @@ class Maquina {
     }
   }
 
-  // Buscar todas as máquinas com paginação
   static async findAll({ page, limit, search }) {
     try {
       const offset = (page - 1) * limit;
@@ -59,125 +28,47 @@ class Maquina {
         SELECT *
         FROM maquinas
         WHERE (
-          processador LIKE ?
-          OR memoria LIKE ?
-          OR armazenamento LIKE ?
-          OR origem LIKE ?
-          OR responsavel LIKE ?
-          OR defeito LIKE ?
-          OR observacao LIKE ?
-          OR data LIKE ?
-          OR fkDevolucao LIKE ?
+          codigo LIKE ?
+          OR config LIKE ?
           OR id LIKE ?
-          OR placaVideo LIKE ?
-          OR gabinete LIKE ?
         )
-        AND saiu_venda = 0
         ORDER BY id DESC
         LIMIT ? OFFSET ?
       `;
 
-      // ✅ CORRETO: Todos os parâmetros como placeholders
-      const params = [
-        termo, // processador
-        termo, // memoria
-        termo, // armazenamento
-        termo, // origem
-        termo, // responsavel
-        termo, // defeito
-        termo, // observacao
-        termo, // data
-        termo, // fkDevolucao
-        termo, // id
-        termo, // placaVideo
-        termo, // gabinete
-        Number(limit), // LIMIT como número
-        Number(offset) // OFFSET como número
-      ];
-
+      const params = [termo, termo, termo, Number(limit), Number(offset)];
       const rows = await DualDatabase.executeOnMainPool(sql, params);
-      
       return rows || [];
     } catch (error) {
-      console.error('Erro detalhado em findAll:', error);
       throw new Error(`Erro ao buscar máquinas: ${error.message}`);
     }
   }
 
-  // Buscar máquinas do dia
   static async findToday() {
-    try {
-      const sql = `
-        SELECT *
-        FROM maquinas
-        WHERE DATE(data) = CURDATE()
-        AND saiu_venda = 0
-      `;
-
-      const rows = await DualDatabase.executeOnMainPool(sql);
-      return rows;
-    } catch (error) {
-      throw new Error(`Erro ao buscar máquinas do dia: ${error.message}`);
-    }
+    return [];
   }
 
-  // Buscar por ID
   static async findById(id) {
     try {
-      const sql = `SELECT * FROM maquinas WHERE id = ? AND saiu_venda = 0`;
+      const sql = `SELECT * FROM maquinas WHERE id = ?`;
       const rows = await DualDatabase.executeOnMainPool(sql, [id]);
-
-      if (rows.length === 0) {
-        return null;
-      }
-
+      if (rows.length === 0) return null;
       return new Maquina(rows[0]);
     } catch (error) {
       throw new Error(`Erro ao buscar máquina: ${error.message}`);
     }
   }
 
-  // Atualizar máquina
   static async update(id, maquinaData) {
     try {
       const maquina = await this.findById(id);
-      if (!maquina) {
-        throw new Error('Máquina não encontrada');
-      }
+      if (!maquina) throw new Error('Máquina não encontrada');
 
-      const sql = `
-        UPDATE maquinas SET
-          processador = ?,
-          memoria = ?,
-          armazenamento = ?,
-          fonte = ?,
-          origem = ?,
-          observacao = ?,
-          defeito = ?,
-          lacre = ?,
-          data = ?,
-          responsavel = ?,
-          placaVideo = ?,
-          gabinete = ?,
-          fkDevolucao = ?
-        WHERE id = ?
-      `;
-
+      const sql = `UPDATE maquinas SET codigo = ?, config = ? WHERE id = ?`;
       const params = [
-        maquinaData.processador || maquina.processador,
-        maquinaData.memoria || maquina.memoria,
-        maquinaData.armazenamento || maquina.armazenamento,
-        maquinaData.fonte || maquina.fonte,
-        maquinaData.origem || maquina.origem,
-        maquinaData.observacao || maquina.observacao,
-        maquinaData.defeito || maquina.defeito,
-        maquinaData.lacre || maquina.lacre,
-        maquinaData.data || maquina.data,
-        maquinaData.responsavel || maquina.responsavel,
-        maquinaData.placaVideo || maquina.placaVideo,
-        maquinaData.gabinete || maquina.gabinete,
-        maquinaData.fkDevolucao || maquina.fkDevolucao,
-        id
+        maquinaData.codigo || maquina.codigo,
+        maquinaData.config || maquina.config,
+        id,
       ];
 
       await DualDatabase.executeOnBothPools(sql, params);
@@ -187,10 +78,9 @@ class Maquina {
     }
   }
 
-  // Excluir máquina
   static async delete(id) {
     try {
-      const sql = `UPDATE maquinas SET saiu_venda = 1, data_saida = NOW() WHERE id = ?`;
+      const sql = `DELETE FROM maquinas WHERE id = ?`;
       await DualDatabase.executeOnBothPools(sql, [id]);
       return true;
     } catch (error) {
@@ -198,68 +88,31 @@ class Maquina {
     }
   }
 
-  //Count
   static async count(search) {
     try {
-      const termo = `%${search}%`; 
+      const termo = `%${search}%`;
       const sql = `
         SELECT COUNT(*) AS total
         FROM maquinas
         WHERE (
-          processador LIKE ?
-          OR memoria LIKE ?
-          OR armazenamento LIKE ?
-          OR origem LIKE ?
-          OR responsavel LIKE ?
-          OR defeito LIKE ?
-          OR observacao LIKE ?
-          OR data LIKE ?
-          OR fkDevolucao LIKE ?
+          codigo LIKE ?
+          OR config LIKE ?
           OR id LIKE ?
-          OR placaVideo LIKE ?
-          OR gabinete LIKE ?
         )
-        AND saiu_venda = 0
       `;
-      const params = [
-        termo, // processador
-        termo, // memoria
-        termo, // armazenamento
-        termo, // origem
-        termo, // responsavel
-        termo, // defeito
-        termo, // observacao
-        termo, // data
-        termo, // fkDevolucao
-        termo, // id
-        termo, // placaVideo
-        termo  // gabinete
-      ];
-      const rows = await DualDatabase.executeOnMainPool(sql, params);
+
+      const rows = await DualDatabase.executeOnMainPool(sql, [termo, termo, termo]);
       return rows[0].total || 0;
-    }
-    catch (error) {
+    } catch (error) {
       throw new Error(`Erro ao contar máquinas: ${error.message}`);
     }
   }
 
-  // Método para exportar dados
   toJSON() {
     return {
       id: this.id,
-      processador: this.processador,
-      memoria: this.memoria,
-      armazenamento: this.armazenamento,
-      fonte: this.fonte,
-      origem: this.origem,
-      observacao: this.observacao,
-      defeito: this.defeito,
-      lacre: this.lacre,
-      data: this.data,
-      responsavel: this.responsavel,
-      placaVideo: this.placaVideo,
-      gabinete: this.gabinete,
-      fkDevolucao: this.fkDevolucao
+      codigo: this.codigo,
+      config: this.config,
     };
   }
 }
