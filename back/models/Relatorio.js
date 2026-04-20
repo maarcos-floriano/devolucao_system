@@ -5,26 +5,14 @@ class Relatorio {
   static async relatorioMaquinasAgrupadas() {
     try {
       const sql = `
-        SELECT 
-          CONCAT(
-            COALESCE(processador, ''),
-            ' ',
-            COALESCE(memoria, ''),
-            ' ',
-            COALESCE(armazenamento, ''),
-            ' ',
-            COALESCE(fonte, 'S/Fonte'),
-            ' ',
-            COALESCE(placaVideo, 'S/Vídeo'),
-            ' ',
-            COALESCE(gabinete, 'Produção')
-          ) AS configuracao,
+        SELECT
+          COALESCE(config, 'Sem configuração') AS configuracao,
+          COALESCE(defeito, 'Sem defeito informado') AS defeito,
           GROUP_CONCAT(id ORDER BY id SEPARATOR '-') AS ids,
           COUNT(*) AS quantidade
         FROM maquinas
-        WHERE DATE(data) = CURDATE()
-          AND saiu_venda = 0
-        GROUP BY processador, memoria, armazenamento, fonte, placaVideo, gabinete
+        WHERE DATE(data_registro) = CURDATE()
+        GROUP BY config, defeito
         ORDER BY quantidade DESC;
       `;
 
@@ -313,7 +301,8 @@ class Relatorio {
       const dataInicio = inicio.toISOString().slice(0, 10);
       const dataFinal = fim.toISOString().slice(0, 10);
 
-      const sql = `SELECT * FROM ${tabela} WHERE DATE(data) BETWEEN ? AND ? ORDER BY data DESC`;
+      const dateField = tabela === 'maquinas' ? 'data_registro' : 'data';
+      const sql = `SELECT * FROM ${tabela} WHERE DATE(${dateField}) BETWEEN ? AND ? ORDER BY ${dateField} DESC`;
       const rows = await DualDatabase.executeOnMainPool(sql, [dataInicio, dataFinal]);
       return rows || [];
     } catch (error) {

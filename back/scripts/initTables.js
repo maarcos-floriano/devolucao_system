@@ -6,23 +6,19 @@ async function createTables() {
     conn = await database.mainPool.getConnection();
 
     const tableQueries = [
+      `DROP TABLE IF EXISTS maquinas`,
       `CREATE TABLE IF NOT EXISTS maquinas (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        processador TEXT,
-        memoria TEXT,
-        armazenamento TEXT,
-        fonte TEXT,
-        origem TEXT,
-        observacao TEXT,
+        codigo VARCHAR(255) NOT NULL,
+        config TEXT NOT NULL,
         defeito TEXT,
-        lacre TEXT,
-        data DATETIME,
-        responsavel TEXT,
-        placaVideo TEXT,
-        gabinete TEXT,
-        saiu_venda BOOLEAN DEFAULT 0,
-        data_saida DATETIME,
-        fkDevolucao INT
+        data_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS maquina_configuracoes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        codigo VARCHAR(255) NOT NULL,
+        config TEXT NOT NULL,
+        UNIQUE KEY uq_maquina_configuracoes_codigo (codigo)
       )`,
       `CREATE TABLE IF NOT EXISTS monitores (
         id INT AUTO_INCREMENT PRIMARY KEY,
