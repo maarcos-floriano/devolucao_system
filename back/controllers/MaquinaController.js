@@ -58,6 +58,36 @@ class MaquinaController {
     }
   }
 
+  static async findAll(req, res) {
+    try {
+      const { page = 1, limit = 10, search = '' } = req.query;
+
+      const [dados, total] = await Promise.all([
+        Maquina.findAll({
+          page: parseInt(page),
+          limit: parseInt(limit),
+          search: search.toString(),
+        }),
+        Maquina.count(search.toString()),
+      ]);
+
+      return res.json({
+        success: true,
+        dados,
+        total,
+        totalPaginas: Math.ceil(total / parseInt(limit)),
+        paginaAtual: parseInt(page),
+        limite: parseInt(limit),
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  static async findToday(req, res) {
+    return this.findAll(req, res);
+  }
+
   static async findById(req, res) {
     try {
       const { id } = req.params;
