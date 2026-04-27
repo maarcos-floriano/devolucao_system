@@ -62,6 +62,7 @@ class RelatorioController {
 
       worksheet.columns = [
         { header: "CONFIGURAÇÃO", key: "configuracao", width: 40 },
+        { header: "DEFEITO", key: "defeito", width: 35 },
         { header: "IDS", key: "ids", width: 30 },
         { header: "QTD", key: "quantidade", width: 15 }
       ];

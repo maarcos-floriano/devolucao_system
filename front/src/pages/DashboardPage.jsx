@@ -108,8 +108,8 @@ const DashboardPage = () => {
     kits: 0,
   });
   const [chartsData, setChartsData] = useState({
-    maquinasPorResponsavel: { labels: [], datasets: [] },
-    maquinasHojePorResponsavel: { labels: [], datasets: [] },
+    maquinasPorDefeito: { labels: [], datasets: [] },
+    maquinasHojePorConfiguracao: { labels: [], datasets: [] },
     kitsPorConfiguracao: { labels: [], datasets: [] },
     maquinasPorConfiguracao: { labels: [], datasets: [] },
   });
@@ -159,20 +159,20 @@ const DashboardPage = () => {
       });
 
       const hoje = new Date();
-      const maquinasPorResponsavelCounter = {};
-      const maquinasHojePorResponsavelCounter = {};
+      const maquinasPorDefeitoCounter = {};
+      const maquinasHojePorConfiguracaoCounter = {};
       const maquinasPorConfiguracaoCounter = {};
       const kitsPorConfiguracaoCounter = {};
 
       await Promise.all([
         fetchPaginatedCounters('/maquinas', (maquina) => {
-          incrementCounter(maquinasPorResponsavelCounter, maquina.responsavel || 'Sem responsável');
-          incrementCounter(maquinasPorConfiguracaoCounter, maquina.processador || 'Sem configuração');
+          incrementCounter(maquinasPorDefeitoCounter, maquina.defeito || 'Sem defeito informado');
+          incrementCounter(maquinasPorConfiguracaoCounter, maquina.codigo || 'Sem configuração');
 
-          if (isSameDate(maquina.data, hoje)) {
+          if (isSameDate(maquina.data_registro, hoje)) {
             incrementCounter(
-              maquinasHojePorResponsavelCounter,
-              maquina.responsavel || 'Sem responsável'
+              maquinasHojePorConfiguracaoCounter,
+              maquina.codigo || 'Sem configuração'
             );
           }
         }),
@@ -182,9 +182,9 @@ const DashboardPage = () => {
       ]);
 
       setChartsData({
-        maquinasPorResponsavel: buildChartDataFromCounter(maquinasPorResponsavelCounter, 'Máquinas'),
-        maquinasHojePorResponsavel: buildChartDataFromCounter(
-          maquinasHojePorResponsavelCounter,
+        maquinasPorDefeito: buildChartDataFromCounter(maquinasPorDefeitoCounter, 'Máquinas'),
+        maquinasHojePorConfiguracao: buildChartDataFromCounter(
+          maquinasHojePorConfiguracaoCounter,
           'Máquinas registradas hoje'
         ),
         kitsPorConfiguracao: buildChartDataFromCounter(kitsPorConfiguracaoCounter, 'Kits'),
@@ -228,7 +228,7 @@ const DashboardPage = () => {
 
   const handleExportReport = (tipo) => {
     const periodo = getPeriodoQueryString();
-    const urlBase = `http://192.168.15.100:3001/api/relatorios/excel/${tipo}`;
+    const urlBase = `http://https://devolucao-system-1.onrender.com/api/relatorios/excel/${tipo}`;
     const urlFinal = periodo ? `${urlBase}?${periodo}` : urlBase;
 
     window.open(urlFinal, '_blank');
@@ -236,16 +236,16 @@ const DashboardPage = () => {
 
   const handleExportSkuReport = (tipo) => {
     const endpoints = {
-      maquinas: 'http://192.168.15.100:3001/api/relatorios/paulinho/maquinas',
-      monitores: 'http://192.168.15.100:3001/api/relatorios/paulinho/monitores',
-      kit: 'http://192.168.15.100:3001/api/relatorios/paulinho/kit',
+      maquinas: 'http://https://devolucao-system-1.onrender.com/api/relatorios/paulinho/maquinas',
+      monitores: 'http://https://devolucao-system-1.onrender.com/api/relatorios/paulinho/monitores',
+      kit: 'http://https://devolucao-system-1.onrender.com/api/relatorios/paulinho/kit',
     };
     window.open(endpoints[tipo], '_blank');
   };
 
   const handleSacReport = () => {
     const periodo = getPeriodoQueryString();
-    const urlBase = 'http://192.168.15.100:3001/api/relatorios/sac/semanal';
+    const urlBase = 'http://https://devolucao-system-1.onrender.com/api/relatorios/sac/semanal';
     const urlFinal = periodo ? `${urlBase}?${periodo}` : urlBase;
 
     window.open(urlFinal, '_blank');
@@ -376,10 +376,10 @@ const DashboardPage = () => {
         <Grid item xs={12} lg={8}>
           <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
             <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
-              Máquinas por Responsável
+              Máquinas por Defeito
             </Typography>
             <Box height={300}>
-              <Bar data={chartsData.maquinasPorResponsavel} options={chartOptions} />
+              <Bar data={chartsData.maquinasPorDefeito} options={chartOptions} />
             </Box>
           </Paper>
         </Grid>
@@ -387,10 +387,10 @@ const DashboardPage = () => {
         <Grid item xs={12} lg={4}>
           <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
             <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
-              Máquinas Registradas Hoje por Responsável
+              Máquinas Registradas Hoje por Configuração
             </Typography>
             <Box height={300}>
-              <Bar data={chartsData.maquinasHojePorResponsavel} options={chartOptions} />
+              <Bar data={chartsData.maquinasHojePorConfiguracao} options={chartOptions} />
             </Box>
           </Paper>
         </Grid>
@@ -507,7 +507,7 @@ const DashboardPage = () => {
               onClick={() => handleExportSkuReport('maquinas')}
               sx={{ borderColor: '#3b82f6', color: '#3b82f6' }}
             >
-              SKU Máquinas
+              SKU Máquinas (Config)
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>

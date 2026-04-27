@@ -66,6 +66,16 @@ const MaquinaForm = ({ formData, onChange, configuracoes = [], loading = false, 
           disabled={loading || (!isAdmin && Boolean(formData.configId))}
         />
       </Grid>
+      <Grid item xs={12}>
+        <TextField
+          fullWidth
+          label="Defeito"
+          name="defeito"
+          value={formData.defeito || ''}
+          onChange={handleTextChange}
+          disabled={loading}
+        />
+      </Grid>
     </Grid>
   );
 };

@@ -37,7 +37,7 @@ const MaquinaPage = () => {
   const [newConfig, setNewConfig] = useState({ codigo: '', config: '' });
   const [creatingConfig, setCreatingConfig] = useState(false);
 
-  const formDataInicial = { codigo: '', config: '', configId: '' };
+  const formDataInicial = { codigo: '', config: '', configId: '', defeito: '' };
   const [formData, setFormData] = useState(formDataInicial);
 
   const canEdit = () => hasRole('admin') || hasRole('tecnico');
@@ -82,7 +82,7 @@ const MaquinaPage = () => {
 
     setSubmitting(true);
     try {
-      const res = await maquinaService.create({ codigo: formData.codigo, config: formData.config });
+      const res = await maquinaService.create({ codigo: formData.codigo, config: formData.config, defeito: formData.defeito });
       alert('Máquina cadastrada!');
       handlePrint({ id: res.data?.id || res.id, ...formData });
       setFormData(formDataInicial);
@@ -117,7 +117,7 @@ const MaquinaPage = () => {
   const handleEditClick = (maquina) => {
     if (!canEdit()) return;
     setEditingMaquina(maquina);
-    setFormData({ codigo: maquina.codigo || '', config: maquina.config || '', configId: '' });
+    setFormData({ codigo: maquina.codigo || '', config: maquina.config || '', configId: '', defeito: maquina.defeito || '' });
     setEditDialogOpen(true);
   };
 
@@ -125,7 +125,7 @@ const MaquinaPage = () => {
     if (!editingMaquina) return;
     setSubmitting(true);
     try {
-      await maquinaService.update(editingMaquina.id, { codigo: formData.codigo, config: formData.config });
+      await maquinaService.update(editingMaquina.id, { codigo: formData.codigo, config: formData.config, defeito: formData.defeito });
       alert('Máquina atualizada com sucesso!');
       setEditDialogOpen(false);
       loadMaquinas();
@@ -160,14 +160,84 @@ const MaquinaPage = () => {
   const handlePrint = (maquina) => {
     const data = maquina.id === 'new' ? formData : maquina;
     const janela = window.open('', '_blank');
-    janela.document.write(`<html><body onload="window.print();window.close();"><h2>ID: ${data.id || ''}</h2><p><b>${data.codigo}</b></p><p>${data.config}</p></body></html>`);
+    janela.document.write(`<html>
+              <head>
+                <title>Etiqueta</title>
+                <style>
+
+                  @page {
+                    size: 100mm 30mm;
+                    margin: 0;
+                    padding: 0;
+                  }
+                  html, body {
+                    width: 100mm;
+                    height: 30mm;
+                    margin: 0;
+                    padding: 0;
+                  }
+                  body {
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    font-size: 20px;
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                  }
+                  .etiqueta {
+                    width: 95mm;
+                    height: 25mm;
+                    border: 2px solid #000;
+                    padding: 5px;
+                    box-sizing: border-box;
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: space-between;
+                  }
+
+                  .info-principal {
+                    flex: 1;
+                    border-right: 1px solid #000;
+                    padding-right: 10px;
+                  }
+                  .info-secundaria {
+                    flex: 1;
+                    padding-left: 10px;
+                    font-size: 16px;
+                  }
+                  h1 {
+                    margin: 0;
+                    font-size: 24px;
+                  }
+                  p {
+                    margin: 5px 0 0 0;
+                    font-size: 18px;
+                  }
+                </style>
+              </head>
+              <body onload="window.print(); window.close();">
+                <div class="etiqueta">
+                  <div class="info-principal"> 
+                    <h1>${data.codigo}</h1>
+                  </div>
+                  <div class="info-secundaria">
+                    ${data.config}
+                  </div>
+                </div>
+              </body>
+            </html>`);
     janela.document.close();
   };
 
   const columns = [
     { field: 'id', headerName: 'ID', width: 80 },
     { field: 'codigo', headerName: 'Código', width: 180 },
-    { field: 'config', headerName: 'Configuração', width: 560 },
+    { field: 'config', headerName: 'Configuração', width: 420 },
+    { field: 'defeito', headerName: 'Defeito', width: 220 },
+    { field: 'data_registro', headerName: 'Data Registro', width: 180 },
   ];
 
   return (
@@ -240,7 +310,7 @@ const MaquinaPage = () => {
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle><DeleteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />Excluir Máquina #{maquinaToDelete?.id}</DialogTitle>
-        <DialogContent sx={{ pt: 3 }}><Typography>Código: {maquinaToDelete?.codigo}</Typography><Typography>Config: {maquinaToDelete?.config}</Typography></DialogContent>
+        <DialogContent sx={{ pt: 3 }}><Typography>Código: {maquinaToDelete?.codigo}</Typography><Typography>Config: {maquinaToDelete?.config}</Typography><Typography>Defeito: {maquinaToDelete?.defeito || 'N/A'}</Typography></DialogContent>
         <DialogActions sx={{ p: 3, pt: 2 }}>
           <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined" disabled={deleting}>Cancelar</Button>
           <Button onClick={handleConfirmDelete} variant="contained" startIcon={<DeleteIcon />} disabled={deleting}>{deleting ? <CircularProgress size={24} color="inherit" /> : 'Excluir Máquina'}</Button>
