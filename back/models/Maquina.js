@@ -12,11 +12,6 @@ class Maquina {
   static async create(maquinaData) {
     const sql = `INSERT INTO maquinas (codigo, config, defeito, data_registro) VALUES (?, ?, ?, NOW())`;
     const params = [maquinaData.codigo, maquinaData.config, maquinaData.defeito || null];
-  }
-
-  static async create(maquinaData) {
-    const sql = `INSERT INTO maquinas (codigo, config) VALUES (?, ?)`;
-    const params = [maquinaData.codigo, maquinaData.config];
 
     try {
       const result = await DualDatabase.executeOnBothPools(sql, params);
@@ -46,7 +41,6 @@ class Maquina {
       `;
 
       const params = [termo, termo, termo, termo, termo, Number(limit), Number(offset)];
-      const params = [termo, termo, termo, Number(limit), Number(offset)];
       const rows = await DualDatabase.executeOnMainPool(sql, params);
       return rows || [];
     } catch (error) {
@@ -62,7 +56,6 @@ class Maquina {
     } catch (error) {
       throw new Error(`Erro ao buscar máquinas de hoje: ${error.message}`);
     }
-    return [];
   }
 
   static async findById(id) {
@@ -86,10 +79,6 @@ class Maquina {
         maquinaData.codigo || maquina.codigo,
         maquinaData.config || maquina.config,
         maquinaData.defeito ?? maquina.defeito,
-      const sql = `UPDATE maquinas SET codigo = ?, config = ? WHERE id = ?`;
-      const params = [
-        maquinaData.codigo || maquina.codigo,
-        maquinaData.config || maquina.config,
         id,
       ];
 
@@ -126,7 +115,6 @@ class Maquina {
       `;
 
       const rows = await DualDatabase.executeOnMainPool(sql, [termo, termo, termo, termo, termo]);
-      const rows = await DualDatabase.executeOnMainPool(sql, [termo, termo, termo]);
       return rows[0].total || 0;
     } catch (error) {
       throw new Error(`Erro ao contar máquinas: ${error.message}`);
