@@ -167,12 +167,12 @@ const DashboardPage = () => {
       await Promise.all([
         fetchPaginatedCounters('/maquinas', (maquina) => {
           incrementCounter(maquinasPorDefeitoCounter, maquina.defeito || 'Sem defeito informado');
-          incrementCounter(maquinasPorConfiguracaoCounter, maquina.config || 'Sem configuração');
+          incrementCounter(maquinasPorConfiguracaoCounter, maquina.codigo || 'Sem configuração');
 
           if (isSameDate(maquina.data_registro, hoje)) {
             incrementCounter(
               maquinasHojePorConfiguracaoCounter,
-              maquina.config || 'Sem configuração'
+              maquina.codigo || 'Sem configuração'
             );
           }
         }),
@@ -228,7 +228,7 @@ const DashboardPage = () => {
 
   const handleExportReport = (tipo) => {
     const periodo = getPeriodoQueryString();
-    const urlBase = `http://192.168.15.100:3001/api/relatorios/excel/${tipo}`;
+    const urlBase = `http://https://devolucao-system-1.onrender.com/api/relatorios/excel/${tipo}`;
     const urlFinal = periodo ? `${urlBase}?${periodo}` : urlBase;
 
     window.open(urlFinal, '_blank');
@@ -236,16 +236,16 @@ const DashboardPage = () => {
 
   const handleExportSkuReport = (tipo) => {
     const endpoints = {
-      maquinas: 'http://192.168.15.100:3001/api/relatorios/paulinho/maquinas',
-      monitores: 'http://192.168.15.100:3001/api/relatorios/paulinho/monitores',
-      kit: 'http://192.168.15.100:3001/api/relatorios/paulinho/kit',
+      maquinas: 'http://https://devolucao-system-1.onrender.com/api/relatorios/paulinho/maquinas',
+      monitores: 'http://https://devolucao-system-1.onrender.com/api/relatorios/paulinho/monitores',
+      kit: 'http://https://devolucao-system-1.onrender.com/api/relatorios/paulinho/kit',
     };
     window.open(endpoints[tipo], '_blank');
   };
 
   const handleSacReport = () => {
     const periodo = getPeriodoQueryString();
-    const urlBase = 'http://192.168.15.100:3001/api/relatorios/sac/semanal';
+    const urlBase = 'http://https://devolucao-system-1.onrender.com/api/relatorios/sac/semanal';
     const urlFinal = periodo ? `${urlBase}?${periodo}` : urlBase;
 
     window.open(urlFinal, '_blank');

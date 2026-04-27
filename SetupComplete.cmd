@@ -1,0 +1,1 @@
+powershell -ExecutionPolicy Bypass -File C:\Windows\Setup\Scripts\setup.ps1

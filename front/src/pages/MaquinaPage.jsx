@@ -160,7 +160,75 @@ const MaquinaPage = () => {
   const handlePrint = (maquina) => {
     const data = maquina.id === 'new' ? formData : maquina;
     const janela = window.open('', '_blank');
-    janela.document.write(`<html><body onload="window.print();window.close();"><h2>ID: ${data.id || ''}</h2><p><b>${data.codigo}</b></p><p>${data.config}</p></body></html>`);
+    janela.document.write(`<html>
+              <head>
+                <title>Etiqueta</title>
+                <style>
+
+                  @page {
+                    size: 100mm 30mm;
+                    margin: 0;
+                    padding: 0;
+                  }
+                  html, body {
+                    width: 100mm;
+                    height: 30mm;
+                    margin: 0;
+                    padding: 0;
+                  }
+                  body {
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    font-size: 20px;
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                  }
+                  .etiqueta {
+                    width: 95mm;
+                    height: 25mm;
+                    border: 2px solid #000;
+                    padding: 5px;
+                    box-sizing: border-box;
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: space-between;
+                  }
+
+                  .info-principal {
+                    flex: 1;
+                    border-right: 1px solid #000;
+                    padding-right: 10px;
+                  }
+                  .info-secundaria {
+                    flex: 1;
+                    padding-left: 10px;
+                    font-size: 16px;
+                  }
+                  h1 {
+                    margin: 0;
+                    font-size: 24px;
+                  }
+                  p {
+                    margin: 5px 0 0 0;
+                    font-size: 18px;
+                  }
+                </style>
+              </head>
+              <body onload="window.print(); window.close();">
+                <div class="etiqueta">
+                  <div class="info-principal"> 
+                    <h1>${data.codigo}</h1>
+                  </div>
+                  <div class="info-secundaria">
+                    ${data.config}
+                  </div>
+                </div>
+              </body>
+            </html>`);
     janela.document.close();
   };
 

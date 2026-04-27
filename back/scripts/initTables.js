@@ -6,7 +6,6 @@ async function createTables() {
     conn = await database.mainPool.getConnection();
 
     const tableQueries = [
-      `DROP TABLE IF EXISTS maquinas`,
       `CREATE TABLE IF NOT EXISTS maquinas (
         id INT AUTO_INCREMENT PRIMARY KEY,
         codigo VARCHAR(255) NOT NULL,

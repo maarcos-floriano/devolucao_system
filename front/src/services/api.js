@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configuração base da API
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://192.168.15.31:3001/api',
+  baseURL: process.env.REACT_APP_API_URL || 'https://devolucao-system-1.onrender.com/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

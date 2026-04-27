@@ -7,12 +7,11 @@ class Relatorio {
       const sql = `
         SELECT
           COALESCE(config, 'Sem configuração') AS configuracao,
-          COALESCE(defeito, 'Sem defeito informado') AS defeito,
-          GROUP_CONCAT(id ORDER BY id SEPARATOR '-') AS ids,
+          COALESCE(codigo, 'Sem defeito informado') AS codigo,
           COUNT(*) AS quantidade
         FROM maquinas
         WHERE DATE(data_registro) = CURDATE()
-        GROUP BY config, defeito
+        GROUP BY config, codigo
         ORDER BY quantidade DESC;
       `;
 
