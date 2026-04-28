@@ -1,8 +1,19 @@
 import axios from 'axios';
 
-// Configuração base da API
+// Em produção (Render), prefira URL relativa para evitar hardcode de IP/localhost.
+// Se REACT_APP_API_URL estiver definida, ela terá prioridade.
+const resolveApiBaseUrl = () => {
+  const envUrl = process.env.REACT_APP_API_URL?.trim();
+  if (envUrl) {
+    return envUrl;
+  }
+
+  // Fallback seguro para web app e API no mesmo domínio.
+  return '/api';
+};
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://192.168.15.31:3001/api',
+  baseURL: resolveApiBaseUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -18,9 +29,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Interceptor para tratar respostas
