@@ -14,8 +14,6 @@ import {
   Computer,
   Monitor,
   KeyboardReturn,
-  Inventory,
-  Build,
 } from '@mui/icons-material';
 
 const Sidebar = ({ open, onClose }) => {
@@ -24,7 +22,6 @@ const Sidebar = ({ open, onClose }) => {
     { path: '/maquinas', label: 'Máquinas', icon: <Computer /> },
     { path: '/monitores', label: 'Monitores', icon: <Monitor /> },
     { path: '/devolucao', label: 'Devolução', icon: <KeyboardReturn /> },
-    { path: '/kit', label: 'Kit', icon: <Build /> },
   ];
 
   return (

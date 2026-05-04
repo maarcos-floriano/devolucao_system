@@ -1,156 +1,107 @@
 const Monitor = require('../models/Monitor');
 
 class MonitorController {
-  // Criar novo monitor
   static async create(req, res) {
     try {
       const monitorData = req.body;
-      
-      // Validação básica
-      if (!monitorData.marca || !monitorData.tamanho || !monitorData.responsavel) {
-        return res.status(400).json({ 
-          error: 'Campos obrigatórios: marca, tamanho e responsavel' 
+
+      if (!monitorData.marca || !monitorData.tamanho || !monitorData.origem || !monitorData.responsavel) {
+        return res.status(400).json({
+          success: false,
+          error: 'Campos obrigatorios: marca, tamanho, origem e responsavel',
         });
       }
 
       const monitor = await Monitor.create(monitorData);
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: 'Monitor criado com sucesso',
-        data: monitor
+        data: monitor,
       });
     } catch (error) {
       console.error('Erro ao criar monitor:', error);
-      res.status(500).json({ 
-        success: false,
-        error: error.message 
-      });
+      return res.status(500).json({ success: false, error: error.message });
     }
   }
 
-  // Listar todos os monitores
   static async findAll(req, res) {
     try {
       const { page = 1, limit = 10, search = '' } = req.query;
-            
-            const [dados, total] = await Promise.all([
-                Monitor.findAll({
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    search: search.toString()
-                }),
-                Monitor.count(search.toString())
-            ]);
 
-            const totalPaginas = Math.ceil(total / parseInt(limit));
+      const [dados, total] = await Promise.all([
+        Monitor.findAll({ page, limit, search: search.toString() }),
+        Monitor.count(search.toString()),
+      ]);
 
-            return res.json({
-                success: true,
-                dados,
-                total,
-                totalPaginas,
-                paginaAtual: parseInt(page),
-                limite: parseInt(limit)
-            });
+      return res.json({
+        success: true,
+        dados,
+        total,
+        totalPaginas: Math.ceil(total / Number(limit || 10)),
+        paginaAtual: Number(page || 1),
+        limite: Number(limit || 10),
+      });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ success: false, error: error.message });
+      return res.status(500).json({ success: false, error: error.message });
     }
   }
 
-  // Listar monitores do dia
   static async findToday(req, res) {
     try {
       const monitores = await Monitor.findToday();
-      
-      res.json({
-        success: true,
-        data: monitores.map(m => m.toJSON())
-      });
+      return res.json({ success: true, data: monitores, total: monitores.length });
     } catch (error) {
       console.error('Erro ao listar monitores do dia:', error);
-      res.status(500).json({ 
-        success: false,
-        error: error.message 
-      });
+      return res.status(500).json({ success: false, error: error.message });
     }
   }
 
-  // Buscar monitor por ID
   static async findById(req, res) {
     try {
-      const { id } = req.params;
-      const monitor = await Monitor.findById(id);
-      
+      const monitor = await Monitor.findById(req.params.id);
+
       if (!monitor) {
-        return res.status(404).json({ 
-          success: false,
-          error: 'Monitor não encontrado' 
-        });
+        return res.status(404).json({ success: false, error: 'Monitor nao encontrado' });
       }
-      
-      res.json({
-        success: true,
-        data: monitor
-      });
+
+      return res.json({ success: true, data: monitor.toJSON() });
     } catch (error) {
       console.error('Erro ao buscar monitor:', error);
-      res.status(500).json({ 
-        success: false,
-        error: error.message 
-      });
+      return res.status(500).json({ success: false, error: error.message });
     }
   }
 
-  // Atualizar monitor
   static async update(req, res) {
     try {
-      const { id } = req.params;
-      const monitorData = req.body;
-      const updatedMonitor = await Monitor.update(id, monitorData);
+      const updatedMonitor = await Monitor.update(req.params.id, req.body);
 
       if (!updatedMonitor) {
-        return res.status(404).json({ 
-          success: false,
-          error: 'Monitor não encontrado' 
-        });
+        return res.status(404).json({ success: false, error: 'Monitor nao encontrado' });
       }
-      res.json({
+
+      return res.json({
         success: true,
         message: 'Monitor atualizado com sucesso',
-        data: updatedMonitor
+        data: updatedMonitor.toJSON(),
       });
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Erro ao atualizar monitor:', error);
-      res.status(500).json({ 
-        success: false,
-        error: error.message 
-      });
+      return res.status(500).json({ success: false, error: error.message });
     }
   }
 
-  // Deletar monitor
   static async delete(req, res) {
     try {
-      const { id } = req.params;
-      const deleted = await Monitor.delete(id); 
+      const deleted = await Monitor.delete(req.params.id);
       if (!deleted) {
-        return res.status(404).json({ 
-          success: false,
-          error: 'Monitor não encontrado' 
-        });
+        return res.status(404).json({ success: false, error: 'Monitor nao encontrado' });
       }
-      res.json({
-        success: true,
-        message: 'Monitor deletado com sucesso'
-      });
+
+      return res.json({ success: true, message: 'Monitor deletado com sucesso' });
     } catch (error) {
       console.error('Erro ao deletar monitor:', error);
-      res.status(500).json({ 
-        success: false,
-        error: error.message 
-      });
+      return res.status(500).json({ success: false, error: error.message });
     }
   }
 }

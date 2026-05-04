@@ -1,23 +1,32 @@
 import React, { useCallback } from 'react';
 import {
-  Grid,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Alert,
   Box,
   Button,
+  CircularProgress,
+  FormControl,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
   Typography,
 } from '@mui/material';
-import { UploadFile } from '@mui/icons-material';
+import { DocumentScanner, UploadFile } from '@mui/icons-material';
 import { ORIGENS_DEVOLUCAO } from '../../utils/constants';
 
-const DevolucaoForm = ({ formData, onChange, loading = false }) => {
+const DevolucaoForm = ({
+  formData,
+  onChange,
+  loading = false,
+  onAnalyzeImage,
+  analyzingLabel = false,
+  ocrResult = null,
+}) => {
   const handleChange = useCallback((field, value) => {
-    onChange(prev => ({
+    onChange((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   }, [onChange]);
 
@@ -37,7 +46,8 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
   };
 
   return (
-    <Grid container
+    <Grid
+      container
       spacing={2}
       sx={{
         display: 'grid',
@@ -45,7 +55,6 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
         gap: 2,
       }}
     >
-      {/* Origem */}
       <Grid item xs={12} sm={6}>
         <FormControl fullWidth required>
           <InputLabel>Origem</InputLabel>
@@ -66,7 +75,6 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
         </FormControl>
       </Grid>
 
-      {/* Cliente */}
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
@@ -79,7 +87,6 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
         />
       </Grid>
 
-      {/* Produto */}
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
@@ -92,24 +99,21 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
         />
       </Grid>
 
-      {/* Código de Rastreamento */}
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
-          label="Código de Rastreamento"
+          label="Codigo de Rastreamento"
           name="codigo"
           value={formData.codigo}
           onChange={handleTextChange}
-          required
           disabled={loading}
         />
       </Grid>
 
-      {/* Observação */}
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
-          label="Observação (opcional)"
+          label="Observacao (opcional)"
           name="observacao"
           value={formData.observacao}
           onChange={handleTextChange}
@@ -117,29 +121,48 @@ const DevolucaoForm = ({ formData, onChange, loading = false }) => {
         />
       </Grid>
 
-      {/* Imagem */}
       <Grid item xs={12} sm={6}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Button
-            variant="outlined"
-            component="label"
-            startIcon={<UploadFile />}
-            disabled={loading}
-          >
+          <Button variant="outlined" component="label" startIcon={<UploadFile />} disabled={loading}>
             {formData.imagemArquivo ? 'Trocar imagem anexada' : 'Anexar imagem'}
-            <input hidden type="file" accept="image/*" onChange={handleImageChange} />
+            <input hidden type="file" accept="image/*" capture="environment" onChange={handleImageChange} />
           </Button>
+
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={analyzingLabel ? <CircularProgress size={16} color="inherit" /> : <DocumentScanner />}
+            disabled={loading || analyzingLabel || !formData.imagemArquivo || !onAnalyzeImage}
+            onClick={onAnalyzeImage}
+          >
+            {analyzingLabel ? 'Lendo etiqueta...' : 'Ler etiqueta'}
+          </Button>
+
           <Typography variant="caption" color="text.secondary">
-            Formatos aceitos: JPG, PNG, WEBP (máx. 5MB).
+            Formatos aceitos: JPG, PNG, WEBP (max. 12MB).
           </Typography>
+
           {formData.imagemArquivo && (
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, overflowWrap: 'anywhere' }}>
               Arquivo: {formData.imagemArquivo.name}
             </Typography>
           )}
+
           {!formData.imagemArquivo && formData.imagem && (
             <Typography variant="body2" sx={{ fontWeight: 500 }}>
-              Imagem já cadastrada para esta devolução.
+              Imagem ja cadastrada para esta devolucao.
+            </Typography>
+          )}
+
+          {ocrResult?.warnings?.length > 0 && (
+            <Alert severity="warning" sx={{ mt: 1 }}>
+              {ocrResult.warnings[0]}
+            </Alert>
+          )}
+
+          {ocrResult?.confidence > 0 && (
+            <Typography variant="caption" color="text.secondary">
+              Confianca da leitura: {ocrResult.confidence}%
             </Typography>
           )}
         </Box>

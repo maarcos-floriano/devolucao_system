@@ -2,6 +2,31 @@ const ExcelJS = require('exceljs');
 const Relatorio = require('../models/Relatorio');
 
 class RelatorioController {
+  static getMaquinasFlexPayload(req) {
+    return {
+      dataInicio: req.query.dataInicio || req.query.inicio,
+      dataFim: req.query.dataFim || req.query.fim || req.query.data,
+      sku: req.query.sku || req.query.search || '',
+      defeito: req.query.defeito || '',
+      tipo: req.query.tipo || 'sku',
+    };
+  }
+
+  static addWorksheetRows(worksheet, rows) {
+    if (!rows || rows.length === 0) {
+      worksheet.addRow(['Nenhum registro encontrado']);
+      return;
+    }
+
+    worksheet.columns = Object.keys(rows[0]).map((col) => ({
+      header: col,
+      key: col,
+      width: Math.min(Math.max(col.length + 8, 16), 45),
+    }));
+
+    rows.forEach((row) => worksheet.addRow(row));
+  }
+
   // Relatório Excel simples por tabela (período semanal)
   static async relatorioExcel(req, res) {
     try {
@@ -62,6 +87,7 @@ class RelatorioController {
 
       worksheet.columns = [
         { header: "CONFIGURAÇÃO", key: "configuracao", width: 40 },
+        { header: "DEFEITO", key: "defeito", width: 35 },
         { header: "IDS", key: "ids", width: 30 },
         { header: "QTD", key: "quantidade", width: 15 }
       ];
@@ -449,6 +475,57 @@ class RelatorioController {
         error: "Erro interno ao gerar relatório",
         details: error.message
       });
+    }
+  }
+
+  static async relatorioMaquinasFlexivel(req, res) {
+    try {
+      const resultado = await Relatorio.relatorioMaquinasFlexivel(
+        RelatorioController.getMaquinasFlexPayload(req)
+      );
+
+      return res.json({ success: true, ...resultado });
+    } catch (error) {
+      console.error('Erro ao gerar relatorio flexivel de maquinas:', error);
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  static async relatorioMaquinasFlexivelExcel(req, res) {
+    try {
+      const resultado = await Relatorio.relatorioMaquinasFlexivel(
+        RelatorioController.getMaquinasFlexPayload(req)
+      );
+
+      const workbook = new ExcelJS.Workbook();
+      const resumo = workbook.addWorksheet('Resumo');
+      const dados = workbook.addWorksheet('Dados');
+
+      resumo.columns = [
+        { header: 'Campo', key: 'campo', width: 24 },
+        { header: 'Valor', key: 'valor', width: 48 },
+      ];
+      resumo.addRow({ campo: 'Periodo', valor: `${resultado.periodo.inicio} a ${resultado.periodo.fim}` });
+      resumo.addRow({ campo: 'Tipo', valor: resultado.filtros.tipo });
+      resumo.addRow({ campo: 'SKU/filtro', valor: resultado.filtros.sku || 'Todos' });
+      resumo.addRow({ campo: 'Defeito/filtro', valor: resultado.filtros.defeito || 'Todos' });
+      resumo.addRow({ campo: 'Total maquinas', valor: resultado.totalMaquinas });
+      resumo.addRow({ campo: 'SKUs distintos', valor: resultado.totalSkus });
+
+      RelatorioController.addWorksheetRows(dados, resultado.dados);
+
+      const filename = `relatorio_maquinas_${resultado.filtros.tipo}_${resultado.periodo.inicio}_a_${resultado.periodo.fim}.xlsx`;
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Erro ao exportar relatorio flexivel de maquinas:', error);
+      res.status(500).json({ erro: error.message });
     }
   }
 }

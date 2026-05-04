@@ -1,322 +1,113 @@
 import React, { useMemo } from 'react';
 import {
+  Autocomplete,
+  FormHelperText,
   Grid,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  CircularProgress,
-  Box,
-  Alert,
 } from '@mui/material';
-import {
-  RESPONSAVEIS,
-  ORIGENS,
-} from '../../utils/constants';
-import { getAllowedOptions } from '../../utils/machineConfigRules';
 
-const MaquinaForm = ({ formData, onChange, devolucoes = [], loadingDevolucoes = false, loading = false }) => {
-  const allowedOptions = useMemo(() => getAllowedOptions(formData), [formData]);
+const MaquinaForm = ({
+  formData,
+  onChange,
+  configuracoes = [],
+  loading = false,
+  isAdmin = false,
+}) => {
+  const selectedConfig = useMemo(() => {
+    const found = configuracoes.find((cfg) => String(cfg.id) === String(formData.configId));
+    if (found) return found;
 
+    if (formData.codigo || formData.config) {
+      return {
+        id: formData.configId || 'selected',
+        codigo: formData.codigo,
+        config: formData.config,
+      };
+    }
 
-  const handleChange = (field, value) => {
-    onChange({
-      ...formData,
-      [field]: value
-    });
-  };
-
-  const handleSelectChange = (e) => {
-    const { name, value } = e.target;
-    handleChange(name, value);
-  };
+    return null;
+  }, [configuracoes, formData.codigo, formData.config, formData.configId]);
 
   const handleTextChange = (e) => {
     const { name, value } = e.target;
-    handleChange(name, value);
+    onChange({ ...formData, [name]: value });
   };
 
-  // Determinar se o campo de devolução deve estar habilitado
-  const isDevolucaoEnabled = () => {
-    const origensPermitidas = ['Mercado Livre', 'Shopee', 'Correios', 'Mineiro Express'];
-    return origensPermitidas.includes(formData.origem);
+  const handleConfigChange = (event, selecionada) => {
+    onChange({
+      ...formData,
+      configId: selecionada?.id || '',
+      codigo: selecionada?.codigo || '',
+      config: selecionada?.config || '',
+    });
   };
 
   return (
-    <Grid
-      container
-      spacing={2}
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-        gap: 2,
-      }}
-    >
-
-      {/* Responsável e Lacre */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth required>
-            <InputLabel>Responsável</InputLabel>
-            <Select
-              name="responsavel"
-              value={formData.responsavel}
-              onChange={handleSelectChange}
-              label="Responsável"
-              disabled={loading}
-            >
-              {RESPONSAVEIS.map((resp) => (
-                <MenuItem key={resp.value} value={resp.value}>
-                  {resp.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth>
-            <InputLabel>Situação do Lacre</InputLabel>
-            <Select
-              name="lacre"
-              value={formData.lacre}
-              onChange={handleSelectChange}
-              label="Situação do Lacre"
-              disabled={loading}
-            >
-              <MenuItem value=""><em>Selecione...</em></MenuItem>
-              <MenuItem value="ok">Ok</MenuItem>
-              <MenuItem value="violado">Violado</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-
+    <Grid container spacing={2}>
       <Grid item xs={12}>
-        <Alert severity="info">
-          As opções de processador, memória, armazenamento e fonte foram limitadas às combinações válidas para cadastro.
-        </Alert>
-      </Grid>
-
-      {/* Processador e Memória */}
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
-          <InputLabel>Processador</InputLabel>
-          <Select
-            name="processador"
-            value={formData.processador}
-            onChange={handleSelectChange}
-            label="Processador"
-            disabled={loading}
-          >
-            <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {allowedOptions.processadores.map((proc) => (
-              <MenuItem key={proc} value={proc}>{proc}</MenuItem>
-            ))}
-          </Select>
-          <FormHelperText>
-            {allowedOptions.processadores.length} processadores válidos disponíveis
-          </FormHelperText>
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
-          <InputLabel>Memória RAM</InputLabel>
-          <Select
-            name="memoria"
-            value={formData.memoria}
-            onChange={handleSelectChange}
-            label="Memória RAM"
-            disabled={loading}
-          >
-            <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {allowedOptions.memorias.map((mem) => (
-              <MenuItem key={mem} value={mem}>{mem}</MenuItem>
-            ))}
-          </Select>
-          <FormHelperText>
-            {formData.processador ? 'Memórias válidas para o processador selecionado' : 'Selecione o processador para filtrar as memórias'}
-          </FormHelperText>
-        </FormControl>
-      </Grid>
-
-      {/* Armazenamento e Fonte */}
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Armazenamento</InputLabel>
-          <Select
-            name="armazenamento"
-            value={formData.armazenamento}
-            onChange={handleSelectChange}
-            label="Armazenamento"
-            disabled={loading}
-          >
-            <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {allowedOptions.armazenamentos.map((arm) => (
-              <MenuItem key={arm} value={arm}>{arm}</MenuItem>
-            ))}
-          </Select>
-          <FormHelperText>
-            {formData.memoria ? 'Armazenamentos válidos para a configuração selecionada' : 'Selecione processador e memória para filtrar o armazenamento'}
-          </FormHelperText>
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Fonte</InputLabel>
-          <Select
-            name="fonte"
-            value={formData.fonte}
-            onChange={handleSelectChange}
-            label="Fonte"
-            disabled={loading}
-          >
-            <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {allowedOptions.fontes.map((fonte) => (
-              <MenuItem key={fonte} value={fonte}>{fonte}</MenuItem>
-            ))}
-          </Select>
-          <FormHelperText>
-            {formData.armazenamento ? 'Fontes válidas para a configuração selecionada' : 'Selecione processador, memória e armazenamento para filtrar a fonte'}
-          </FormHelperText>
-        </FormControl>
-      </Grid>
-
-      {/* Origem */}
-      <Grid item xs={12} sm={6}>
-        <FormControl fullWidth required>
-          <InputLabel>Origem</InputLabel>
-          <Select
-            name="origem"
-            value={formData.origem}
-            onChange={handleSelectChange}
-            label="Origem"
-            disabled={loading}
-          >
-            <MenuItem value=""><em>Selecione...</em></MenuItem>
-            {ORIGENS.map((origem) => (
-              <MenuItem key={origem.value} value={origem.value}>
-                {origem.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-
-      {/* Devolução - Agora habilitado baseado na origem */}
-      <Grid item xs={12} sm={6}>
-        <FormControl 
-          fullWidth 
-          disabled={!isDevolucaoEnabled() || loading}
-        >
-          <InputLabel>Vincular a Devolução</InputLabel>
-          <Select
-            name="fkDevolucao"
-            value={formData.fkDevolucao || ''}
-            onChange={handleSelectChange}
-            label="Vincular a Devolução"
-            MenuProps={{
-              PaperProps: {
-                style: {
-                  maxHeight: 300,
-                },
-              },
-            }}
-          >
-            <MenuItem value="">
-              <em>Selecione uma devolução</em>
-            </MenuItem>
-            
-            {loadingDevolucoes ? (
-              <MenuItem disabled>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CircularProgress size={16} />
-                  Buscando devoluções de {formData.origem}...
-                </Box>
-              </MenuItem>
-            ) : devolucoes.length === 0 ? (
-              <MenuItem disabled>
-                {formData.origem && isDevolucaoEnabled()
-                  ? `Nenhuma devolução encontrada para origem: ${formData.origem}`
-                  : formData.origem && !isDevolucaoEnabled()
-                  ? `Vínculo não disponível para ${formData.origem}`
-                  : 'Selecione uma origem primeiro'
-                }
-              </MenuItem>
-            ) : (
-              devolucoes.map((devolucao) => (
-                <MenuItem key={devolucao.id} value={devolucao.id}>
-                  {devolucao.label}
-                </MenuItem>
-              ))
-            )}
-          </Select>
-          
-          {!isDevolucaoEnabled() && formData.origem && (
-            <FormHelperText>
-              Opção disponível apenas para Mercado Livre, Shopee, Amazon e Magalu
-            </FormHelperText>
+        <Autocomplete
+          options={configuracoes}
+          value={selectedConfig}
+          onChange={handleConfigChange}
+          disabled={loading}
+          isOptionEqualToValue={(option, value) => (
+            String(option.id) === String(value.id)
+            || (option.codigo === value.codigo && option.config === value.config)
           )}
-          
-          {isDevolucaoEnabled() && devolucoes.length > 0 && (
-            <FormHelperText>
-              {devolucoes.length} devoluções encontradas
-            </FormHelperText>
+          getOptionLabel={(option) => {
+            if (!option) return '';
+            return `${option.codigo || ''} - ${option.config || ''}`.trim();
+          }}
+          noOptionsText="Nenhum SKU encontrado"
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="SKU de configuracao"
+              required
+              helperText="A lista completa fica carregada para facilitar a busca pelo tecnico."
+            />
           )}
-        </FormControl>
+        />
+        <FormHelperText>
+          Somente ADM cria ou altera SKUs de configuracao.
+        </FormHelperText>
       </Grid>
 
-      {/* Placa de Vídeo (opcional) */}
-      <Grid item xs={12} sm={6}>
+      <Grid item xs={12} md={6}>
         <TextField
           fullWidth
-          label="Placa de Vídeo (opcional)"
-          name="placaVideo"
-          value={formData.placaVideo}
+          required
+          label="Codigo"
+          name="codigo"
+          value={formData.codigo}
           onChange={handleTextChange}
-          disabled={loading}
+          disabled={loading || !isAdmin}
         />
       </Grid>
 
-      {/* Gabinete (opcional) */}
-      <Grid item xs={12} sm={6}>
+      <Grid item xs={12} md={6}>
         <TextField
           fullWidth
-          label="Gabinete (opcional)"
-          name="gabinete"
-          value={formData.gabinete}
+          required
+          label="Configuracao"
+          name="config"
+          value={formData.config}
           onChange={handleTextChange}
-          disabled={loading}
+          disabled={loading || !isAdmin}
         />
       </Grid>
 
-      {/* Observação */}
       <Grid item xs={12}>
         <TextField
           fullWidth
-          label="Observação (opcional)"
-          name="observacao"
-          value={formData.observacao}
-          onChange={handleTextChange}
-          disabled={loading}
-          multiline
-          rows={2}
-        />
-      </Grid>
-
-      {/* Defeito */}
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="Defeito"
+          required
+          label="Defeito identificado"
           name="defeito"
-          value={formData.defeito}
+          value={formData.defeito || ''}
           onChange={handleTextChange}
           disabled={loading}
           multiline
-          rows={2}
+          minRows={2}
         />
       </Grid>
     </Grid>

@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback, use
 import api from '../services/api';
 
 const AuthContext = createContext({});
+const TIMEOUT_DURATION = 20 * 60 * 1000;
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -13,7 +14,7 @@ const MOCK_USERS = [
     password: 'lider123',
     name: 'Administrador RMA',
     role: 'admin',
-    permissions: ['dashboard', 'devolucao', 'maquinas', 'monitores', 'kit', 'chamados']
+    permissions: ['dashboard', 'devolucao', 'maquinas', 'monitores', 'chamados']
   },
   {
     id: 2,
@@ -21,7 +22,7 @@ const MOCK_USERS = [
     password: 'tec123',
     name: 'Técnico',
     role: 'tecnico',
-    permissions: ['maquinas', 'monitores', 'kit', 'chamados']
+    permissions: ['maquinas', 'monitores', 'chamados']
   },
   {
     id: 3,
@@ -47,10 +48,8 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState('');
   const [lastActivity, setLastActivity] = useState(Date.now());
   const logoutTimerRef = useRef(null);
+  const handleLogoutRef = useRef(null);
   const initializedRef = useRef(false);
-
-  // Tempo de timeout em milissegundos (20 minutos)
-  const TIMEOUT_DURATION = 20 * 60 * 1000;
 
   // Atualizar atividade do usuário - useCallback estável
   const updateActivity = useCallback(() => {
@@ -63,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     
     // Configurar novo timer
     logoutTimerRef.current = setTimeout(() => {
-      handleLogout();
+      handleLogoutRef.current?.();
       alert('Sessão expirada devido à inatividade. Por favor, faça login novamente.');
     }, TIMEOUT_DURATION);
   }, []); // Sem dependências - função estável
@@ -87,6 +86,8 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setError('');
   }, []);
+
+  handleLogoutRef.current = handleLogout;
 
   // Verificar token/sessão ao carregar - APENAS UMA VEZ
   useEffect(() => {

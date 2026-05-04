@@ -1,6 +1,7 @@
 const mysql = require('mysql2/promise');
 
-// ======== BANCO PRINCIPAL (AIVEN) ========
+const backupEnabled = Boolean(process.env.DB_BACKUP_HOST);
+
 const mainPool = mysql.createPool({
   host: process.env.DB_MAIN_HOST,
   port: process.env.DB_MAIN_PORT,
@@ -10,39 +11,43 @@ const mainPool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  multipleStatements: true
+  multipleStatements: true,
 });
 
-// ======== BANCO BACKUP (LOCAL) ========
-const backupPool = mysql.createPool({
-  host: process.env.DB_BACKUP_HOST,
-  port: process.env.DB_BACKUP_PORT,
-  user: process.env.DB_BACKUP_USER,
-  password: process.env.DB_BACKUP_PASSWORD,
-  database: process.env.DB_BACKUP_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+const backupPool = backupEnabled
+  ? mysql.createPool({
+    host: process.env.DB_BACKUP_HOST,
+    port: process.env.DB_BACKUP_PORT,
+    user: process.env.DB_BACKUP_USER,
+    password: process.env.DB_BACKUP_PASSWORD,
+    database: process.env.DB_BACKUP_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+  })
+  : null;
 
-// ======== TESTE DE CONEXÃO ========
 async function testConnections() {
   try {
     const mainConn = await mainPool.getConnection();
-    console.log('✅ Banco principal conectado (Aiven)');
+    console.log('Banco principal conectado.');
     mainConn.release();
   } catch (err) {
-    console.error('❌ Erro ao conectar no banco principal:', err.message);
+    console.error('Erro ao conectar no banco principal:', err.message);
     return false;
+  }
+
+  if (!backupPool) {
+    console.log('Banco backup nao configurado; usando apenas banco principal.');
+    return true;
   }
 
   try {
     const backupConn = await backupPool.getConnection();
-    console.log('✅ Banco backup conectado (Local)');
+    console.log('Banco backup conectado.');
     backupConn.release();
   } catch (err) {
-    console.warn('⚠️ Banco backup indisponível:', err.message);
-    // NÃO derruba a aplicação
+    console.warn('Banco backup indisponivel:', err.message);
   }
 
   return true;
@@ -51,5 +56,6 @@ async function testConnections() {
 module.exports = {
   mainPool,
   backupPool,
-  testConnections
+  backupEnabled,
+  testConnections,
 };

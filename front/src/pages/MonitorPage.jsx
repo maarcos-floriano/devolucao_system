@@ -344,8 +344,8 @@ const MonitorPage = () => {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ py: 2 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
+    <Container maxWidth="xl" sx={{ py: { xs: 1, md: 2 }, px: { xs: 0, sm: 2 } }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: { xs: 2, md: 4 }, fontSize: { xs: 26, md: 34 } }}>
         Monitores
       </Typography>
 
@@ -353,11 +353,11 @@ const MonitorPage = () => {
       <Paper 
         elevation={2}
         sx={{
-          p: 3,
+          p: { xs: 1.5, md: 3 },
           mb: 3,
-          border: '2px solid',
+          border: '1px solid',
           borderColor: 'primary.main',
-          borderRadius: 3,
+          borderRadius: 1,
         }}
       >
         <Typography variant="h6" gutterBottom>
@@ -373,7 +373,7 @@ const MonitorPage = () => {
           isEditing={!!editingMonitor}
         />
 
-        <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+        <Box sx={{ mt: 2, display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
           <Button
             variant="contained"
             startIcon={<Save />}
@@ -399,18 +399,18 @@ const MonitorPage = () => {
       <Paper 
         elevation={2}
         sx={{
-          p: 3,
-          border: '2px solid',
+          p: { xs: 1.5, md: 3 },
+          border: '1px solid',
           borderColor: 'primary.main',
-          borderRadius: 3,
+          borderRadius: 1,
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          height: '86vh',
-          overflow: 'hidden',
+          height: { xs: 'auto', md: '86vh' },
+          overflow: 'auto',
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
           <Typography variant="h6">Histórico de Monitores</Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button

@@ -1,22 +1,21 @@
 const express = require('express');
-const router = express.Router();
 const MonitorController = require('../controllers/MonitorController');
 
-// Middleware de validação
+const router = express.Router();
+
 const validateMonitor = (req, res, next) => {
-  const { marca, tamanho, responsavel } = req.body;
-  
-  if (!marca || !tamanho || !responsavel) {
+  const { marca, tamanho, origem, responsavel } = req.body;
+
+  if (!marca || !tamanho || !origem || !responsavel) {
     return res.status(400).json({
       success: false,
-      error: 'Campos obrigatórios: marca, tamanho e responsavel'
+      error: 'Campos obrigatorios: marca, tamanho, origem e responsavel',
     });
   }
-  
+
   next();
 };
 
-// Rotas CRUD
 router.post('/', validateMonitor, MonitorController.create);
 router.get('/', MonitorController.findAll);
 router.get('/dia', MonitorController.findToday);

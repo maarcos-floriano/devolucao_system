@@ -3,6 +3,7 @@ const path = require('path');
 const cors = require('cors');
 const database = require('./config/database');
 const createTables = require('./scripts/initTables');
+const { uploadRoot } = require('./config/storage');
 
 // Importar rotas
 const maquinaRoutes = require('./routes/maquinaRoutes');
@@ -17,8 +18,7 @@ class App {
   constructor() {
     this.app = express();
     this.port = process.env.PORT || 3001;
-    
-    this.initializeDatabase();
+
     this.initializeMiddlewares();
     this.initializeRoutes();
     this.initializeErrorHandling();
@@ -38,19 +38,34 @@ class App {
       console.log('✅ Banco de dados inicializado com sucesso');
     } catch (error) {
       console.error('❌ Erro ao inicializar banco de dados:', error.message);
-      process.exit(1);
+      throw error;
     }
   }
 
   initializeMiddlewares() {
-    // CORS
-    this.app.use(cors());
+    const allowedOrigins = String(process.env.CORS_ORIGINS || '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+
+    this.app.use(cors({
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error('Origem nao permitida pelo CORS'));
+      },
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Role'],
+    }));
     
     // Body parser
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     
     // Arquivos estáticos
+    this.app.use('/uploads', express.static(uploadRoot));
     this.app.use(express.static(path.join(__dirname, 'public')));
     
     // Logging middleware
@@ -117,7 +132,9 @@ class App {
     });
   }
 
-  start() {
+  async start() {
+    await this.initializeDatabase();
+
     this.app.listen(this.port, '0.0.0.0', () => {
       console.log(`🚀 Servidor rodando em http://localhost:${this.port}`);
       console.log(`📊 Ambiente: ${process.env.NODE_ENV || 'development'}`);

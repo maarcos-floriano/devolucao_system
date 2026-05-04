@@ -1,307 +1,314 @@
-// controllers/DevolucaoController.js
 const Devolucao = require('../models/Devolucao');
+const Chamado = require('../models/Chamado');
+const DualDatabase = require('../middleware/dualDatabase');
+const { analyzeLabelImage } = require('../services/labelOcrService');
+const emailService = require('../services/emailService');
+const { getDevolucaoPublicPath } = require('../config/storage');
 
 const buildImagePath = (file) => {
-    if (!file) return '';
-    return `/uploads/devolucoes/${file.filename}`;
+  if (!file) return '';
+  return getDevolucaoPublicPath(file.filename);
+};
+
+const getSafeImagePath = (bodyImage) => {
+  if (typeof bodyImage !== 'string') return '';
+  return bodyImage.startsWith('/uploads/devolucoes/') ? bodyImage : '';
 };
 
 class DevolucaoController {
-    // Criar nova devolução
-    static async create(req, res) {
-        try {
-            const { origem, cliente, produto, codigo, observacao } = req.body;
-            
-            // Validação básica
-            if (!origem || !cliente || !produto) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Origem, cliente e produto são obrigatórios'
-                });
-            }
+  static async create(req, res) {
+    try {
+      const { origem, cliente, produto, codigo, observacao } = req.body;
 
-            const devolucaoData = {
-                origem,
-                cliente,
-                produto,
-                codigo: codigo || '',
-                observacao: observacao || '',
-                imagem: buildImagePath(req.file)
-            };
+      if (!origem || !cliente || !produto) {
+        return res.status(400).json({
+          success: false,
+          error: 'Origem, cliente e produto sao obrigatorios',
+        });
+      }
 
-            const novaDevolucao = await Devolucao.create(devolucaoData);
-            
-            return res.status(201).json({
-                success: true,
-                message: 'Devolução registrada com sucesso!',
-                data: novaDevolucao
-            });
-        } catch (error) {
-            console.error('Erro ao criar devolução:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Erro interno do servidor',
-                details: error.message
-            });
-        }
+      const devolucaoData = {
+        origem,
+        cliente,
+        produto,
+        codigo: codigo || '',
+        observacao: observacao || '',
+        imagem: buildImagePath(req.file) || getSafeImagePath(req.body.imagem),
+      };
+
+      const novaDevolucao = await Devolucao.create(devolucaoData);
+      const chamadosFechados = await Chamado.resolveMatchesForDevolucao(novaDevolucao);
+
+      await Promise.allSettled(
+        chamadosFechados.map((chamado) => emailService.notifyWatchClosed(chamado, novaDevolucao))
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: 'Devolucao registrada com sucesso!',
+        data: {
+          ...novaDevolucao,
+          chamadosFechados,
+        },
+      });
+    } catch (error) {
+      console.error('Erro ao criar devolucao:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error.message,
+      });
     }
+  }
 
-    // Listar todas as devoluções
-    static async findAll(req, res) {
-        try {
-            const { page = 1, limit = 10, search = '' } = req.query;
-            
-            const [devolucoes, total] = await Promise.all([
-                Devolucao.findAll({
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    search: search.toString()
-                }),
-                Devolucao.count(search.toString())
-            ]);
+  static async analyzeLabel(req, res) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          error: 'Envie uma imagem da etiqueta para analisar',
+        });
+      }
 
-            const totalPaginas = Math.ceil(total / parseInt(limit));
+      const analysis = await analyzeLabelImage(req.file.path);
 
-            return res.json({
-                success: true,
-                dados: devolucoes,
-                total,
-                totalPaginas,
-                paginaAtual: parseInt(page),
-                limite: parseInt(limit)
-            });
-        } catch (error) {
-            console.error('Erro ao buscar devoluções:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Erro interno do servidor',
-                details: error.message
-            });
-        }
+      return res.json({
+        success: true,
+        imagem: buildImagePath(req.file),
+        ...analysis,
+      });
+    } catch (error) {
+      console.error('Erro ao analisar etiqueta:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro ao analisar etiqueta',
+        details: error.message,
+      });
     }
+  }
 
-    // Buscar devolução por ID
-    static async findById(req, res) {
-        try {
-            const { id } = req.params;
-            
-            const devolucao = await Devolucao.findById(parseInt(id));
-            
-            if (!devolucao) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Devolução não encontrada'
-                });
-            }
+  static async findAll(req, res) {
+    try {
+      const { page = 1, limit = 10, search = '' } = req.query;
 
-            return res.json({
-                success: true,
-                data: devolucao
-            });
-        } catch (error) {
-            console.error('Erro ao buscar devolução:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Erro interno do servidor',
-                details: error.message
-            });
-        }
+      const [devolucoes, total] = await Promise.all([
+        Devolucao.findAll({ page, limit, search: search.toString() }),
+        Devolucao.count(search.toString()),
+      ]);
+
+      return res.json({
+        success: true,
+        dados: devolucoes,
+        total,
+        totalPaginas: Math.ceil(total / Number(limit || 10)),
+        paginaAtual: Number(page || 1),
+        limite: Number(limit || 10),
+      });
+    } catch (error) {
+      console.error('Erro ao buscar devolucoes:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error.message,
+      });
     }
+  }
 
-    // Atualizar devolução
-    static async update(req, res) {
-        try {
-            const { id } = req.params;
-            const devolucaoData = {
-                ...req.body,
-            };
+  static async findById(req, res) {
+    try {
+      const devolucao = await Devolucao.findById(Number.parseInt(req.params.id, 10));
 
-            delete devolucaoData.data;
-            delete devolucaoData.dataHora;
+      if (!devolucao) {
+        return res.status(404).json({
+          success: false,
+          error: 'Devolucao nao encontrada',
+        });
+      }
 
-            if (req.file) {
-                devolucaoData.imagem = buildImagePath(req.file);
-            }
-
-            const devolucaoAtualizada = await Devolucao.update(parseInt(id), devolucaoData);
-            
-            if (!devolucaoAtualizada) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Devolução não encontrada'
-                });
-            }
-
-            return res.json({
-                success: true,
-                message: 'Devolução atualizada com sucesso!',
-                data: devolucaoAtualizada
-            });
-        } catch (error) {
-            console.error('Erro ao atualizar devolução:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Erro interno do servidor',
-                details: error.message
-            });
-        }
+      return res.json({ success: true, data: devolucao });
+    } catch (error) {
+      console.error('Erro ao buscar devolucao:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error.message,
+      });
     }
+  }
 
-    // Excluir devolução
-    static async delete(req, res) {
-        try {
-            const { id } = req.params;
-            
-            const devolucao = await Devolucao.findById(parseInt(id));
-            if (!devolucao) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Devolução não encontrada'
-                });
-            }
+  static async update(req, res) {
+    try {
+      const devolucaoData = { ...req.body };
 
-            await Devolucao.delete(parseInt(id));
-            
-            return res.json({
-                success: true,
-                message: 'Devolução excluída com sucesso!'
-            });
-        } catch (error) {
-            console.error('Erro ao excluir devolução:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Erro interno do servidor',
-                details: error.message
-            });
-        }
+      delete devolucaoData.data;
+      delete devolucaoData.dataHora;
+
+      if (req.file) {
+        devolucaoData.imagem = buildImagePath(req.file);
+      } else if (devolucaoData.imagem) {
+        devolucaoData.imagem = getSafeImagePath(devolucaoData.imagem);
+      }
+
+      const devolucaoAtualizada = await Devolucao.update(
+        Number.parseInt(req.params.id, 10),
+        devolucaoData
+      );
+
+      if (!devolucaoAtualizada) {
+        return res.status(404).json({
+          success: false,
+          error: 'Devolucao nao encontrada',
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Devolucao atualizada com sucesso!',
+        data: devolucaoAtualizada,
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar devolucao:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error.message,
+      });
     }
+  }
 
-    // Buscar devoluções do dia
-    static async findToday(req, res) {
-        try {
-            const devolucoesHoje = await Devolucao.findToday();
-            
-            return res.json({
-                success: true,
-                data: devolucoesHoje,
-                total: devolucoesHoje.length
-            });
-        } catch (error) {
-            console.error('Erro ao buscar devoluções do dia:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Erro interno do servidor',
-                details: error.message
-            });
-        }
+  static async delete(req, res) {
+    try {
+      const id = Number.parseInt(req.params.id, 10);
+      const devolucao = await Devolucao.findById(id);
+      if (!devolucao) {
+        return res.status(404).json({
+          success: false,
+          error: 'Devolucao nao encontrada',
+        });
+      }
+
+      await Devolucao.delete(id);
+
+      return res.json({
+        success: true,
+        message: 'Devolucao excluida com sucesso!',
+      });
+    } catch (error) {
+      console.error('Erro ao excluir devolucao:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error.message,
+      });
     }
+  }
 
-    // Estatísticas para dashboard
-    static async getStats(req, res) {
-        try {
-            const stats = await Devolucao.getStats();
-            
-            return res.json({
-                success: true,
-                data: stats
-            });
-        } catch (error) {
-            console.error('Erro ao buscar estatísticas:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Erro interno do servidor',
-                details: error.message
-            });
-        }
+  static async findToday(req, res) {
+    try {
+      const devolucoesHoje = await Devolucao.findToday();
+
+      return res.json({
+        success: true,
+        data: devolucoesHoje,
+        total: devolucoesHoje.length,
+      });
+    } catch (error) {
+      console.error('Erro ao buscar devolucoes do dia:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error.message,
+      });
     }
+  }
 
-    // Exportar relatório diário
-    static async exportDailyReport(req, res) {
-        try {
-            const { data } = req.query;
-            
-            const relatorio = await Devolucao.getDailyReport(data);
-            
-            // Aqui você pode implementar a geração do Excel
-            // Por enquanto, retornamos JSON
-            return res.json({
-                success: true,
-                message: 'Relatório semanal gerado com sucesso',
-                data: relatorio,
-                total: relatorio.length
-            });
-        } catch (error) {
-            console.error('Erro ao exportar relatório semanal:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Erro interno do servidor',
-                details: error.message
-            });
-        }
+  static async getStats(req, res) {
+    try {
+      const stats = await Devolucao.getStats();
+      return res.json({ success: true, data: stats });
+    } catch (error) {
+      console.error('Erro ao buscar estatisticas:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error.message,
+      });
     }
+  }
 
-    // Relatório por período
-    static async getReportByPeriod(req, res) {
-        try {
-            const { inicio, fim } = req.query;
-            
-            if (!inicio || !fim) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Datas de início e fim são obrigatórias'
-                });
-            }
+  static async exportDailyReport(req, res) {
+    try {
+      const relatorio = await Devolucao.getDailyReport(req.query.data);
 
-            const relatorio = await Devolucao.getReportByPeriod(inicio, fim);
-            
-            return res.json({
-                success: true,
-                data: relatorio,
-                total: relatorio.length,
-                periodo: { inicio, fim }
-            });
-        } catch (error) {
-            console.error('Erro ao gerar relatório por período:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Erro interno do servidor',
-                details: error.message
-            });
-        }
+      return res.json({
+        success: true,
+        message: 'Relatorio semanal gerado com sucesso',
+        data: relatorio,
+        total: relatorio.length,
+      });
+    } catch (error) {
+      console.error('Erro ao exportar relatorio semanal:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error.message,
+      });
     }
+  }
 
-    // Devoluções por origem (para gráficos)
-    static async getByOrigin(req, res) {
-        try {
-            const { dias = 30 } = req.query;
-            
-            const sql = `
-                SELECT 
-                    origem,
-                    COUNT(*) as quantidade
-                FROM devolucao
-                WHERE data >= DATE_SUB(NOW(), INTERVAL ? DAY)
-                GROUP BY origem
-                ORDER BY quantidade DESC
-            `;
-            
-            // Esta query precisa ser executada diretamente
-            // ou você pode adicionar um método específico no model
-            const [result] = await require('../utils/DualDatabase').executeOnMainPool(sql, [dias]);
-            
-            return res.json({
-                success: true,
-                data: result
-            });
-        } catch (error) {
-            console.error('Erro ao buscar devoluções por origem:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Erro interno do servidor',
-                details: error.message
-            });
-        }
+  static async getReportByPeriod(req, res) {
+    try {
+      const { inicio, fim } = req.query;
+
+      if (!inicio || !fim) {
+        return res.status(400).json({
+          success: false,
+          error: 'Datas de inicio e fim sao obrigatorias',
+        });
+      }
+
+      const relatorio = await Devolucao.getReportByPeriod(inicio, fim);
+
+      return res.json({
+        success: true,
+        data: relatorio,
+        total: relatorio.length,
+        periodo: { inicio, fim },
+      });
+    } catch (error) {
+      console.error('Erro ao gerar relatorio por periodo:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error.message,
+      });
     }
+  }
+
+  static async getByOrigin(req, res) {
+    try {
+      const { dias = 30 } = req.query;
+
+      const sql = `
+        SELECT origem, COUNT(*) as quantidade
+        FROM devolucao
+        WHERE data >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        GROUP BY origem
+        ORDER BY quantidade DESC
+      `;
+
+      const result = await DualDatabase.executeOnMainPool(sql, [dias]);
+
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('Erro ao buscar devolucoes por origem:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error.message,
+      });
+    }
+  }
 }
 
 module.exports = DevolucaoController;

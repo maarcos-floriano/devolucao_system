@@ -38,6 +38,8 @@ const DataTable = ({
   loading = false,
   ...props
 }) => {
+  const hasActions = Boolean(onEdit || onDelete || onView || onPrint || onReimprimir);
+
   const handleChangePage = (event, newPage) => {
     onPageChange(newPage);
   };
@@ -88,6 +90,46 @@ const DataTable = ({
     return value || '-';
   };
 
+  const renderActions = (row) => (
+    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+      {onView && (
+        <Tooltip title="Visualizar">
+          <IconButton size="small" onClick={() => onView(row)} sx={{ color: '#3b82f6', '&:hover': { backgroundColor: '#dbeafe' } }}>
+            <Visibility fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+      {onEdit && (
+        <Tooltip title="Editar">
+          <IconButton size="small" onClick={() => onEdit(row)} sx={{ color: '#f59e0b', '&:hover': { backgroundColor: '#fef3c7' } }}>
+            <Edit fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+      {onPrint && (
+        <Tooltip title="Imprimir Etiqueta">
+          <IconButton size="small" onClick={() => onPrint(row)} sx={{ color: '#22c55e', '&:hover': { backgroundColor: '#dcfce7' } }}>
+            <Print fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+      {onReimprimir && (
+        <Tooltip title="Reimprimir">
+          <IconButton size="small" onClick={() => onReimprimir(row)} sx={{ color: '#8b5cf6', '&:hover': { backgroundColor: '#ede9fe' } }}>
+            <Replay fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+      {onDelete && (
+        <Tooltip title="Excluir">
+          <IconButton size="small" onClick={() => onDelete(row)} sx={{ color: '#ef4444', '&:hover': { backgroundColor: '#fee2e2' } }}>
+            <Delete fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+    </Box>
+  );
+
   return (
     <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <TableContainer 
@@ -97,7 +139,8 @@ const DataTable = ({
           flex: 1,
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 2,
+          borderRadius: 1,
+          display: { xs: 'none', sm: 'block' },
         }}
       >
         <Table stickyHeader size="small">
@@ -118,7 +161,7 @@ const DataTable = ({
                   {column.headerName}
                 </TableCell>
               ))}
-              {(onEdit || onDelete || onView || onPrint || onReimprimir) && (
+              {hasActions && (
                 <TableCell 
                   align="center" 
                   sx={{ 
@@ -138,7 +181,7 @@ const DataTable = ({
             {loading ? (
               <TableRow>
                 <TableCell 
-                  colSpan={columns.length + ((onEdit || onDelete || onView || onPrint || onReimprimir) ? 1 : 0)} 
+                  colSpan={columns.length + (hasActions ? 1 : 0)}
                   align="center"
                   sx={{ py: 4 }}
                 >
@@ -148,7 +191,7 @@ const DataTable = ({
             ) : data.length === 0 ? (
               <TableRow>
                 <TableCell 
-                  colSpan={columns.length + ((onEdit || onDelete || onView || onPrint || onReimprimir) ? 1 : 0)} 
+                  colSpan={columns.length + (hasActions ? 1 : 0)}
                   align="center"
                   sx={{ py: 4, color: '#6b7280' }}
                 >
@@ -178,83 +221,12 @@ const DataTable = ({
                     </TableCell>
                   ))}
                   
-                  {(onEdit || onDelete || onView || onPrint || onReimprimir) && (
+                  {hasActions && (
                     <TableCell 
                       align="center"
                       sx={{ borderBottom: '1px solid #d1fae5' }}
                     >
-                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
-                        {onView && (
-                          <Tooltip title="Visualizar">
-                            <IconButton 
-                              size="small" 
-                              onClick={() => onView(row)}
-                              sx={{ 
-                                color: '#3b82f6',
-                                '&:hover': { backgroundColor: '#dbeafe' }
-                              }}
-                            >
-                              <Visibility fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        {onEdit && (
-                          <Tooltip title="Editar">
-                            <IconButton 
-                              size="small" 
-                              onClick={() => onEdit(row)}
-                              sx={{ 
-                                color: '#f59e0b',
-                                '&:hover': { backgroundColor: '#fef3c7' }
-                              }}
-                            >
-                              <Edit fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        {onPrint && (
-                          <Tooltip title="Imprimir Etiqueta">
-                            <IconButton 
-                              size="small" 
-                              onClick={() => onPrint(row)}
-                              sx={{ 
-                                color: '#22c55e',
-                                '&:hover': { backgroundColor: '#dcfce7' }
-                              }}
-                            >
-                              <Print fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        {onReimprimir && (
-                          <Tooltip title="Reimprimir">
-                            <IconButton 
-                              size="small" 
-                              onClick={() => onReimprimir(row)}
-                              sx={{ 
-                                color: '#8b5cf6',
-                                '&:hover': { backgroundColor: '#ede9fe' }
-                              }}
-                            >
-                              <Replay fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        {onDelete && (
-                          <Tooltip title="Excluir">
-                            <IconButton 
-                              size="small" 
-                              onClick={() => onDelete(row)}
-                              sx={{ 
-                                color: '#ef4444',
-                                '&:hover': { backgroundColor: '#fee2e2' }
-                              }}
-                            >
-                              <Delete fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Box>
+                      {renderActions(row)}
                     </TableCell>
                   )}
                 </TableRow>
@@ -263,6 +235,67 @@ const DataTable = ({
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Box
+        sx={{
+          display: { xs: 'flex', sm: 'none' },
+          flexDirection: 'column',
+          gap: 1.25,
+          flex: 1,
+        }}
+      >
+        {loading ? (
+          <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+            <CircularProgress size={24} sx={{ color: '#22c55e' }} />
+          </Box>
+        ) : data.length === 0 ? (
+          <Box sx={{ py: 4, textAlign: 'center', color: '#6b7280', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+            Nenhum registro encontrado
+          </Box>
+        ) : (
+          data.map((row, index) => (
+            <Box
+              key={row.id || index}
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                backgroundColor: 'white',
+                overflow: 'hidden',
+              }}
+            >
+              <Box sx={{ display: 'grid', gap: 0 }}>
+                {columns.map((column) => (
+                  <Box
+                    key={column.field}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: '110px 1fr',
+                      gap: 1,
+                      px: 1.25,
+                      py: 1,
+                      borderBottom: '1px solid #ecfdf5',
+                      alignItems: 'start',
+                    }}
+                  >
+                    <Box sx={{ color: '#166534', fontWeight: 700, fontSize: 12 }}>
+                      {column.headerName}
+                    </Box>
+                    <Box sx={{ minWidth: 0, overflowWrap: 'anywhere', fontSize: 13 }}>
+                      {renderCell(row, column)}
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+              {hasActions && (
+                <Box sx={{ px: 1, py: 0.75, backgroundColor: '#f8fafc' }}>
+                  {renderActions(row)}
+                </Box>
+              )}
+            </Box>
+          ))
+        )}
+      </Box>
       
       {totalRows > 0 && (
         <TablePagination

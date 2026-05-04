@@ -1,4 +1,15 @@
 const DualDatabase = require('../middleware/dualDatabase');
+const { buildSearchWhere, getPagination } = require('../utils/search');
+
+const SEARCH_FIELDS = [
+    'origem',
+    'cliente',
+    'produto',
+    'codigo',
+    'observacao',
+    'CAST(id AS CHAR)',
+    "DATE_FORMAT(data, '%d/%m/%Y %H:%i:%s')",
+];
 
 class Devolucao {
     constructor(data) {
@@ -41,23 +52,17 @@ class Devolucao {
     // Buscar todas as devoluções
     static async findAll({ page = 1, limit = 10, search = '' }) {
         try {
-            const offset = (page - 1) * limit;
-            const termo = `%${search}%`;
+            const pagination = getPagination({ page, limit });
+            const searchWhere = buildSearchWhere(SEARCH_FIELDS, search);
             
             const sql = `
                 SELECT * FROM devolucao
-                WHERE (
-                    origem LIKE ? OR 
-                    cliente LIKE ? OR 
-                    produto LIKE ? OR 
-                    codigo LIKE ? OR 
-                    observacao LIKE ?
-                )
+                WHERE ${searchWhere.clause}
                 ORDER BY id DESC
                 LIMIT ? OFFSET ?
             `;
             
-            const params = [termo, termo, termo, termo, termo, limit, offset];
+            const params = [...searchWhere.params, pagination.limit, pagination.offset];
             const rows = await DualDatabase.executeOnMainPool(sql, params);
             
             return rows;
@@ -69,20 +74,14 @@ class Devolucao {
     // Contar total
     static async count(search = '') {
         try {
-            const termo = `%${search}%`;
+            const searchWhere = buildSearchWhere(SEARCH_FIELDS, search);
             const sql = `
                 SELECT COUNT(*) as total 
                 FROM devolucao
-                WHERE (
-                    origem LIKE ? OR 
-                    cliente LIKE ? OR 
-                    produto LIKE ? OR 
-                    codigo LIKE ? OR 
-                    observacao LIKE ?
-                )
+                WHERE ${searchWhere.clause}
             `;
             
-            const result = await DualDatabase.count(sql, [termo, termo, termo, termo, termo]);
+            const result = await DualDatabase.count(sql, searchWhere.params);
             return result.total || 0;
         } catch (error) {
             throw new Error(`Erro ao contar devoluções: ${error.message}`);
@@ -126,12 +125,12 @@ class Devolucao {
             `;
 
             const params = [
-                devolucaoData.origem || devolucao.origem,
-                devolucaoData.cliente || devolucao.cliente,
-                devolucaoData.produto || devolucao.produto,
-                devolucaoData.codigo || devolucao.codigo,
-                devolucaoData.observacao || devolucao.observacao,
-                devolucaoData.imagem || devolucao.imagem,
+                devolucaoData.origem ?? devolucao.origem,
+                devolucaoData.cliente ?? devolucao.cliente,
+                devolucaoData.produto ?? devolucao.produto,
+                devolucaoData.codigo ?? devolucao.codigo,
+                devolucaoData.observacao ?? devolucao.observacao,
+                devolucaoData.imagem ?? devolucao.imagem,
                 id
             ];
 
@@ -185,10 +184,10 @@ class Devolucao {
             const stats = await DualDatabase.executeOnMainPool(sqlStats);
             
             const sqlTotal = `SELECT COUNT(*) as total FROM devolucao`;
-            const [totalResult] = await DualDatabase.executeOnMainPool(sqlTotal);
+            const totalResult = await DualDatabase.executeOnMainPool(sqlTotal);
             
             const sqlHoje = `SELECT COUNT(*) as hoje FROM devolucao WHERE DATE(data) = CURDATE()`;
-            const [hojeResult] = await DualDatabase.executeOnMainPool(sqlHoje);
+            const hojeResult = await DualDatabase.executeOnMainPool(sqlHoje);
             
             return {
                 total: totalResult[0]?.total || 0,
@@ -230,6 +229,29 @@ class Devolucao {
             return rows;
         } catch (error) {
             throw new Error(`Erro ao gerar relatório semanal: ${error.message}`);
+        }
+    }
+
+    static async getReportByPeriod(inicio, fim) {
+        try {
+            const sql = `
+                SELECT
+                    id,
+                    origem,
+                    cliente,
+                    produto,
+                    codigo,
+                    observacao,
+                    imagem,
+                    DATE_FORMAT(data, '%d/%m/%Y %H:%i:%s') as data_formatada
+                FROM devolucao
+                WHERE DATE(data) BETWEEN ? AND ?
+                ORDER BY id DESC
+            `;
+
+            return await DualDatabase.executeOnMainPool(sql, [inicio, fim]);
+        } catch (error) {
+            throw new Error(`Erro ao gerar relatorio por periodo: ${error.message}`);
         }
     }
 
