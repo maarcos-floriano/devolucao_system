@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: devolucao-system-api
+    runtime: node
+    plan: starter
+    rootDir: back
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    disk:
+      name: devolucao-system-uploads
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OCR_LANGS
+        value: por+eng
+      - key: UPLOAD_ROOT
+        value: /var/data/uploads
+      - key: CORS_ORIGINS
+        sync: false
+      - key: DB_MAIN_HOST
+        sync: false
+      - key: DB_MAIN_PORT
+        sync: false
+      - key: DB_MAIN_USER
+        sync: false
+      - key: DB_MAIN_PASSWORD
+        sync: false
+      - key: DB_MAIN_NAME
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: SAC_NOTIFICATION_EMAIL
+        sync: false
+      - key: REMOTE_ACCESS_NOTIFICATION_EMAIL
+        sync: false
+      - key: ADMIN_NOTIFICATION_EMAIL
+        sync: false

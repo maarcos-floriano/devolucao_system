@@ -30,6 +30,16 @@ const maquinaService = {
     const res = await api.post('/maquinas/configuracoes', payload);
     return res.data;
   },
+
+  async updateConfig(id, payload) {
+    const res = await api.put(`/maquinas/configuracoes/${id}`, payload);
+    return res.data;
+  },
+
+  async deleteConfig(id) {
+    const res = await api.delete(`/maquinas/configuracoes/${id}`);
+    return res.data;
+  },
 };
 
 export default maquinaService;

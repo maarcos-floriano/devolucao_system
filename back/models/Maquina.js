@@ -1,4 +1,13 @@
 const DualDatabase = require('../middleware/dualDatabase');
+const { buildSearchWhere, getPagination } = require('../utils/search');
+
+const SEARCH_FIELDS = [
+  'codigo',
+  'config',
+  'defeito',
+  'CAST(id AS CHAR)',
+  "DATE_FORMAT(data_registro, '%d/%m/%Y %H:%i:%s')",
+];
 
 class Maquina {
   constructor(data) {
@@ -23,24 +32,18 @@ class Maquina {
 
   static async findAll({ page, limit, search }) {
     try {
-      const offset = (page - 1) * limit;
-      const termo = `%${search}%`;
+      const pagination = getPagination({ page, limit });
+      const searchWhere = buildSearchWhere(SEARCH_FIELDS, search);
 
       const sql = `
         SELECT *
         FROM maquinas
-        WHERE (
-          codigo LIKE ?
-          OR config LIKE ?
-          OR defeito LIKE ?
-          OR DATE_FORMAT(data_registro, '%d/%m/%Y %H:%i:%s') LIKE ?
-          OR id LIKE ?
-        )
+        WHERE ${searchWhere.clause}
         ORDER BY id DESC
         LIMIT ? OFFSET ?
       `;
 
-      const params = [termo, termo, termo, termo, termo, Number(limit), Number(offset)];
+      const params = [...searchWhere.params, pagination.limit, pagination.offset];
       const rows = await DualDatabase.executeOnMainPool(sql, params);
       return rows || [];
     } catch (error) {
@@ -76,8 +79,8 @@ class Maquina {
 
       const sql = `UPDATE maquinas SET codigo = ?, config = ?, defeito = ? WHERE id = ?`;
       const params = [
-        maquinaData.codigo || maquina.codigo,
-        maquinaData.config || maquina.config,
+        maquinaData.codigo ?? maquina.codigo,
+        maquinaData.config ?? maquina.config,
         maquinaData.defeito ?? maquina.defeito,
         id,
       ];
@@ -101,20 +104,14 @@ class Maquina {
 
   static async count(search) {
     try {
-      const termo = `%${search}%`;
+      const searchWhere = buildSearchWhere(SEARCH_FIELDS, search);
       const sql = `
         SELECT COUNT(*) AS total
         FROM maquinas
-        WHERE (
-          codigo LIKE ?
-          OR config LIKE ?
-          OR defeito LIKE ?
-          OR DATE_FORMAT(data_registro, '%d/%m/%Y %H:%i:%s') LIKE ?
-          OR id LIKE ?
-        )
+        WHERE ${searchWhere.clause}
       `;
 
-      const rows = await DualDatabase.executeOnMainPool(sql, [termo, termo, termo, termo, termo]);
+      const rows = await DualDatabase.executeOnMainPool(sql, searchWhere.params);
       return rows[0].total || 0;
     } catch (error) {
       throw new Error(`Erro ao contar máquinas: ${error.message}`);

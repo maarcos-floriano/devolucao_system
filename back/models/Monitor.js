@@ -1,30 +1,45 @@
 const DualDatabase = require('../middleware/dualDatabase');
+const { buildSearchWhere, getPagination } = require('../utils/search');
+
+const SEARCH_FIELDS = [
+  'marca',
+  'tamanho',
+  'origem',
+  'observacao',
+  'responsavel',
+  'CAST(id AS CHAR)',
+  'CAST(fkDevolucao AS CHAR)',
+  "DATE_FORMAT(data, '%d/%m/%Y')",
+];
 
 class Monitor {
   constructor(data) {
     this.id = data.id;
     this.marca = data.marca;
     this.tamanho = data.tamanho;
-    this.quantidade = data.quantidade;
+    this.origem = data.origem;
     this.rma = Boolean(data.rma);
     this.data = data.data;
+    this.observacao = data.observacao;
     this.responsavel = data.responsavel;
+    this.fkDevolucao = data.fkDevolucao;
   }
 
-  // Criar novo monitor
   static async create(monitorData) {
     const sql = `
-      INSERT INTO monitores 
-      (marca, tamanho, rma, data, observacao, responsavel)
-      VALUES (?, ?, ?, NOW(), ?, ?)
+      INSERT INTO monitores
+      (marca, tamanho, origem, rma, data, observacao, responsavel, fkDevolucao)
+      VALUES (?, ?, ?, ?, NOW(), ?, ?, ?)
     `;
-    
+
     const params = [
       monitorData.marca,
       monitorData.tamanho,
+      monitorData.origem || '',
       monitorData.rma || false,
       monitorData.observacao || null,
-      monitorData.responsavel
+      monitorData.responsavel,
+      monitorData.fkDevolucao || null,
     ];
 
     try {
@@ -35,109 +50,114 @@ class Monitor {
     }
   }
 
-  // Buscar todos os monitores
   static async findAll({ page, limit, search }) {
     try {
-      const offset = (page - 1) * limit;
-      const termo = `%${search}%`;
+      const pagination = getPagination({ page, limit });
+      const searchWhere = buildSearchWhere(SEARCH_FIELDS, search);
+      const sql = `
+        SELECT *
+        FROM monitores
+        WHERE ${searchWhere.clause}
+        ORDER BY id DESC
+        LIMIT ? OFFSET ?
+      `;
 
-      const sql = `SELECT * FROM monitores WHERE marca LIKE ? OR tamanho LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?`;
-      const rows = await DualDatabase.executeOnMainPool(sql, [termo, termo, limit, offset]);
-      return rows;
+      return await DualDatabase.executeOnMainPool(sql, [
+        ...searchWhere.params,
+        pagination.limit,
+        pagination.offset,
+      ]);
     } catch (error) {
       throw new Error(`Erro ao buscar monitores: ${error.message}`);
     }
   }
 
-  // Buscar monitores do dia
   static async findToday() {
     try {
       const sql = `
-        SELECT * FROM monitores
+        SELECT *
+        FROM monitores
         WHERE DATE(data) = CURDATE()
         ORDER BY id DESC
       `;
-      
-      const rows = await DualDatabase.executeOnMainPool(sql);
-      return rows;
+
+      return await DualDatabase.executeOnMainPool(sql);
     } catch (error) {
       throw new Error(`Erro ao buscar monitores do dia: ${error.message}`);
     }
   }
 
-  // Buscar por ID
   static async findById(id) {
     try {
-      const sql = `SELECT * FROM monitores WHERE id = ?`;
-      const rows = await DualDatabase.executeOnMainPool(sql, [id]);
-      
-      if (rows.length === 0) {
-        return null;
-      }
-      
-      return new Monitor(rows[0]);
+      const rows = await DualDatabase.executeOnMainPool('SELECT * FROM monitores WHERE id = ?', [id]);
+      return rows.length ? new Monitor(rows[0]) : null;
     } catch (error) {
       throw new Error(`Erro ao buscar monitor: ${error.message}`);
     }
   }
 
-  //Count
   static async count(search) {
     try {
-      const termo = `%${search}%`;
-      const sql = `SELECT COUNT(*) AS count FROM monitores WHERE marca LIKE ? OR tamanho LIKE ?`;
-      const rows = await DualDatabase.executeOnMainPool(sql, [termo, termo]);
-      return rows[0].count;
+      const searchWhere = buildSearchWhere(SEARCH_FIELDS, search);
+      const sql = `SELECT COUNT(*) AS count FROM monitores WHERE ${searchWhere.clause}`;
+      const rows = await DualDatabase.executeOnMainPool(sql, searchWhere.params);
+      return rows[0].count || 0;
     } catch (error) {
       throw new Error(`Erro ao contar monitores: ${error.message}`);
     }
   }
 
-  // Atualizar monitor
   static async update(id, monitorData) {
+    const atual = await this.findById(id);
+    if (!atual) {
+      return null;
+    }
+
     const sql = `
       UPDATE monitores
-      SET marca = ?, tamanho = ?, rma = ?, data = NOW(), responsavel = ?
+      SET marca = ?, tamanho = ?, origem = ?, rma = ?, data = NOW(), observacao = ?, responsavel = ?, fkDevolucao = ?
       WHERE id = ?
     `;
+
     const params = [
-      monitorData.marca,
-      monitorData.tamanho,
-      monitorData.rma || false,
-      monitorData.responsavel,
-      id
+      monitorData.marca ?? atual.marca,
+      monitorData.tamanho ?? atual.tamanho,
+      monitorData.origem ?? atual.origem,
+      monitorData.rma ?? atual.rma,
+      monitorData.observacao ?? atual.observacao,
+      monitorData.responsavel ?? atual.responsavel,
+      monitorData.fkDevolucao ?? atual.fkDevolucao,
+      id,
     ];
 
     try {
       await DualDatabase.executeOnBothPools(sql, params);
-      return { id, ...monitorData };
+      return this.findById(id);
     } catch (error) {
       throw new Error(`Erro ao atualizar monitor: ${error.message}`);
     }
   }
 
-  // Deletar monitor
   static async delete(id) {
-    const sql = `DELETE FROM monitores WHERE id = ?`;
-
     try {
-      await DualDatabase.executeOnBothPools(sql, [id]);
+      await DualDatabase.executeOnBothPools('DELETE FROM monitores WHERE id = ?', [id]);
       return true;
     } catch (error) {
       throw new Error(`Erro ao deletar monitor: ${error.message}`);
-    } 
+    }
   }
 
-  // Método para exportar dados
   toJSON() {
     return {
       id: this.id,
       marca: this.marca,
       tamanho: this.tamanho,
-      quantidade: this.quantidade,
+      origem: this.origem,
       rma: this.rma,
       data: this.data,
-      responsavel: this.responsavel
+      observacao: this.observacao,
+      responsavel: this.responsavel,
+      fkDevolucao: this.fkDevolucao,
     };
   }
 }

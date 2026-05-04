@@ -1,50 +1,44 @@
-// src/pages/DashboardPage.jsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Grid,
-  Paper,
-  Typography,
+  Alert,
   Box,
+  Button,
   Card,
   CardContent,
-  Button,
   CircularProgress,
   Container,
-  TextField,
+  Divider,
+  Grid,
+  MenuItem,
+  Paper,
   Stack,
+  TextField,
+  Typography,
 } from '@mui/material';
 import {
-  Refresh as RefreshIcon,
-  Download as DownloadIcon,
+  Assessment,
+  CalendarMonth,
   Computer as ComputerIcon,
-  Monitor as MonitorIcon,
+  Download as DownloadIcon,
   KeyboardReturn as ReturnIcon,
-  Extension as KitIcon,
-  TrendingUp as TrendingUpIcon,
+  Monitor as MonitorIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { Bar } from 'react-chartjs-2';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
   BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
   Title,
   Tooltip,
-  Legend,
 } from 'chart.js';
 import api from '../services/api';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const MAX_CHART_ITEMS = 12;
-
 const CHART_COLORS = [
   '#22c55e', '#3b82f6', '#f59e0b', '#ef4444',
   '#8b5cf6', '#ec4899', '#10b981', '#f97316',
@@ -54,13 +48,12 @@ const CHART_COLORS = [
 const formatDateToInput = (date) => date.toISOString().slice(0, 10);
 
 const incrementCounter = (counter, key) => {
-  const normalizedKey = key || 'Sem informação';
+  const normalizedKey = key || 'Sem informacao';
   counter[normalizedKey] = (counter[normalizedKey] || 0) + 1;
 };
 
 const buildChartDataFromCounter = (counter, label) => {
-  const entries = Object.entries(counter)
-    .sort(([, totalA], [, totalB]) => totalB - totalA);
+  const entries = Object.entries(counter).sort(([, totalA], [, totalB]) => totalB - totalA);
 
   if (entries.length > MAX_CHART_ITEMS) {
     const topEntries = entries.slice(0, MAX_CHART_ITEMS - 1);
@@ -80,50 +73,71 @@ const buildChartDataFromCounter = (counter, label) => {
       backgroundColor: entries.map((_, index) => CHART_COLORS[index % CHART_COLORS.length]),
       borderColor: '#ffffff',
       borderWidth: 2,
-      borderRadius: 8,
+      borderRadius: 6,
     }],
   };
 };
 
-const isSameDate = (value, referenceDate) => {
-  if (!value) return false;
+const getWeekRange = (offsetWeeks = 0) => {
+  const today = new Date();
+  const day = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1) + (offsetWeeks * 7));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
 
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return false;
+  return {
+    inicio: formatDateToInput(monday),
+    fim: formatDateToInput(sunday),
+  };
+};
 
-  return (
-    parsedDate.getDate() === referenceDate.getDate()
-    && parsedDate.getMonth() === referenceDate.getMonth()
-    && parsedDate.getFullYear() === referenceDate.getFullYear()
-  );
+const getLastSevenDays = () => {
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(today.getDate() - 6);
+  return { inicio: formatDateToInput(start), fim: formatDateToInput(today) };
+};
+
+const getApiDownloadUrl = (path, params = {}) => {
+  const baseUrl = (process.env.REACT_APP_API_URL || api.defaults.baseURL || '').replace(/\/$/, '');
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      query.append(key, value);
+    }
+  });
+
+  return `${baseUrl}${path}${query.toString() ? `?${query.toString()}` : ''}`;
+};
+
+const reportTypeLabels = {
+  detalhado: 'Detalhado',
+  soma: 'Somente soma',
+  sku: 'Agrupar por SKU',
+  defeito: 'Agrupar por defeito',
+  sku_defeito: 'SKU + defeito',
 };
 
 const DashboardPage = () => {
   const didInitialLoadRef = useRef(false);
   const [loading, setLoading] = useState(true);
-  const [kpis, setKpis] = useState({
-    maquinas: 0,
-    monitores: 0,
-    devolucoes: 0,
-    kits: 0,
-  });
+  const [reportLoading, setReportLoading] = useState(false);
+  const [kpis, setKpis] = useState({ maquinas: 0, monitores: 0, devolucoes: 0 });
   const [chartsData, setChartsData] = useState({
     maquinasPorDefeito: { labels: [], datasets: [] },
     maquinasHojePorConfiguracao: { labels: [], datasets: [] },
-    kitsPorConfiguracao: { labels: [], datasets: [] },
     maquinasPorConfiguracao: { labels: [], datasets: [] },
   });
-
-  const [periodoRelatorio, setPeriodoRelatorio] = useState(() => {
-    const hoje = new Date();
-    const seteDiasAtras = new Date(hoje);
-    seteDiasAtras.setDate(hoje.getDate() - 6);
-
-    return {
-      inicio: formatDateToInput(seteDiasAtras),
-      fim: formatDateToInput(hoje),
-    };
+  const [periodoRelatorio, setPeriodoRelatorio] = useState(getLastSevenDays);
+  const [machineReportFilters, setMachineReportFilters] = useState({
+    ...getWeekRange(0),
+    tipo: 'sku',
+    sku: '',
+    defeito: '',
   });
+  const [machineReport, setMachineReport] = useState(null);
 
   const fetchPaginatedCounters = useCallback(async (url, onItem) => {
     let page = 1;
@@ -140,58 +154,39 @@ const DashboardPage = () => {
     } while (page <= totalPages);
   }, []);
 
-  // Carregar dados da dashboard
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const [maquinasRes, monitoresRes, devolucoesRes, kitsRes] = await Promise.all([
+      const [maquinasRes, monitoresRes, devolucoesRes] = await Promise.all([
         api.get('/maquinas?page=1&limit=1'),
         api.get('/monitores?page=1&limit=1'),
         api.get('/devolucao?page=1&limit=1'),
-        api.get('/kits?page=1&limit=1'),
       ]);
 
       setKpis({
         maquinas: maquinasRes.data.total || 0,
         monitores: monitoresRes.data.total || 0,
         devolucoes: devolucoesRes.data.total || 0,
-        kits: kitsRes.data.total || 0,
       });
 
-      const hoje = new Date();
+      const today = formatDateToInput(new Date());
       const maquinasPorDefeitoCounter = {};
       const maquinasHojePorConfiguracaoCounter = {};
       const maquinasPorConfiguracaoCounter = {};
-      const kitsPorConfiguracaoCounter = {};
 
-      await Promise.all([
-        fetchPaginatedCounters('/maquinas', (maquina) => {
-          incrementCounter(maquinasPorDefeitoCounter, maquina.defeito || 'Sem defeito informado');
-          incrementCounter(maquinasPorConfiguracaoCounter, maquina.codigo || 'Sem configuração');
+      await fetchPaginatedCounters('/maquinas', (maquina) => {
+        incrementCounter(maquinasPorDefeitoCounter, maquina.defeito || 'Sem defeito informado');
+        incrementCounter(maquinasPorConfiguracaoCounter, maquina.codigo || 'Sem configuracao');
 
-          if (isSameDate(maquina.data_registro, hoje)) {
-            incrementCounter(
-              maquinasHojePorConfiguracaoCounter,
-              maquina.codigo || 'Sem configuração'
-            );
-          }
-        }),
-        fetchPaginatedCounters('/kits', (kit) => {
-          incrementCounter(kitsPorConfiguracaoCounter, kit.processador || 'Sem configuração');
-        }),
-      ]);
+        if (String(maquina.data_registro || '').slice(0, 10) === today) {
+          incrementCounter(maquinasHojePorConfiguracaoCounter, maquina.codigo || 'Sem configuracao');
+        }
+      });
 
       setChartsData({
-        maquinasPorDefeito: buildChartDataFromCounter(maquinasPorDefeitoCounter, 'Máquinas'),
-        maquinasHojePorConfiguracao: buildChartDataFromCounter(
-          maquinasHojePorConfiguracaoCounter,
-          'Máquinas registradas hoje'
-        ),
-        kitsPorConfiguracao: buildChartDataFromCounter(kitsPorConfiguracaoCounter, 'Kits'),
-        maquinasPorConfiguracao: buildChartDataFromCounter(
-          maquinasPorConfiguracaoCounter,
-          'Máquinas'
-        ),
+        maquinasPorDefeito: buildChartDataFromCounter(maquinasPorDefeitoCounter, 'Maquinas'),
+        maquinasHojePorConfiguracao: buildChartDataFromCounter(maquinasHojePorConfiguracaoCounter, 'Hoje'),
+        maquinasPorConfiguracao: buildChartDataFromCounter(maquinasPorConfiguracaoCounter, 'Maquinas'),
       });
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
@@ -200,112 +195,87 @@ const DashboardPage = () => {
     }
   }, [fetchPaginatedCounters]);
 
-  // ✅ CORRIGIDO: Funções de exportação com endpoints corretos
-  const getPeriodoQueryString = () => {
-    const query = new URLSearchParams();
+  const loadMachineReport = useCallback(async (override = {}) => {
+    const filters = { ...machineReportFilters, ...override };
+    setMachineReportFilters(filters);
+    setReportLoading(true);
+    try {
+      const response = await api.get('/relatorios/maquinas/flex', { params: filters });
+      setMachineReport(response.data);
+    } catch (error) {
+      console.error('Erro ao gerar relatorio de maquinas:', error);
+      alert(error.response?.data?.error || 'Erro ao gerar relatorio de maquinas');
+    } finally {
+      setReportLoading(false);
+    }
+  }, [machineReportFilters]);
 
-    if (periodoRelatorio.inicio) query.append('dataInicio', periodoRelatorio.inicio);
-    if (periodoRelatorio.fim) query.append('dataFim', periodoRelatorio.fim);
-
-    return query.toString();
-  };
+  useEffect(() => {
+    if (didInitialLoadRef.current) return;
+    didInitialLoadRef.current = true;
+    loadDashboardData();
+    loadMachineReport();
+  }, [loadDashboardData, loadMachineReport]);
 
   const handlePeriodoChange = (campo) => (event) => {
     const valor = event.target.value;
     setPeriodoRelatorio((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  const definirUltimosSeteDias = () => {
-    const hoje = new Date();
-    const seteDiasAtras = new Date(hoje);
-    seteDiasAtras.setDate(hoje.getDate() - 6);
-
-    setPeriodoRelatorio({
-      inicio: formatDateToInput(seteDiasAtras),
-      fim: formatDateToInput(hoje),
-    });
+  const handleMachineFilterChange = (campo) => (event) => {
+    const valor = event.target.value;
+    setMachineReportFilters((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  const handleExportReport = (tipo) => {
-    const periodo = getPeriodoQueryString();
-    const urlBase = `http://https://devolucao-system-1.onrender.com/api/relatorios/excel/${tipo}`;
-    const urlFinal = periodo ? `${urlBase}?${periodo}` : urlBase;
+  const applyMachinePreset = (preset) => {
+    const today = new Date();
+    let range = getWeekRange(0);
 
-    window.open(urlFinal, '_blank');
+    if (preset === 'hoje') range = { inicio: formatDateToInput(today), fim: formatDateToInput(today) };
+    if (preset === 'ultimos7') range = getLastSevenDays();
+    if (preset === 'semanaAtual') range = getWeekRange(0);
+    if (preset === 'semanaPassada') range = getWeekRange(-1);
+
+    loadMachineReport(range);
   };
 
-  const handleExportSkuReport = (tipo) => {
-    const endpoints = {
-      maquinas: 'http://https://devolucao-system-1.onrender.com/api/relatorios/paulinho/maquinas',
-      monitores: 'http://https://devolucao-system-1.onrender.com/api/relatorios/paulinho/monitores',
-      kit: 'http://https://devolucao-system-1.onrender.com/api/relatorios/paulinho/kit',
-    };
-    window.open(endpoints[tipo], '_blank');
+  const exportMachineReport = (tipo = machineReportFilters.tipo) => {
+    window.open(getApiDownloadUrl('/relatorios/maquinas/flex/excel', {
+      ...machineReportFilters,
+      tipo,
+    }), '_blank');
   };
 
-  const handleSacReport = () => {
-    const periodo = getPeriodoQueryString();
-    const urlBase = 'http://https://devolucao-system-1.onrender.com/api/relatorios/sac/semanal';
-    const urlFinal = periodo ? `${urlBase}?${periodo}` : urlBase;
-
-    window.open(urlFinal, '_blank');
+  const exportSimpleReport = (tabela) => {
+    window.open(getApiDownloadUrl(`/relatorios/excel/${tabela}`, {
+      dataInicio: periodoRelatorio.inicio,
+      dataFim: periodoRelatorio.fim,
+    }), '_blank');
   };
 
-  useEffect(() => {
-    if (didInitialLoadRef.current) return;
-
-    didInitialLoadRef.current = true;
-    loadDashboardData();
-  }, [loadDashboardData]);
+  const exportSacReport = () => {
+    window.open(getApiDownloadUrl('/relatorios/sac/semanal', {
+      dataInicio: periodoRelatorio.inicio,
+      dataFim: periodoRelatorio.fim,
+    }), '_blank');
+  };
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
     plugins: {
-      legend: {
-        position: 'top',
-        labels: {
-          font: {
-            size: 12,
-            family: "'Montserrat', sans-serif",
-          },
-          color: '#374151',
-        },
-      },
-      tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleFont: { family: "'Montserrat', sans-serif" },
-        bodyFont: { family: "'Montserrat', sans-serif" },
-      },
+      legend: { position: 'top' },
+      tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)' },
     },
     scales: {
-      y: {
-        beginAtZero: true,
-        grid: {
-          color: 'rgba(0, 0, 0, 0.05)',
-        },
-        ticks: {
-          font: {
-            family: "'Montserrat', sans-serif",
-          },
-        },
-      },
-      x: {
-        grid: {
-          color: 'rgba(0, 0, 0, 0.05)',
-        },
-        ticks: {
-          autoSkip: false,
-          maxRotation: 45,
-          minRotation: 0,
-          font: {
-            family: "'Montserrat', sans-serif",
-          },
-        },
-      },
+      y: { beginAtZero: true },
+      x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } },
     },
   };
+
+  const previewRows = machineReport?.dados?.slice(0, 8) || [];
+  const previewColumns = previewRows.length ? Object.keys(previewRows[0]) : [];
 
   if (loading) {
     return (
@@ -316,120 +286,166 @@ const DashboardPage = () => {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
-      {/* Header com título e botão de atualizar */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" fontWeight="bold" color="#0f172a">
-          📊 Dashboard de Controle Técnico
+    <Container maxWidth="xl" sx={{ py: { xs: 1, md: 3 }, px: { xs: 0, sm: 2 } }}>
+      <Box display="flex" justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} mb={3} gap={1.5} flexDirection={{ xs: 'column', sm: 'row' }}>
+        <Typography variant="h4" fontWeight="bold" color="#0f172a" sx={{ fontSize: { xs: 26, md: 34 } }}>
+          Dashboard de Controle
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<RefreshIcon />}
-          onClick={loadDashboardData}
-          sx={{
-            bgcolor: '#2563eb',
-            '&:hover': { bgcolor: '#1d4ed8' },
-          }}
-        >
+        <Button variant="contained" startIcon={<RefreshIcon />} onClick={loadDashboardData}>
           Atualizar
         </Button>
       </Box>
 
-      {/* KPIs */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
-          <KpiCard
-            title="Total de Máquinas"
-            value={kpis.maquinas}
-            icon={<ComputerIcon />}
-            color="#2563eb"
-          />
+      <Grid container spacing={2} mb={3}>
+        <Grid item xs={12} sm={4}>
+          <KpiCard title="Total de Maquinas" value={kpis.maquinas} icon={<ComputerIcon />} color="#2563eb" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <KpiCard
-            title="Total de Monitores"
-            value={kpis.monitores}
-            icon={<MonitorIcon />}
-            color="#22c55e"
-          />
+        <Grid item xs={12} sm={4}>
+          <KpiCard title="Total de Monitores" value={kpis.monitores} icon={<MonitorIcon />} color="#22c55e" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <KpiCard
-            title="Total de Devoluções"
-            value={kpis.devolucoes}
-            icon={<ReturnIcon />}
-            color="#f59e0b"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <KpiCard
-            title="Total de Kits"
-            value={kpis.kits}
-            icon={<KitIcon />}
-            color="#8b5cf6"
-          />
+        <Grid item xs={12} sm={4}>
+          <KpiCard title="Total de Devolucoes" value={kpis.devolucoes} icon={<ReturnIcon />} color="#f59e0b" />
         </Grid>
       </Grid>
 
-      {/* Gráficos */}
-      <Grid container spacing={3} mb={4}>
+      <Paper elevation={1} sx={{ p: { xs: 1.5, md: 3 }, mb: 3, borderRadius: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Assessment color="primary" />
+          <Typography variant="h6" fontWeight={700}>
+            Relatorio flexivel de maquinas
+          </Typography>
+        </Box>
+
+        <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} mb={2}>
+          <Button variant="outlined" onClick={() => applyMachinePreset('hoje')}>Hoje</Button>
+          <Button variant="outlined" onClick={() => applyMachinePreset('ultimos7')}>Ultimos 7 dias</Button>
+          <Button variant="outlined" onClick={() => applyMachinePreset('semanaAtual')}>Semana atual</Button>
+          <Button variant="outlined" onClick={() => applyMachinePreset('semanaPassada')}>Semana passada</Button>
+        </Stack>
+
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '160px 160px 190px 1fr 1fr auto' }, gap: 1.5, mb: 2 }}>
+          <TextField
+            label="Data inicial"
+            type="date"
+            value={machineReportFilters.inicio}
+            onChange={handleMachineFilterChange('inicio')}
+            InputLabelProps={{ shrink: true }}
+            size="small"
+          />
+          <TextField
+            label="Data final"
+            type="date"
+            value={machineReportFilters.fim}
+            onChange={handleMachineFilterChange('fim')}
+            InputLabelProps={{ shrink: true }}
+            size="small"
+          />
+          <TextField
+            select
+            label="Tipo"
+            value={machineReportFilters.tipo}
+            onChange={handleMachineFilterChange('tipo')}
+            size="small"
+          >
+            {Object.entries(reportTypeLabels).map(([value, label]) => (
+              <MenuItem key={value} value={value}>{label}</MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Filtrar SKU/config"
+            value={machineReportFilters.sku}
+            onChange={handleMachineFilterChange('sku')}
+            placeholder="Ex: i5 4TH, 001005"
+            size="small"
+          />
+          <TextField
+            label="Filtrar defeito"
+            value={machineReportFilters.defeito}
+            onChange={handleMachineFilterChange('defeito')}
+            placeholder="Ex: nao liga"
+            size="small"
+          />
+          <Button variant="contained" onClick={() => loadMachineReport()} disabled={reportLoading}>
+            {reportLoading ? <CircularProgress size={20} color="inherit" /> : 'Gerar'}
+          </Button>
+        </Box>
+
+        <Grid container spacing={1.5} mb={2}>
+          <Grid item xs={12} sm={4}>
+            <MiniMetric label="Periodo" value={`${machineReport?.periodo?.inicio || '-'} a ${machineReport?.periodo?.fim || '-'}`} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <MiniMetric label="Maquinas" value={machineReport?.totalMaquinas ?? 0} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <MiniMetric label="SKUs distintos" value={machineReport?.totalSkus ?? 0} />
+          </Grid>
+        </Grid>
+
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} mb={2}>
+          <Button startIcon={<DownloadIcon />} variant="contained" onClick={() => exportMachineReport('detalhado')}>Excel detalhado</Button>
+          <Button startIcon={<DownloadIcon />} variant="outlined" onClick={() => exportMachineReport('soma')}>Excel soma</Button>
+          <Button startIcon={<DownloadIcon />} variant="outlined" onClick={() => exportMachineReport('sku')}>Excel por SKU</Button>
+          <Button startIcon={<DownloadIcon />} variant="outlined" onClick={() => exportMachineReport('sku_defeito')}>Excel SKU + defeito</Button>
+        </Stack>
+
+        <Divider sx={{ mb: 2 }} />
+
+        {previewRows.length === 0 ? (
+          <Alert severity="info">Nenhum registro encontrado para os filtros selecionados.</Alert>
+        ) : (
+          <Box sx={{ display: 'grid', gap: 1 }}>
+            {previewRows.map((row, index) => (
+              <Box
+                key={`${row.id || row.codigo || index}-${index}`}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', md: `repeat(${Math.min(previewColumns.length, 5)}, minmax(120px, 1fr))` },
+                  gap: 1,
+                  p: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  backgroundColor: 'white',
+                }}
+              >
+                {previewColumns.slice(0, 5).map((column) => (
+                  <Box key={column} sx={{ minWidth: 0 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700 }}>
+                      {column}
+                    </Typography>
+                    <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                      {String(row[column] ?? '-')}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Paper>
+
+      <Grid container spacing={3} mb={3}>
         <Grid item xs={12} lg={8}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
-            <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
-              Máquinas por Defeito
-            </Typography>
-            <Box height={300}>
-              <Bar data={chartsData.maquinasPorDefeito} options={chartOptions} />
-            </Box>
-          </Paper>
+          <ChartCard title="Maquinas por Defeito" data={chartsData.maquinasPorDefeito} options={chartOptions} />
         </Grid>
-
         <Grid item xs={12} lg={4}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
-            <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
-              Máquinas Registradas Hoje por Configuração
-            </Typography>
-            <Box height={300}>
-              <Bar data={chartsData.maquinasHojePorConfiguracao} options={chartOptions} />
-            </Box>
-          </Paper>
+          <ChartCard title="Maquinas registradas hoje por SKU" data={chartsData.maquinasHojePorConfiguracao} options={chartOptions} />
         </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
-            <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
-              Kits por Configuração
-            </Typography>
-            <Box height={300}>
-              <Bar data={chartsData.kitsPorConfiguracao} options={chartOptions} />
-            </Box>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
-            <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
-              Máquinas por Configuração
-            </Typography>
-            <Box height={300}>
-              <Bar data={chartsData.maquinasPorConfiguracao} options={chartOptions} />
-            </Box>
-          </Paper>
+        <Grid item xs={12}>
+          <ChartCard title="Maquinas por SKU" data={chartsData.maquinasPorConfiguracao} options={chartOptions} height={340} />
         </Grid>
       </Grid>
 
-      {/* Relatórios */}
-      <Paper elevation={2} sx={{ p: 3, borderRadius: 3 }}>
-        <Typography variant="h6" fontWeight="600" mb={3} color="#0f172a">
-          📄 Relatórios por Período
-        </Typography>
+      <Paper elevation={1} sx={{ p: { xs: 1.5, md: 3 }, borderRadius: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <CalendarMonth color="primary" />
+          <Typography variant="h6" fontWeight={700}>
+            Outros relatorios por periodo
+          </Typography>
+        </Box>
 
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={2}
-          mb={3}
-          alignItems={{ xs: 'stretch', md: 'center' }}
-        >
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} mb={2}>
           <TextField
             label="Data inicial"
             type="date"
@@ -437,7 +453,6 @@ const DashboardPage = () => {
             onChange={handlePeriodoChange('inicio')}
             InputLabelProps={{ shrink: true }}
             size="small"
-            sx={{ minWidth: 180 }}
           />
           <TextField
             label="Data final"
@@ -446,101 +461,25 @@ const DashboardPage = () => {
             onChange={handlePeriodoChange('fim')}
             InputLabelProps={{ shrink: true }}
             size="small"
-            sx={{ minWidth: 180 }}
           />
-          <Button variant="outlined" onClick={definirUltimosSeteDias}>
-            Últimos 7 dias
-          </Button>
+          <Button variant="outlined" onClick={() => setPeriodoRelatorio(getWeekRange(-1))}>Semana passada</Button>
+          <Button variant="outlined" onClick={() => setPeriodoRelatorio(getLastSevenDays())}>Ultimos 7 dias</Button>
         </Stack>
 
-        <Grid container spacing={2}>
+        <Grid container spacing={1.5}>
           <Grid item xs={12} sm={6} md={3}>
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<DownloadIcon />}
-              onClick={() => handleExportReport('devolucao')}
-              sx={{ bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}
-            >
-              Devoluções no Período
+            <Button fullWidth variant="contained" startIcon={<DownloadIcon />} onClick={() => exportSimpleReport('devolucao')}>
+              Devolucoes
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<DownloadIcon />}
-              onClick={() => handleExportReport('maquinas')}
-              sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' } }}
-            >
-              Máquinas no Período
+            <Button fullWidth variant="contained" startIcon={<DownloadIcon />} onClick={() => exportSimpleReport('monitores')}>
+              Monitores
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<DownloadIcon />}
-              onClick={() => handleExportReport('kit')}
-              sx={{ bgcolor: '#8b5cf6', '&:hover': { bgcolor: '#7c3aed' } }}
-            >
-              Kit no Período
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<DownloadIcon />}
-              onClick={() => handleExportReport('monitores')}
-              sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
-            >
-              Monitores no Período
-            </Button>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<TrendingUpIcon />}
-              onClick={() => handleExportSkuReport('maquinas')}
-              sx={{ borderColor: '#3b82f6', color: '#3b82f6' }}
-            >
-              SKU Máquinas (Config)
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<TrendingUpIcon />}
-              onClick={() => handleExportSkuReport('monitores')}
-              sx={{ borderColor: '#10b981', color: '#10b981' }}
-            >
-              SKU Monitores
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<TrendingUpIcon />}
-              onClick={() => handleExportSkuReport('kit')}
-              sx={{ borderColor: '#8b5cf6', color: '#8b5cf6' }}
-            >
-              SKU Kit
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={handleSacReport}
-              sx={{ borderColor: '#ec4899', color: '#ec4899' }}
-            >
-              SAC no Período
+            <Button fullWidth variant="outlined" startIcon={<DownloadIcon />} onClick={exportSacReport}>
+              SAC
             </Button>
           </Grid>
         </Grid>
@@ -550,30 +489,39 @@ const DashboardPage = () => {
 };
 
 const KpiCard = ({ title, value, icon, color }) => (
-  <Card sx={{ borderRadius: 3, borderLeft: `4px solid ${color}`, height: '100%' }}>
-    <CardContent sx={{ p: 3 }}>
+  <Card sx={{ borderRadius: 1, borderLeft: `4px solid ${color}`, height: '100%' }}>
+    <CardContent sx={{ p: { xs: 2, md: 3 } }}>
       <Box display="flex" alignItems="center" mb={2} gap={2}>
-        <Box
-          sx={{
-            bgcolor: `${color}20`,
-            p: 1,
-            borderRadius: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
+        <Box sx={{ bgcolor: `${color}20`, p: 1, borderRadius: 1, display: 'flex' }}>
           {React.cloneElement(icon, { sx: { color, fontSize: 28 } })}
         </Box>
-        <Typography variant="body2" color="text.secondary" fontWeight="500">
+        <Typography variant="body2" color="text.secondary" fontWeight="600">
           {title}
         </Typography>
       </Box>
-      <Typography variant="h3" fontWeight="bold" color={color}>
+      <Typography variant="h3" fontWeight="bold" color={color} sx={{ fontSize: { xs: 34, md: 42 } }}>
         {value}
       </Typography>
     </CardContent>
   </Card>
+);
+
+const MiniMetric = ({ label, value }) => (
+  <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, backgroundColor: '#f8fafc' }}>
+    <Typography variant="caption" color="text.secondary" fontWeight={700}>{label}</Typography>
+    <Typography variant="h6" sx={{ overflowWrap: 'anywhere' }}>{value}</Typography>
+  </Box>
+);
+
+const ChartCard = ({ title, data, options, height = 300 }) => (
+  <Paper elevation={1} sx={{ p: { xs: 1.5, md: 3 }, borderRadius: 1, height: '100%' }}>
+    <Typography variant="h6" fontWeight="600" mb={2} color="#0f172a">
+      {title}
+    </Typography>
+    <Box height={height}>
+      <Bar data={data} options={options} />
+    </Box>
+  </Paper>
 );
 
 export default DashboardPage;

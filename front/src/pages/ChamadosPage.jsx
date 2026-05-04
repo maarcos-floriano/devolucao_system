@@ -8,28 +8,47 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
-  FormHelperText,
-  InputLabel,
   MenuItem,
   Paper,
-  Select,
   TextField,
   Typography,
 } from '@mui/material';
-import { Save, Refresh, Edit as EditIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon, Refresh, Save } from '@mui/icons-material';
 import DataTable from '../components/tables/DataTable';
 import SearchBar from '../components/tables/SearchBar';
 import chamadoService from '../services/chamadoService';
-import devolucaoService from '../services/devolucaoService';
 import { ORIGENS } from '../utils/constants';
 
 const initialFormData = {
+  tipo: 'acompanhar_devolucao',
+  cliente: '',
   origem: '',
-  devolucao_id: '',
+  item_esperado: '',
+  data_previsao: '',
+  acesso_remoto_em: '',
   problema: '',
+  observacao: '',
+  email_solicitante: '',
+  email_responsavel: '',
   status: 'aberto',
   acao_tomada: '',
+  devolucao_id: '',
+};
+
+const tipoLabels = {
+  acompanhar_devolucao: 'Ficar de olho',
+  acesso_remoto: 'Acesso remoto',
+  divergencia: 'Divergencia',
+};
+
+const toDateInput = (value) => {
+  if (!value) return '';
+  return String(value).slice(0, 10);
+};
+
+const toDateTimeInput = (value) => {
+  if (!value) return '';
+  return String(value).replace(' ', 'T').slice(0, 16);
 };
 
 const ChamadosPage = () => {
@@ -37,15 +56,16 @@ const ChamadosPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [chamados, setChamados] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('aberto');
+  const [tipoFilter, setTipoFilter] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalRows, setTotalRows] = useState(0);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingChamado, setEditingChamado] = useState(null);
+  const [deletingChamado, setDeletingChamado] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
-  const [devolucoes, setDevolucoes] = useState([]);
-  const [loadingDevolucoes, setLoadingDevolucoes] = useState(false);
 
   const loadChamados = useCallback(async () => {
     setLoading(true);
@@ -55,6 +75,7 @@ const ChamadosPage = () => {
         limit: rowsPerPage,
         search: searchTerm,
         status: statusFilter,
+        tipo: tipoFilter,
       });
 
       setChamados(response.dados || []);
@@ -66,45 +87,49 @@ const ChamadosPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, searchTerm, statusFilter]);
-  const loadDevolucoesByOrigem = useCallback(async (origemSelecionada) => {
-    if (!origemSelecionada) {
-      setDevolucoes([]);
-      setLoadingDevolucoes(false);
-      return;
-    }
+  }, [page, rowsPerPage, searchTerm, statusFilter, tipoFilter]);
 
-    setLoadingDevolucoes(true);
-    try {
-      const dados = await devolucaoService.getDevolucoesForSelect(origemSelecionada);
-      const devolucoesFormatadas = (dados || []).map((devolucao) => ({
-        id: devolucao.id,
-        label: `#${devolucao.id} - ${devolucao.cliente} - ${devolucao.produto}`,
-      }));
-      setDevolucoes(devolucoesFormatadas);
-    } catch (error) {
-      console.error('Erro ao carregar devoluções por origem:', error);
-      setDevolucoes([]);
-    } finally {
-      setLoadingDevolucoes(false);
-    }
-  }, []);
   useEffect(() => {
     loadChamados();
   }, [loadChamados]);
-  const handleSubmit = async () => {
-    if (!formData.devolucao_id || !formData.problema.trim()) {
-      alert('Informe a devolução e o problema.');
-      return;
+
+  const updateForm = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const validateForm = () => {
+    if (!formData.cliente.trim()) {
+      alert('Informe o cliente.');
+      return false;
     }
+
+    if (formData.tipo === 'acompanhar_devolucao' && (!formData.item_esperado.trim() || !formData.data_previsao)) {
+      alert('Informe o que vai chegar e a data de previsao.');
+      return false;
+    }
+
+    if (formData.tipo === 'acesso_remoto' && !formData.acesso_remoto_em) {
+      alert('Informe a data/hora do acesso remoto.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const buildPayload = () => ({
+    ...formData,
+    devolucao_id: formData.devolucao_id ? Number(formData.devolucao_id) : null,
+    problema: formData.problema || formData.observacao,
+  });
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
 
     setSubmitting(true);
     try {
-      await chamadoService.create({
-        ...formData,
-        devolucao_id: Number(formData.devolucao_id),
-      });
+      await chamadoService.create(buildPayload());
       setFormData(initialFormData);
+      setPage(0);
       loadChamados();
       alert('Chamado registrado com sucesso');
     } catch (error) {
@@ -117,28 +142,34 @@ const ChamadosPage = () => {
   const handleEditClick = (chamado) => {
     setEditingChamado(chamado);
     setFormData({
-      origem: chamado.origem || '',
-      devolucao_id: String(chamado.devolucao_id),
+      tipo: chamado.tipo || 'acompanhar_devolucao',
+      cliente: chamado.cliente || chamado.devolucao_cliente || '',
+      origem: chamado.origem || chamado.devolucao_origem || '',
+      item_esperado: chamado.item_esperado || chamado.produto || '',
+      data_previsao: toDateInput(chamado.data_previsao),
+      acesso_remoto_em: toDateTimeInput(chamado.acesso_remoto_em),
       problema: chamado.problema || '',
+      observacao: chamado.observacao || '',
+      email_solicitante: chamado.email_solicitante || '',
+      email_responsavel: chamado.email_responsavel || '',
       status: chamado.status || 'aberto',
       acao_tomada: chamado.acao_tomada || '',
+      devolucao_id: chamado.devolucao_id ? String(chamado.devolucao_id) : '',
     });
     setEditDialogOpen(true);
   };
 
   const handleSaveEdit = async () => {
-    if (!editingChamado) return;
+    if (!editingChamado || !validateForm()) return;
+
     if (formData.status === 'resolvido' && !formData.acao_tomada.trim()) {
-      alert('Para resolver o chamado, informe qual ação foi tomada.');
+      alert('Para resolver o chamado, informe qual acao foi tomada.');
       return;
     }
 
     setSubmitting(true);
     try {
-      await chamadoService.update(editingChamado.id, {
-        ...formData,
-        devolucao_id: Number(formData.devolucao_id),
-      });
+      await chamadoService.update(editingChamado.id, buildPayload());
       setEditDialogOpen(false);
       setEditingChamado(null);
       setFormData(initialFormData);
@@ -151,23 +182,52 @@ const ChamadosPage = () => {
     }
   };
 
+  const handleDeleteClick = (chamado) => {
+    setDeletingChamado(chamado);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingChamado) return;
+
+    setSubmitting(true);
+    try {
+      await chamadoService.delete(deletingChamado.id);
+      setDeleteDialogOpen(false);
+      setDeletingChamado(null);
+      loadChamados();
+      alert('Chamado excluido com sucesso');
+    } catch (error) {
+      alert(error.response?.data?.error || 'Erro ao excluir chamado');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const columns = useMemo(() => ([
     { field: 'id', headerName: 'ID', width: 60 },
-    { field: 'devolucao_id', headerName: 'Devolução #', width: 100 },
-    { field: 'cliente', headerName: 'Cliente', width: 150 },
-    { field: 'produto', headerName: 'Produto', width: 140 },
-    { field: 'problema', headerName: 'Problema', width: 220 },
+    {
+      field: 'tipo',
+      headerName: 'Tipo',
+      width: 140,
+      render: (value) => tipoLabels[value] || value || '-',
+    },
+    { field: 'cliente', headerName: 'Cliente', width: 160 },
+    { field: 'item_esperado', headerName: 'Vai chegar', width: 180 },
+    { field: 'data_previsao', headerName: 'Previsao', width: 120, type: 'date' },
+    { field: 'acesso_remoto_em', headerName: 'Acesso remoto', width: 160, type: 'datetime' },
+    { field: 'problema', headerName: 'Descricao', width: 220 },
     {
       field: 'status',
       headerName: 'Status',
-      width: 100,
+      width: 110,
       render: (value) => (
         <Box
           component="span"
           sx={{
-            px: 1.5,
+            px: 1.25,
             py: 0.5,
-            borderRadius: 2,
+            borderRadius: 1,
             fontWeight: 700,
             color: value === 'aberto' ? '#991b1b' : '#065f46',
             backgroundColor: value === 'aberto' ? '#fee2e2' : '#d1fae5',
@@ -178,116 +238,149 @@ const ChamadosPage = () => {
         </Box>
       ),
     },
-    { field: 'acao_tomada', headerName: 'Ação tomada', width: 220 },
+    { field: 'devolucao_id', headerName: 'Devolucao', width: 100, render: (value) => value ? `#${value}` : '-' },
+    { field: 'acao_tomada', headerName: 'Acao tomada', width: 220 },
     { field: 'criado_em', headerName: 'Criado em', width: 160, type: 'datetime' },
-    { field: 'resolvido_em', headerName: 'Resolvido em', width: 160, type: 'datetime' },
   ]), []);
+
+  const renderChamadoForm = (isEditing = false) => (
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '220px 1fr 1fr' }, gap: 1.5 }}>
+      <TextField
+        select
+        label="Tipo"
+        value={formData.tipo}
+        onChange={(e) => updateForm('tipo', e.target.value)}
+        fullWidth
+      >
+        <MenuItem value="acompanhar_devolucao">Ficar de olho</MenuItem>
+        <MenuItem value="acesso_remoto">Acesso remoto</MenuItem>
+        <MenuItem value="divergencia">Divergencia</MenuItem>
+      </TextField>
+
+      <TextField label="Cliente" value={formData.cliente} onChange={(e) => updateForm('cliente', e.target.value)} required fullWidth />
+
+      <TextField
+        select
+        label="Origem"
+        value={formData.origem}
+        onChange={(e) => updateForm('origem', e.target.value)}
+        fullWidth
+      >
+        <MenuItem value=""><em>Selecione...</em></MenuItem>
+        {ORIGENS.map((origem) => (
+          <MenuItem key={origem.value} value={origem.value}>{origem.label}</MenuItem>
+        ))}
+      </TextField>
+
+      {formData.tipo === 'acompanhar_devolucao' && (
+        <>
+          <TextField
+            label="O que vai chegar"
+            value={formData.item_esperado}
+            onChange={(e) => updateForm('item_esperado', e.target.value)}
+            required
+            fullWidth
+          />
+          <TextField
+            label="Data de previsao"
+            type="date"
+            value={formData.data_previsao}
+            onChange={(e) => updateForm('data_previsao', e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            required
+            fullWidth
+          />
+        </>
+      )}
+
+      {formData.tipo === 'acesso_remoto' && (
+        <TextField
+          label="Data/hora do acesso"
+          type="datetime-local"
+          value={formData.acesso_remoto_em}
+          onChange={(e) => updateForm('acesso_remoto_em', e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          required
+          fullWidth
+        />
+      )}
+
+      <TextField
+        label="E-mail de quem pediu"
+        value={formData.email_solicitante}
+        onChange={(e) => updateForm('email_solicitante', e.target.value)}
+        fullWidth
+      />
+
+      <TextField
+        label="E-mail para aviso"
+        value={formData.email_responsavel}
+        onChange={(e) => updateForm('email_responsavel', e.target.value)}
+        fullWidth
+      />
+
+      <TextField
+        label="Descricao"
+        value={formData.problema}
+        onChange={(e) => updateForm('problema', e.target.value)}
+        multiline
+        minRows={2}
+        fullWidth
+        sx={{ gridColumn: { xs: 'auto', md: '1 / -1' } }}
+      />
+
+      {isEditing && (
+        <>
+          <TextField
+            select
+            label="Status"
+            value={formData.status}
+            onChange={(e) => updateForm('status', e.target.value)}
+            fullWidth
+          >
+            <MenuItem value="aberto">Aberto</MenuItem>
+            <MenuItem value="resolvido">Resolvido</MenuItem>
+          </TextField>
+          <TextField
+            label="Acao tomada"
+            value={formData.acao_tomada}
+            onChange={(e) => updateForm('acao_tomada', e.target.value)}
+            multiline
+            minRows={2}
+            fullWidth
+            sx={{ gridColumn: { xs: 'auto', md: 'span 2' } }}
+          />
+        </>
+      )}
+    </Box>
+  );
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
-        Chamados de Divergência
+      <Typography variant="h4" gutterBottom sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: 26, md: 34 } }}>
+        Chamados SAC
       </Typography>
 
-      <Paper elevation={2} sx={{ p: 3, mb: 3, border: '2px solid', borderColor: 'primary.main', borderRadius: 3 }}>
+      <Paper elevation={1} sx={{ p: { xs: 1.5, md: 3 }, mb: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 1 }}>
         <Typography variant="h6" gutterBottom>
-          Abrir Chamado de Acompanhamento
+          Abrir chamado
         </Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px 320px 1fr' }, gap: 2 }}>
-          <FormControl fullWidth>
-            <InputLabel>Origem</InputLabel>
-            <Select
-              value={formData.origem}
-              onChange={(e) => {
-                const origemSelecionada = e.target.value;
-                setFormData((prev) => ({ ...prev, origem: origemSelecionada, devolucao_id: '' }));
-                loadDevolucoesByOrigem(origemSelecionada);
-              }}
-              label="Origem"
-            >
-              <MenuItem value=""><em>Selecione...</em></MenuItem>
-              {ORIGENS.map((origem) => (
-                <MenuItem key={origem.value} value={origem.value}>
-                  {origem.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
 
-          <FormControl fullWidth disabled={!formData.origem}>
-            <InputLabel>Vincular a Devolução</InputLabel>
-            <Select
-              value={formData.devolucao_id}
-              onChange={(e) => setFormData((prev) => ({ ...prev, devolucao_id: e.target.value }))}
-              label="Vincular a Devolução"
-              MenuProps={{
-                PaperProps: {
-                  style: {
-                    maxHeight: 300,
-                  },
-                },
-              }}
-            >
-              <MenuItem value="">
-                <em>Selecione uma devolução</em>
-              </MenuItem>
+        {renderChamadoForm(false)}
 
-              {loadingDevolucoes ? (
-                <MenuItem disabled>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CircularProgress size={16} />
-                    Buscando devoluções de {formData.origem}...
-                  </Box>
-                </MenuItem>
-              ) : devolucoes.length === 0 ? (
-                <MenuItem disabled>
-                  {formData.origem ? `Nenhuma devolução encontrada para origem: ${formData.origem}` : 'Selecione uma origem primeiro'}
-                </MenuItem>
-              ) : (
-                devolucoes.map((devolucao) => (
-                  <MenuItem key={devolucao.id} value={String(devolucao.id)}>
-                    {devolucao.label}
-                  </MenuItem>
-                ))
-              )}
-            </Select>
-            <FormHelperText>
-              {formData.origem
-                ? devolucoes.length > 0
-                  ? `${devolucoes.length} devoluções encontradas para ${formData.origem}`
-                  : `Sem devoluções para ${formData.origem}`
-                : 'Selecione uma origem para carregar as devoluções'}
-            </FormHelperText>
-          </FormControl>
-          <TextField
-            label="Qual é o problema?"
-            value={formData.problema}
-            onChange={(e) => setFormData((prev) => ({ ...prev, problema: e.target.value }))}
-            fullWidth
-            multiline
-            minRows={2}
-          />
-        </Box>
-
-        <Button
-          sx={{ mt: 2 }}
-          variant="contained"
-          startIcon={<Save />}
-          onClick={handleSubmit}
-          disabled={submitting}
-        >
+        <Button sx={{ mt: 2 }} variant="contained" startIcon={<Save />} onClick={handleSubmit} disabled={submitting} fullWidth>
           {submitting ? <CircularProgress size={22} color="inherit" /> : 'Registrar chamado'}
         </Button>
 
         <Alert severity="info" sx={{ mt: 2 }}>
-          Use esta área para sinalizar devoluções com divergência e manter o time técnico/SAC alinhado até a resolução.
+          Ficar de olho fecha automaticamente quando uma devolucao do cliente for registrada. Acesso remoto envia aviso por e-mail quando SMTP estiver configurado.
         </Alert>
       </Paper>
 
-      <Paper elevation={2} sx={{ p: 3, border: '2px solid', borderColor: 'primary.main', borderRadius: 3, height: '70vh' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2 }}>
+      <Paper elevation={1} sx={{ p: { xs: 1.5, md: 3 }, border: '1px solid', borderColor: 'primary.main', borderRadius: 1, height: { xs: 'auto', md: '72vh' }, overflow: 'auto' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'stretch', md: 'center' }, mb: 2, gap: 1.5, flexDirection: { xs: 'column', md: 'row' } }}>
           <Typography variant="h6">Chamados em acompanhamento</Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '160px 180px auto' }, gap: 1 }}>
             <TextField
               select
               size="small"
@@ -297,11 +390,25 @@ const ChamadosPage = () => {
                 setStatusFilter(e.target.value);
                 setPage(0);
               }}
-              sx={{ minWidth: 140 }}
             >
               <MenuItem value="">Todos</MenuItem>
               <MenuItem value="aberto">Aberto</MenuItem>
               <MenuItem value="resolvido">Resolvido</MenuItem>
+            </TextField>
+            <TextField
+              select
+              size="small"
+              label="Tipo"
+              value={tipoFilter}
+              onChange={(e) => {
+                setTipoFilter(e.target.value);
+                setPage(0);
+              }}
+            >
+              <MenuItem value="">Todos</MenuItem>
+              <MenuItem value="acompanhar_devolucao">Ficar de olho</MenuItem>
+              <MenuItem value="acesso_remoto">Acesso remoto</MenuItem>
+              <MenuItem value="divergencia">Divergencia</MenuItem>
             </TextField>
             <Button startIcon={<Refresh />} onClick={loadChamados} disabled={loading}>Atualizar</Button>
           </Box>
@@ -313,7 +420,7 @@ const ChamadosPage = () => {
             setSearchTerm(value);
             setPage(0);
           }}
-          placeholder="Pesquisar por devolução, cliente, produto ou descrição do problema..."
+          placeholder="Pesquisar por cliente, item, devolucao, descricao ou e-mail..."
           sx={{ mb: 2 }}
         />
 
@@ -329,6 +436,7 @@ const ChamadosPage = () => {
             setPage(0);
           }}
           onEdit={handleEditClick}
+          onDelete={handleDeleteClick}
           loading={loading}
         />
       </Paper>
@@ -338,39 +446,30 @@ const ChamadosPage = () => {
           <EditIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
           Atualizar chamado #{editingChamado?.id}
         </DialogTitle>
-        <DialogContent sx={{ display: 'grid', gap: 2, pt: 2 }}>
-          <TextField
-            label="Problema"
-            value={formData.problema}
-            onChange={(e) => setFormData((prev) => ({ ...prev, problema: e.target.value }))}
-            multiline
-            minRows={2}
-            fullWidth
-          />
-          <TextField
-            select
-            label="Status"
-            value={formData.status}
-            onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
-            fullWidth
-          >
-            <MenuItem value="aberto">Aberto</MenuItem>
-            <MenuItem value="resolvido">Resolvido</MenuItem>
-          </TextField>
-          <TextField
-            label="Ação tomada"
-            value={formData.acao_tomada}
-            onChange={(e) => setFormData((prev) => ({ ...prev, acao_tomada: e.target.value }))}
-            multiline
-            minRows={3}
-            fullWidth
-            helperText="Descreva o que foi feito para resolver o problema"
-          />
+        <DialogContent sx={{ pt: 2 }}>
+          {renderChamadoForm(true)}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ p: 2, flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'stretch' }}>
           <Button onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
           <Button variant="contained" startIcon={<Save />} onClick={handleSaveEdit} disabled={submitting}>
-            {submitting ? <CircularProgress size={20} color="inherit" /> : 'Salvar atualização'}
+            {submitting ? <CircularProgress size={20} color="inherit" /> : 'Salvar atualizacao'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <DeleteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Excluir chamado #{deletingChamado?.id}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography>Cliente: {deletingChamado?.cliente}</Typography>
+          <Typography>Tipo: {tipoLabels[deletingChamado?.tipo] || deletingChamado?.tipo}</Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={submitting}>Cancelar</Button>
+          <Button variant="contained" color="error" startIcon={<DeleteIcon />} onClick={handleConfirmDelete} disabled={submitting}>
+            {submitting ? <CircularProgress size={20} color="inherit" /> : 'Excluir'}
           </Button>
         </DialogActions>
       </Dialog>

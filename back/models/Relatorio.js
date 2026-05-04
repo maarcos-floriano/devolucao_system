@@ -1,4 +1,20 @@
 const DualDatabase = require('../middleware/dualDatabase');
+const { buildSearchWhere } = require('../utils/search');
+
+const MAQUINA_REPORT_TYPES = ['detalhado', 'soma', 'sku', 'defeito', 'sku_defeito'];
+
+function toDateOnly(value, fallbackDate = new Date()) {
+  const date = value ? new Date(value) : new Date(fallbackDate);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error('Data invalida para o relatorio');
+  }
+
+  return date.toISOString().slice(0, 10);
+}
+
+function normalizeMachineReportType(tipo) {
+  return MAQUINA_REPORT_TYPES.includes(tipo) ? tipo : 'sku';
+}
 
 class Relatorio {
   // Relatório de máquinas agrupadas (Paulinho/Nick)
@@ -90,7 +106,7 @@ class Relatorio {
       console.log(`Gerando relatório SAC de ${dataInicio} até ${dataFim}`);
 
       // Busca devoluções do período
-      const [devolucoes] = await DualDatabase.executeOnMainPool(`
+      const devolucoes = await DualDatabase.executeOnMainPool(`
         SELECT 
           d.id AS devolucao_id,
           d.origem,
@@ -159,59 +175,14 @@ class Relatorio {
   }
 
   static async _buscarItensComputadorCompleto(devolucaoId, item) {
-    // Máquinas
-    const [maquinas] = await DualDatabase.executeOnMainPool(`
-      SELECT id, processador, memoria, armazenamento, fonte, placaVideo, gabinete, defeito, observacao
-      FROM maquinas WHERE fkDevolucao = ?
-    `, [devolucaoId]);
-
-    // Monitores
-    const [monitores] = await DualDatabase.executeOnMainPool(`
-      SELECT id, marca, tamanho, observacao
-      FROM monitores WHERE fkDevolucao = ?
-    `, [devolucaoId]);
-
-    // Periféricos
-    const [perifericos] = await DualDatabase.executeOnMainPool(`
-      SELECT id, periferico, quantidade, observacao
-      FROM periferico WHERE fkDevolucao = ?
-    `, [devolucaoId]);
-
-    // Adicionar ao array de itens
-    maquinas.forEach(m => {
-      item.itens.push({
-        item_id: m.id,
-        tipo: 'Máquina',
-        defeito: m.defeito,
-        descricao: `Processador: ${m.processador || 'N/A'}, Memória: ${m.memoria || 'N/A'}, Armazenamento: ${m.armazenamento || 'N/A'}, Fonte: ${m.fonte || 'N/A'}, Placa de Vídeo: ${m.placaVideo || 'N/A'}`,
-        observacao: m.observacao
-      });
-    });
-
-    monitores.forEach(m => {
-      item.itens.push({
-        item_id: m.id,
-        tipo: 'Monitor',
-        defeito: 'N/A',
-        descricao: `Marca: ${m.marca || 'N/A'}, Tamanho: ${m.tamanho || 'N/A'}`,
-        observacao: m.observacao
-      });
-    });
-
-    perifericos.forEach(p => {
-      item.itens.push({
-        item_id: p.id,
-        tipo: 'Periférico',
-        defeito: 'N/A',
-        descricao: `Periférico: ${p.periferico || 'N/A'}, Quantidade: ${p.quantidade || '1'}`,
-        observacao: p.observacao
-      });
-    });
+    await this._buscarMaquinas(devolucaoId, item);
+    await this._buscarMonitores(devolucaoId, item);
+    await this._buscarPerifericos(devolucaoId, item);
   }
 
   static async _buscarMaquinas(devolucaoId, item) {
-    const [maquinas] = await DualDatabase.executeOnMainPool(`
-      SELECT id, processador, memoria, armazenamento, fonte, placaVideo, gabinete, defeito, observacao
+    const maquinas = await DualDatabase.executeOnMainPool(`
+      SELECT id, codigo, config, defeito
       FROM maquinas WHERE fkDevolucao = ?
     `, [devolucaoId]);
 
@@ -220,14 +191,14 @@ class Relatorio {
         item_id: m.id,
         tipo: 'Máquina',
         defeito: m.defeito,
-        descricao: `Processador: ${m.processador || 'N/A'}, Memória: ${m.memoria || 'N/A'}, Armazenamento: ${m.armazenamento || 'N/A'}, Fonte: ${m.fonte || 'N/A'}, Placa de Vídeo: ${m.placaVideo || 'N/A'}`,
-        observacao: m.observacao
+        descricao: `SKU: ${m.codigo || 'N/A'}, Configuracao: ${m.config || 'N/A'}`,
+        observacao: ''
       });
     });
   }
 
   static async _buscarMonitores(devolucaoId, item) {
-    const [monitores] = await DualDatabase.executeOnMainPool(`
+    const monitores = await DualDatabase.executeOnMainPool(`
       SELECT id, marca, tamanho, observacao
       FROM monitores WHERE fkDevolucao = ?
     `, [devolucaoId]);
@@ -244,7 +215,7 @@ class Relatorio {
   }
 
   static async _buscarKits(devolucaoId, item) {
-    const [kits] = await DualDatabase.executeOnMainPool(`
+    const kits = await DualDatabase.executeOnMainPool(`
       SELECT id, processador, memoria, placaMae, defeito, observacao
       FROM kit WHERE fkDevolucao = ?
     `, [devolucaoId]);
@@ -261,7 +232,7 @@ class Relatorio {
   }
 
   static async _buscarPerifericos(devolucaoId, item) {
-    const [perifericos] = await DualDatabase.executeOnMainPool(`
+    const perifericos = await DualDatabase.executeOnMainPool(`
       SELECT id, periferico, quantidade, observacao
       FROM periferico WHERE fkDevolucao = ?
     `, [devolucaoId]);
@@ -308,6 +279,133 @@ class Relatorio {
       throw new Error(`Erro ao gerar relatório semanal: ${error.message}`);
     }
   }
+
+  static async relatorioMaquinasFlexivel({
+    dataInicio,
+    dataFim,
+    sku = '',
+    defeito = '',
+    tipo = 'sku',
+  } = {}) {
+    try {
+      const fim = toDateOnly(dataFim);
+      const inicio = dataInicio ? toDateOnly(dataInicio) : fim;
+
+      if (new Date(inicio) > new Date(fim)) {
+        throw new Error('A data inicial nao pode ser maior que a data final');
+      }
+
+      const reportType = normalizeMachineReportType(tipo);
+      const filters = ['DATE(data_registro) BETWEEN ? AND ?'];
+      const params = [inicio, fim];
+
+      const skuWhere = buildSearchWhere(['codigo', 'config'], sku);
+      if (skuWhere.clause !== '1 = 1') {
+        filters.push(skuWhere.clause);
+        params.push(...skuWhere.params);
+      }
+
+      const defeitoWhere = buildSearchWhere(['defeito'], defeito);
+      if (defeitoWhere.clause !== '1 = 1') {
+        filters.push(defeitoWhere.clause);
+        params.push(...defeitoWhere.params);
+      }
+
+      const whereClause = filters.join(' AND ');
+
+      const totalRows = await DualDatabase.executeOnMainPool(
+        `
+          SELECT
+            COUNT(*) AS total_maquinas,
+            COUNT(DISTINCT codigo) AS total_skus
+          FROM maquinas
+          WHERE ${whereClause}
+        `,
+        params
+      );
+
+      const total = totalRows[0] || { total_maquinas: 0, total_skus: 0 };
+      let sql = '';
+
+      if (reportType === 'soma') {
+        sql = `
+          SELECT
+            COUNT(*) AS total_maquinas,
+            COUNT(DISTINCT codigo) AS total_skus
+          FROM maquinas
+          WHERE ${whereClause}
+        `;
+      }
+
+      if (reportType === 'sku') {
+        sql = `
+          SELECT
+            codigo,
+            COALESCE(config, 'Sem configuracao') AS configuracao,
+            COUNT(*) AS quantidade,
+            GROUP_CONCAT(id ORDER BY id SEPARATOR ', ') AS ids
+          FROM maquinas
+          WHERE ${whereClause}
+          GROUP BY codigo, config
+          ORDER BY quantidade DESC, codigo ASC
+        `;
+      }
+
+      if (reportType === 'defeito') {
+        sql = `
+          SELECT
+            COALESCE(NULLIF(defeito, ''), 'Sem defeito informado') AS defeito,
+            COUNT(*) AS quantidade,
+            GROUP_CONCAT(id ORDER BY id SEPARATOR ', ') AS ids
+          FROM maquinas
+          WHERE ${whereClause}
+          GROUP BY COALESCE(NULLIF(defeito, ''), 'Sem defeito informado')
+          ORDER BY quantidade DESC, defeito ASC
+        `;
+      }
+
+      if (reportType === 'sku_defeito') {
+        sql = `
+          SELECT
+            codigo,
+            COALESCE(config, 'Sem configuracao') AS configuracao,
+            COALESCE(NULLIF(defeito, ''), 'Sem defeito informado') AS defeito,
+            COUNT(*) AS quantidade,
+            GROUP_CONCAT(id ORDER BY id SEPARATOR ', ') AS ids
+          FROM maquinas
+          WHERE ${whereClause}
+          GROUP BY codigo, config, COALESCE(NULLIF(defeito, ''), 'Sem defeito informado')
+          ORDER BY quantidade DESC, codigo ASC, defeito ASC
+        `;
+      }
+
+      if (reportType === 'detalhado') {
+        sql = `
+          SELECT
+            id,
+            codigo,
+            config,
+            defeito,
+            DATE_FORMAT(data_registro, '%d/%m/%Y %H:%i') AS data_registro
+          FROM maquinas
+          WHERE ${whereClause}
+          ORDER BY data_registro DESC, id DESC
+        `;
+      }
+
+      const rows = await DualDatabase.executeOnMainPool(sql, params);
+
+      return {
+        periodo: { inicio, fim },
+        filtros: { sku, defeito, tipo: reportType },
+        totalMaquinas: total.total_maquinas || 0,
+        totalSkus: total.total_skus || 0,
+        dados: rows || [],
+      };
+    } catch (error) {
+      throw new Error(`Erro ao gerar relatorio de maquinas: ${error.message}`);
+    }
+  }
 }
 
-module.exports = Relatorio; 
+module.exports = Relatorio;

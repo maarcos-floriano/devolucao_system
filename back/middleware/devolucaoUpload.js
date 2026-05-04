@@ -1,16 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { devolucaoUploadDir } = require('../config/storage');
 
-const uploadDir = path.join(__dirname, '..', 'public', 'uploads', 'devolucoes');
-fs.mkdirSync(uploadDir, { recursive: true });
+fs.mkdirSync(devolucaoUploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, devolucaoUploadDir);
   },
   filename: (req, file, cb) => {
-    const extension = path.extname(file.originalname) || '.jpg';
+    const extension = (path.extname(file.originalname) || '.jpg').toLowerCase();
     const sanitizedBaseName = path
       .basename(file.originalname, extension)
       .replace(/[^a-zA-Z0-9-_]/g, '_')
@@ -34,7 +34,7 @@ const uploadDevolucaoImagem = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 12 * 1024 * 1024,
   },
 });
 

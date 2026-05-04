@@ -1,18 +1,17 @@
 const express = require('express');
-const router = express.Router();
 const RelatorioController = require('../controllers/RelatorioController');
 
-// Relatórios Excel simples
-router.get('/excel/:tabela', RelatorioController.relatorioExcel);
+const router = express.Router();
 
-// Relatórios Paulinho/Nick
+router.get('/excel/:tabela', RelatorioController.relatorioExcel);
+router.get('/maquinas/flex', RelatorioController.relatorioMaquinasFlexivel);
+router.get('/maquinas/flex/excel', RelatorioController.relatorioMaquinasFlexivelExcel);
+
 router.get('/paulinho/maquinas', RelatorioController.relatorioPaulinhoMaquinas);
 router.get('/paulinho/monitores', RelatorioController.relatorioPaulinhoMonitores);
 router.get('/paulinho/kit', RelatorioController.relatorioPaulinhoKit);
 
-// Relatórios SAC
 router.get('/sac/semanal', RelatorioController.relatorioSACSemanal);
-// Mantido por compatibilidade: endpoint diário agora gera relatório semanal.
 router.get('/sac/diario', RelatorioController.relatorioSACSemanal);
 
 module.exports = router;

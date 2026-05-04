@@ -1,28 +1,49 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Paper,
-  Typography,
+  Alert,
   Box,
   Button,
-  Alert,
   CircularProgress,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
+  DialogContent,
+  DialogTitle,
+  Paper,
+  Typography,
 } from '@mui/material';
-import { Save, Refresh, Download, Print, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import {
+  Delete as DeleteIcon,
+  Download,
+  Edit as EditIcon,
+  Print,
+  Refresh,
+  Save,
+} from '@mui/icons-material';
 import DevolucaoForm from '../components/forms/DevolucaoForm';
 import DataTable from '../components/tables/DataTable';
 import SearchBar from '../components/tables/SearchBar';
 import api from '../services/api';
+import chamadoService from '../services/chamadoService';
 import { useAuth } from '../contexts/AuthContext';
+import { printDevolucaoLabel } from '../utils/labelPrinter';
+
+const initialFormData = {
+  origem: '',
+  cliente: '',
+  produto: '',
+  codigo: '',
+  observacao: '',
+  imagem: '',
+  imagemArquivo: null,
+};
 
 const DevolucaoPage = () => {
   const { hasRole } = useAuth();
-  
+
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [analyzingLabel, setAnalyzingLabel] = useState(false);
+  const [ocrResult, setOcrResult] = useState(null);
   const [devolucoes, setDevolucoes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
@@ -32,18 +53,11 @@ const DevolucaoPage = () => {
   const [deletingDevolucao, setDeletingDevolucao] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    id : '',
-    origem: '',
-    cliente: '',
-    produto: '',
-    codigo: '',
-    observacao: '',
-    imagem: '',
-    imagemArquivo: null,
-  });
+  const [matchingChamados, setMatchingChamados] = useState([]);
+  const [loadingMatches, setLoadingMatches] = useState(false);
+  const [formData, setFormData] = useState(initialFormData);
 
-  const getApiBaseUrl = () => (process.env.REACT_APP_API_URL || 'https://devolucao-system.onrender.com/api').replace(/\/api\/?$/, '');
+  const getApiBaseUrl = () => (process.env.REACT_APP_API_URL || api.defaults.baseURL || '/api').replace(/\/api\/?$/, '');
 
   const buildImageUrl = (imagePath) => {
     if (!imagePath) return '';
@@ -55,10 +69,7 @@ const DevolucaoPage = () => {
     const payload = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-      if (value === undefined || value === null || key === 'imagemArquivo') {
-        return;
-      }
-
+      if (value === undefined || value === null || key === 'imagemArquivo') return;
       payload.append(key, value);
     });
 
@@ -69,21 +80,9 @@ const DevolucaoPage = () => {
     return payload;
   };
 
-  // Verificar permissões
   const canEdit = () => hasRole('admin') || hasRole('tecnico') || hasRole('operador');
   const canDelete = () => hasRole('admin');
 
-  // Funções de paginação
-  const handlePageChange = (newPage) => {
-    setPage(newPage);
-  };
-
-  const handleRowsPerPageChange = (newRowsPerPage) => {
-    setRowsPerPage(newRowsPerPage);
-    setPage(0);
-  };
-
-  // Carregar devoluções
   const loadDevolucoes = useCallback(async () => {
     setLoading(true);
     try {
@@ -95,12 +94,11 @@ const DevolucaoPage = () => {
         },
       });
 
-      setDevolucoes(response.data.dados);
-      setTotalRows(response.data.total);
-      
+      setDevolucoes(response.data.dados || []);
+      setTotalRows(response.data.total || 0);
     } catch (error) {
-      console.error('Erro ao carregar devoluções:', error);
-      alert('Erro ao carregar devoluções');
+      console.error('Erro ao carregar devolucoes:', error);
+      alert('Erro ao carregar devolucoes');
     } finally {
       setLoading(false);
     }
@@ -110,13 +108,80 @@ const DevolucaoPage = () => {
     loadDevolucoes();
   }, [loadDevolucoes]);
 
-  // ABRIR MODAL DE EDIÇÃO
-  const handleEditClick = (devolucao) => {
-    if (!canEdit()) {
-      alert('Você não tem permissão para editar devoluções. Apenas administradores e técnicos podem editar.');
+  useEffect(() => {
+    const cliente = formData.cliente?.trim();
+    if (!cliente || cliente.length < 3 || editingDevolucao) {
+      setMatchingChamados([]);
+      return undefined;
+    }
+
+    const timeout = setTimeout(async () => {
+      setLoadingMatches(true);
+      try {
+        const response = await chamadoService.findMatches({
+          cliente,
+          produto: formData.produto,
+          codigo: formData.codigo,
+        });
+        setMatchingChamados(response.dados || []);
+      } catch (error) {
+        console.error('Erro ao buscar chamados relacionados:', error);
+        setMatchingChamados([]);
+      } finally {
+        setLoadingMatches(false);
+      }
+    }, 450);
+
+    return () => clearTimeout(timeout);
+  }, [formData.cliente, formData.produto, formData.codigo, editingDevolucao]);
+
+  const resetForm = () => {
+    setFormData(initialFormData);
+    setOcrResult(null);
+    setMatchingChamados([]);
+  };
+
+  const handleAnalyzeLabel = async () => {
+    if (!formData.imagemArquivo) {
+      alert('Anexe a imagem da etiqueta antes de ler.');
       return;
     }
-    
+
+    setAnalyzingLabel(true);
+    try {
+      const payload = new FormData();
+      payload.append('imagem', formData.imagemArquivo);
+
+      const response = await api.post('/devolucao/etiqueta/analisar', payload, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const fields = response.data.fields || {};
+      setOcrResult(response.data);
+      setFormData((prev) => ({
+        ...prev,
+        origem: prev.origem || fields.origem || '',
+        cliente: prev.cliente || fields.cliente || '',
+        produto: prev.produto || fields.produto || '',
+        codigo: prev.codigo || fields.codigo || '',
+        observacao: prev.observacao || fields.observacao || '',
+        imagem: response.data.imagem || prev.imagem,
+        imagemArquivo: null,
+      }));
+    } catch (error) {
+      console.error('Erro ao ler etiqueta:', error);
+      alert(error.response?.data?.error || 'Nao foi possivel ler a etiqueta. Preencha manualmente.');
+    } finally {
+      setAnalyzingLabel(false);
+    }
+  };
+
+  const handleEditClick = (devolucao) => {
+    if (!canEdit()) {
+      alert('Voce nao tem permissao para editar devolucoes.');
+      return;
+    }
+
     setEditingDevolucao(devolucao);
     setFormData({
       origem: devolucao.origem || '',
@@ -127,46 +192,34 @@ const DevolucaoPage = () => {
       imagem: devolucao.imagem || '',
       imagemArquivo: null,
     });
-    
+
     setEditDialogOpen(true);
   };
 
-  // ABRIR MODAL DE EXCLUSÃO
   const handleDeleteClick = (devolucao) => {
     if (!canDelete()) {
-      alert('Você não tem permissão para excluir devoluções. Apenas administradores podem excluir.');
+      alert('Apenas administradores podem excluir devolucoes.');
       return;
     }
-    
+
     setDeletingDevolucao(devolucao);
     setDeleteDialogOpen(true);
   };
 
-  // FECHAR MODAL DE EDIÇÃO
   const handleCloseEditDialog = () => {
     setEditDialogOpen(false);
     setEditingDevolucao(null);
-    setFormData({
-      origem: '',
-      cliente: '',
-      produto: '',
-      codigo: '',
-      observacao: '',
-      imagem: '',
-      imagemArquivo: null,
-    });
+    resetForm();
   };
 
-  // FECHAR MODAL DE EXCLUSÃO
   const handleCloseDeleteDialog = () => {
     setDeleteDialogOpen(false);
     setDeletingDevolucao(null);
   };
 
-  // SALVAR EDIÇÃO
   const handleSaveEdit = async () => {
     if (!editingDevolucao) return;
-    
+
     setSubmitting(true);
     try {
       const payload = buildMultipartPayload(formData);
@@ -174,24 +227,21 @@ const DevolucaoPage = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      alert('Devolução atualizada com sucesso!');
-      
+      alert('Devolucao atualizada com sucesso!');
       handleCloseEditDialog();
       loadDevolucoes();
-      
     } catch (error) {
-      alert('Erro ao atualizar devolução');
+      alert(error.response?.data?.error || 'Erro ao atualizar devolucao');
       console.error(error);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // EXCLUIR DEVOLUÇÃO
   const handleConfirmDelete = async () => {
     if (!deletingDevolucao) return;
-    
-    const confirmacao = window.confirm(`Tem certeza que deseja excluir a devolução #${deletingDevolucao.id}?\n\nEsta ação não pode ser desfeita!`);
+
+    const confirmacao = window.confirm(`Tem certeza que deseja excluir a devolucao #${deletingDevolucao.id}?`);
     if (!confirmacao) {
       handleCloseDeleteDialog();
       return;
@@ -200,134 +250,73 @@ const DevolucaoPage = () => {
     setSubmitting(true);
     try {
       await api.delete(`/devolucao/${deletingDevolucao.id}`);
-
-      alert('Devolução excluída com sucesso!');
-      
+      alert('Devolucao excluida com sucesso!');
       handleCloseDeleteDialog();
       loadDevolucoes();
-      
     } catch (error) {
-      console.error('Erro ao excluir devolução:', error);
-      alert(error.response?.data?.error || 'Erro ao excluir devolução');
+      console.error('Erro ao excluir devolucao:', error);
+      alert(error.response?.data?.error || 'Erro ao excluir devolucao');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Salvar nova devolução
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  setSubmitting(true);
-  try {
-    const payload = buildMultipartPayload(formData);
-    const response = await api.post('/devolucao', payload, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    let newDevolucao = response.data.data;
-    alert('Devolução salva com sucesso!');
-    
-    console.log(newDevolucao);
-    
-    // Imprimir etiqueta automaticamente após salvar
-    handlePrint(newDevolucao);
+    e.preventDefault();
 
-    // Reseta o formulário
-    setFormData({
-      origem: '',
-      cliente: '',
-      produto: '',
-      codigo: '',
-      observacao: '',
-      imagem: '',
-      imagemArquivo: null,
-    });
-    
-    // Recarrega a lista
-    loadDevolucoes();
-    
-  } catch (error) {
-    alert('Erro ao salvar devolução');
-    console.error(error);
-  } finally {
-    setSubmitting(false);
-  }
-};
+    setSubmitting(true);
+    try {
+      const payload = buildMultipartPayload(formData);
+      const response = await api.post('/devolucao', payload, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
-  // Imprimir etiqueta
-  const handlePrint = async (devolucaoData) => {
-  try {
+      const newDevolucao = response.data.data;
+      const fechados = newDevolucao.chamadosFechados?.length || 0;
 
-    console.log(devolucaoData);    
+      alert(
+        fechados > 0
+          ? `Devolucao salva. ${fechados} chamado(s) de acompanhamento foram fechados.`
+          : 'Devolucao salva com sucesso!'
+      );
 
-    const janela = window.open('', '_blank');
-    const conteudoHTML = `
-      <html>
-        <head>
-          <title>Etiqueta Devolução</title>
-          <style>
-            @page { size: 100mm 30mm; margin: 0; padding: 0; }
-            html, body {
-              width: 100mm; height: 30mm; margin: 0; padding: 0;
-            }
-            body {
-              display: flex; justify-content: center; align-items: center;
-              font-size: 20px; font-family: Arial, sans-serif; text-align: center;
-            }
-            .etiqueta {
-              width: 100%; padding: 0 10px; display: flex;
-              flex-direction: row; justify-content: space-evenly; align-items: center;
-            }
-            .etiqueta h1 { margin: 0; font-size: 50px; }
-            .etiqueta div { margin-top: 5px; font-size: 20px; }
-          </style>
-        </head>
-        <body onload="window.print(); window.close();">
-          <div class="etiqueta">
-            <h1>${devolucaoData.id}</h1>
-            <div>
-              ${devolucaoData.cliente || 'Cliente não especificado'}<br>
-              ${devolucaoData.origem || 'Origem não especificada'}
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-    
-    janela.document.write(conteudoHTML);
-    janela.document.close();
-    
-    alert('Etiqueta impressa com sucesso');
-  } catch (error) {
-    alert('Erro ao imprimir etiqueta');
-    console.error(error);
-  }
-};
-
-  // Exportar para Excel
-  const handleExport = async () => {
-    alert('Funcionalidade de exportação em desenvolvimento');
+      printDevolucaoLabel(newDevolucao);
+      resetForm();
+      loadDevolucoes();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Erro ao salvar devolucao');
+      console.error(error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // Colunas da tabela
+  const handlePrint = (devolucaoData) => {
+    try {
+      printDevolucaoLabel(devolucaoData.id === 'new' ? { id: 'NOVO', ...formData } : devolucaoData);
+    } catch (error) {
+      alert(error.message || 'Erro ao imprimir etiqueta');
+    }
+  };
+
+  const handleExport = async () => {
+    alert('Funcionalidade de exportacao em desenvolvimento');
+  };
+
   const columns = [
     { field: 'id', headerName: 'ID', width: 70 },
     { field: 'origem', headerName: 'Origem', width: 150 },
     { field: 'cliente', headerName: 'Cliente', width: 150 },
     { field: 'produto', headerName: 'Produto', width: 150 },
-    { field: 'codigo', headerName: 'Código', width: 150 },
+    { field: 'codigo', headerName: 'Codigo', width: 150 },
     { field: 'data', headerName: 'Data/Hora', width: 180, type: 'datetime' },
-    { field: 'observacao', headerName: 'Observação', width: 200 },
+    { field: 'observacao', headerName: 'Observacao', width: 200 },
     {
       field: 'imagem',
       headerName: 'Imagem',
       width: 120,
       render: (value) => value ? (
-        <Button
-          variant="text"
-          size="small"
-          onClick={() => window.open(buildImageUrl(value), '_blank')}
-        >
+        <Button variant="text" size="small" onClick={() => window.open(buildImageUrl(value), '_blank')}>
           Ver imagem
         </Button>
       ) : 'Sem anexo',
@@ -336,93 +325,66 @@ const DevolucaoPage = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
-        Devolução
+      <Typography variant="h4" gutterBottom sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: 26, md: 34 } }}>
+        Devolucao
       </Typography>
 
-      {/* Formulário */}
-      <Paper 
-        elevation={2}
-        sx={{
-          p: 3,
-          mb: 3,
-          border: '2px solid',
-          borderColor: 'primary.main',
-          borderRadius: 3,
-        }}
-      >
+      <Paper elevation={1} sx={{ p: { xs: 1.5, md: 3 }, mb: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 1 }}>
         <Typography variant="h6" gutterBottom>
-          Registrar Devolução
+          Registrar Devolucao
         </Typography>
 
         <DevolucaoForm
           formData={formData}
           onChange={setFormData}
           loading={submitting}
-          isEditing={!!editingDevolucao}
+          onAnalyzeImage={!editingDevolucao ? handleAnalyzeLabel : undefined}
+          analyzingLabel={analyzingLabel}
+          ocrResult={ocrResult}
         />
 
-        <Box sx={{ mt: 2, display: 'flex', gap: 2, flexDirection: 'column' }}>
-          <Button
-            variant="contained"
-            startIcon={<Save />}
-            onClick={handleSubmit}
-            disabled={submitting}
-            fullWidth
-          >
-            {submitting ? <CircularProgress size={24} /> : editingDevolucao ? 'Atualizar Devolução' : 'Salvar Devolução'}
+        {loadingMatches && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            Verificando chamados abertos para este cliente...
+          </Alert>
+        )}
+
+        {matchingChamados.length > 0 && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            Existe {matchingChamados.length} chamado aberto para este cliente. Ao salvar, o sistema fecha o chamado e envia o aviso configurado.
+          </Alert>
+        )}
+
+        <Box sx={{ mt: 2, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+          <Button variant="contained" startIcon={<Save />} onClick={handleSubmit} disabled={submitting} fullWidth>
+            {submitting ? <CircularProgress size={24} /> : 'Salvar Devolucao'}
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Print />}
-            onClick={() => handlePrint('new')}
-            fullWidth
-          >
-            Imprimir Etiqueta
+          <Button variant="outlined" startIcon={<Print />} onClick={() => handlePrint({ id: 'new', ...formData })} fullWidth>
+            Imprimir previa
           </Button>
         </Box>
-
-        <Alert severity="info" sx={{ mt: 3 }}>
-          <Typography variant="body2">
-            <strong>Permissões:</strong> 
-            {hasRole('admin') ? ' Administrador (pode editar e excluir)' : ''}
-            {hasRole('tecnico') ? ' Técnico (pode editar)' : ''}
-            {!hasRole('admin') && !hasRole('tecnico') ? ' Visualização apenas' : ''}
-          </Typography>
-        </Alert>
       </Paper>
 
-      {/* Tabela de Histórico */}
-      <Paper 
-        elevation={2}
+      <Paper
+        elevation={1}
         sx={{
-          p: 3,
-          border: '2px solid',
+          p: { xs: 1.5, md: 3 },
+          border: '1px solid',
           borderColor: 'primary.main',
-          borderRadius: 3,
-          flex: 1,
+          borderRadius: 1,
           display: 'flex',
           flexDirection: 'column',
-          height: '86vh',
+          height: { xs: 'auto', md: '86vh' },
           overflow: 'auto',
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="h6">Histórico de Devoluções</Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              startIcon={<Refresh />}
-              onClick={loadDevolucoes}
-              disabled={loading}
-            >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
+          <Typography variant="h6">Historico de Devolucoes</Typography>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button startIcon={<Refresh />} onClick={loadDevolucoes} disabled={loading}>
               Atualizar
             </Button>
-            <Button
-              startIcon={<Download />}
-              onClick={handleExport}
-              variant="outlined"
-              color="success"
-            >
+            <Button startIcon={<Download />} onClick={handleExport} variant="outlined" color="success">
               Exportar
             </Button>
           </Box>
@@ -430,8 +392,11 @@ const DevolucaoPage = () => {
 
         <SearchBar
           value={searchTerm}
-          onChange={setSearchTerm}
-          placeholder="Pesquisar por origem, cliente, produto ou código..."
+          onChange={(value) => {
+            setSearchTerm(value);
+            setPage(0);
+          }}
+          placeholder="Pesquisar por origem, cliente, produto, codigo ou data..."
           sx={{ mb: 2 }}
         />
 
@@ -441,128 +406,55 @@ const DevolucaoPage = () => {
           page={page}
           rowsPerPage={rowsPerPage}
           totalRows={totalRows}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => {
+            setRowsPerPage(value);
+            setPage(0);
+          }}
+          onPrint={handlePrint}
           onEdit={canEdit() ? handleEditClick : null}
           onDelete={canDelete() ? handleDeleteClick : null}
           loading={loading}
         />
       </Paper>
 
-      {/* MODAL DE EDIÇÃO */}
-      <Dialog 
-        open={editDialogOpen} 
-        onClose={handleCloseEditDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle sx={{ bgcolor: '#fef3c7', color: '#92400e' }}>
+      <Dialog open={editDialogOpen} onClose={handleCloseEditDialog} maxWidth="md" fullWidth fullScreen={window.innerWidth < 600}>
+        <DialogTitle>
           <EditIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Editar Devolução #{editingDevolucao?.id}
+          Editar Devolucao #{editingDevolucao?.id}
         </DialogTitle>
-        
         <DialogContent sx={{ pt: 3 }}>
-          <DevolucaoForm
-            formData={formData}
-            onChange={setFormData}
-            loading={submitting}
-            isEditing={true}
-          />
+          <DevolucaoForm formData={formData} onChange={setFormData} loading={submitting} />
         </DialogContent>
-        
-        <DialogActions sx={{ p: 3, pt: 2 }}>
-          <Button 
-            onClick={handleCloseEditDialog}
-            variant="outlined"
-            disabled={submitting}
-          >
+        <DialogActions sx={{ p: 2, flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'stretch' }}>
+          <Button onClick={handleCloseEditDialog} variant="outlined" disabled={submitting}>
             Cancelar
           </Button>
-          <Button
-            onClick={handleSaveEdit}
-            variant="contained"
-            startIcon={<Save />}
-            disabled={submitting}
-            sx={{ 
-              bgcolor: '#f59e0b',
-              '&:hover': { bgcolor: '#d97706' }
-            }}
-          >
-            {submitting ? <CircularProgress size={24} color="inherit" /> : 'Salvar Alterações'}
+          <Button onClick={handleSaveEdit} variant="contained" startIcon={<Save />} disabled={submitting}>
+            {submitting ? <CircularProgress size={24} color="inherit" /> : 'Salvar Alteracoes'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* MODAL DE EXCLUSÃO */}
-      <Dialog 
-        open={deleteDialogOpen} 
-        onClose={handleCloseDeleteDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ bgcolor: '#fee2e2', color: '#991b1b' }}>
+      <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
           <DeleteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Excluir Devolução #{deletingDevolucao?.id}
+          Excluir Devolucao #{deletingDevolucao?.id}
         </DialogTitle>
-        
         <DialogContent sx={{ pt: 3 }}>
           <Alert severity="warning" sx={{ mb: 2 }}>
-            <strong>Atenção!</strong> Esta ação é irreversível.
+            Esta acao e irreversivel.
           </Alert>
-          
-          <Typography variant="body1" sx={{ mb: 1 }}>
-            Você está prestes a excluir a seguinte devolução:
-          </Typography>
-          
-          <Box sx={{ 
-            p: 2, 
-            bgcolor: '#f8fafc', 
-            borderRadius: 1,
-            border: '1px solid #e2e8f0'
-          }}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              ID: {deletingDevolucao?.id}
-            </Typography>
-            <Typography variant="body2">
-              Cliente: {deletingDevolucao?.cliente}
-            </Typography>
-            <Typography variant="body2">
-              Produto: {deletingDevolucao?.produto}
-            </Typography>
-            <Typography variant="body2">
-              Origem: {deletingDevolucao?.origem}
-            </Typography>
-            {deletingDevolucao?.codigo && (
-              <Typography variant="body2">
-                Código: {deletingDevolucao?.codigo}
-              </Typography>
-            )}
-          </Box>
-          
-          <Typography variant="body2" sx={{ mt: 2, color: '#dc2626', fontWeight: 600 }}>
-            Tem certeza que deseja prosseguir com a exclusão?
-          </Typography>
+          <Typography variant="body2">Cliente: {deletingDevolucao?.cliente}</Typography>
+          <Typography variant="body2">Produto: {deletingDevolucao?.produto}</Typography>
+          <Typography variant="body2">Origem: {deletingDevolucao?.origem}</Typography>
         </DialogContent>
-        
-        <DialogActions sx={{ p: 3, pt: 2 }}>
-          <Button 
-            onClick={handleCloseDeleteDialog}
-            variant="outlined"
-            disabled={submitting}
-          >
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseDeleteDialog} variant="outlined" disabled={submitting}>
             Cancelar
           </Button>
-          <Button
-            onClick={handleConfirmDelete}
-            variant="contained"
-            startIcon={<DeleteIcon />}
-            disabled={submitting}
-            sx={{ 
-              bgcolor: '#dc2626',
-              '&:hover': { bgcolor: '#b91c1c' }
-            }}
-          >
-            {submitting ? <CircularProgress size={24} color="inherit" /> : 'Excluir Devolução'}
+          <Button onClick={handleConfirmDelete} variant="contained" startIcon={<DeleteIcon />} disabled={submitting} color="error">
+            {submitting ? <CircularProgress size={24} color="inherit" /> : 'Excluir Devolucao'}
           </Button>
         </DialogActions>
       </Dialog>

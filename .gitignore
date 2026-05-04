@@ -3,3 +3,9 @@
 /.env
 
 /back/.env
+/front/.env
+*_codex_*.log
+/back/*.traineddata
+/back/public/uploads/
+/devolucao_system_obsidian/.obsidian/
+/devolucao_system_obsidian/Bem-vindo.md

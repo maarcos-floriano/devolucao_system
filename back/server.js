@@ -23,4 +23,7 @@ process.on('SIGINT', () => {
 });
 
 // Iniciar servidor
-app.start();
+app.start().catch((error) => {
+  console.error('Falha ao iniciar servidor:', error.message);
+  process.exit(1);
+});

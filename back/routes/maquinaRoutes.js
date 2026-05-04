@@ -1,14 +1,15 @@
 const express = require('express');
-const router = express.Router();
 const MaquinaController = require('../controllers/MaquinaController');
 
-const validateMaquina = (req, res, next) => {
-  const { codigo, config } = req.body;
+const router = express.Router();
 
-  if (!codigo || !config) {
+const validateMaquina = (req, res, next) => {
+  const { codigo, config, defeito } = req.body;
+
+  if (!codigo || !config || !defeito) {
     return res.status(400).json({
       success: false,
-      error: 'Campos obrigatórios: codigo e config',
+      error: 'Campos obrigatorios: codigo, config e defeito',
     });
   }
 
@@ -17,6 +18,8 @@ const validateMaquina = (req, res, next) => {
 
 router.get('/configuracoes', MaquinaController.listConfigs);
 router.post('/configuracoes', MaquinaController.createConfig);
+router.put('/configuracoes/:id', MaquinaController.updateConfig);
+router.delete('/configuracoes/:id', MaquinaController.deleteConfig);
 
 router.post('/', validateMaquina, MaquinaController.create);
 router.get('/', MaquinaController.findAll);

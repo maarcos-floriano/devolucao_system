@@ -17,8 +17,6 @@ import {
   Computer,
   Monitor,
   KeyboardReturn,
-  Inventory,
-  Build,
   Logout,
   Menu as MenuIcon,
 } from '@mui/icons-material';
@@ -48,7 +46,6 @@ const Navbar = ({ onMenuClick }) => {
     { path: '/maquinas', label: 'Máquinas', icon: <Computer /> },
     { path: '/monitores', label: 'Monitores', icon: <Monitor /> },
     { path: '/devolucao', label: 'Devolução', icon: <KeyboardReturn /> },
-    { path: '/kit', label: 'Kit', icon: <Build /> },
   ];
 
   return (

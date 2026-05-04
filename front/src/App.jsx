@@ -6,7 +6,6 @@ import DashboardPage from './pages/DashboardPage';
 import MaquinaPage from './pages/MaquinaPage';
 import MonitorPage from './pages/MonitorPage';
 import DevolucaoPage from './pages/DevolucaoPage';
-import KitPage from './pages/KitPage';
 import ChamadosPage from './pages/ChamadosPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -99,11 +98,7 @@ function App() {
                 <DevolucaoPage />
               </ProtectedRoute>
             } />
-            <Route path="kit" element={
-              <ProtectedRoute requiredPermission="kit">
-                <KitPage />
-              </ProtectedRoute>
-            } />
+            <Route path="kit" element={<Navigate to="/maquinas" replace />} />
             <Route path="chamados" element={
               <ProtectedRoute requiredPermission="chamados">
                 <ChamadosPage />
